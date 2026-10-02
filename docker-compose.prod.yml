@@ -1,0 +1,136 @@
+# =============================================================================
+# Production overlay.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# What this changes versus the development stack:
+#   * Postgres, Redis and MinIO are NO LONGER published to the host. They are
+#     reachable only on the internal network, which removes the single most
+#     common way a self-hosted install gets compromised.
+#   * Resource limits, so one runaway ffmpeg cannot starve the API.
+#   * Log rotation, so a busy night cannot fill the disk.
+#   * Restart policies and stricter health checks.
+#   * The seed/bootstrap one-shots keep their profiles, so `up` never runs them.
+#
+# Read docs/deployment/production.md before using this. In particular: this
+# overlay is a sound single-host deployment, NOT an automatic answer to
+# high-scale traffic. Video delivery in particular should move to a CDN.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Data stores — internal only
+  # ---------------------------------------------------------------------------
+  postgres:
+    # `ports` cannot be removed by an override, so bind to loopback only. Use
+    # an SSH tunnel for psql access rather than exposing 5432 to the network.
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-7432}:5432"
+    restart: always
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=1536MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=128MB
+      # Log slow queries so a regression is visible before students complain.
+      - -c
+      - log_min_duration_statement=500
+    deploy:
+      resources:
+        limits: { cpus: '2.0', memory: 2G }
+    logging: &logging
+      driver: json-file
+      options: { max-size: '20m', max-file: '5' }
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-7379}:6379"
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --maxmemory 1gb
+      --maxmemory-policy noeviction
+      --save 900 1
+      --save 300 10
+    deploy:
+      resources:
+        limits: { cpus: '1.0', memory: 1200M }
+    logging: *logging
+
+  minio:
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-7900}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-7901}:9001"
+    restart: always
+    deploy:
+      resources:
+        limits: { cpus: '2.0', memory: 2G }
+    logging: *logging
+
+  # ---------------------------------------------------------------------------
+  # Applications
+  # ---------------------------------------------------------------------------
+  backend:
+    restart: always
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    # Not published: the proxy is the only way in.
+    ports: !reset []
+    deploy:
+      resources:
+        limits: { cpus: '2.0', memory: 1G }
+        reservations: { memory: 512M }
+    logging: *logging
+
+  frontend:
+    restart: always
+    environment:
+      NODE_ENV: production
+    ports: !reset []
+    deploy:
+      resources:
+        limits: { cpus: '1.5', memory: 768M }
+    logging: *logging
+
+  worker:
+    restart: always
+    environment:
+      NODE_ENV: production
+      VIDEO_WORKER_CONCURRENCY: ${VIDEO_WORKER_CONCURRENCY:-1}
+    deploy:
+      # ffmpeg will use everything it is given. Capping it protects the API,
+      # which shares the host. Scale horizontally instead:
+      #   docker compose ... up -d --scale worker=3
+      resources:
+        limits: { cpus: '2.0', memory: 2G }
+    logging: *logging
+
+  proxy:
+    restart: always
+    ports:
+      - "${PROXY_HTTP_PORT:-80}:80"
+      - "${PROXY_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      # TLS certificates. See docs/deployment/production.md for issuing them
+      # with certbot and for the HTTPS server block to enable.
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+      - certbot-webroot:/var/www/certbot:ro
+    deploy:
+      resources:
+        limits: { cpus: '1.0', memory: 256M }
+    logging: *logging
+
+volumes:
+  certbot-webroot:

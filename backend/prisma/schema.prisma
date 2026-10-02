@@ -1,0 +1,1080 @@
+// ============================================================================
+// منصة عمرو محروس التعليمية — Prisma schema
+// Amr Mahrous Educational Platform — developed by Aurexis (https://aurexis.cc/)
+//
+// Conventions used throughout this schema:
+//   * All money is stored as INTEGER minor units (قرش / piastres). Never floats.
+//   * All timestamps are UTC. Localisation happens in the presentation layer.
+//   * Identifiers are cuid() — stable, non-sequential, safe to expose in URLs.
+// ============================================================================
+
+// Prisma 7: the connection URL lives in prisma.config.ts (for the CLI) and is
+// supplied to PrismaClient through the pg driver adapter (see src/prisma).
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+/// Roles are stored on the user. STUDENT is the default; the rest are staff.
+enum Role {
+  STUDENT
+  SUPPORT
+  CONTENT_MANAGER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+/// The two educational pathways the platform supports.
+/// GENERAL = الثانوية العامة, BACC = البكالوريا المصرية
+enum EducationSystem {
+  GENERAL
+  BACC
+}
+
+/// The five academic levels. Kept as an enum because the whole product
+/// (themes, routing, pricing eligibility) is built around exactly these five.
+enum GradeLevel {
+  SEC_1
+  SEC_2
+  SEC_3
+  BACC_1
+  BACC_2
+}
+
+enum PublishStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Lifecycle of an uploaded video as it moves through the transcoding worker.
+enum VideoStatus {
+  AWAITING_UPLOAD
+  UPLOADED
+  QUEUED
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/// What a purchasable product actually unlocks.
+enum ProductKind {
+  LESSON
+  CHAPTER_BUNDLE
+  COURSE
+  MONTHLY_PLAN
+  YEARLY_PLAN
+  ASSESSMENT
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PAYMENT
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CHARGEBACK
+}
+
+enum PaymentProvider {
+  PAYMOB
+  MANUAL
+  DEV_SANDBOX
+}
+
+enum PaymentMethod {
+  CARD
+  WALLET
+  KIOSK
+  MANUAL
+  DEV
+}
+
+/// What an entitlement grants access to. Mirrors ProductKind but describes
+/// the granted scope rather than the thing that was sold.
+enum EntitlementScope {
+  LESSON
+  CHAPTER
+  COURSE
+  GRADE_MONTHLY
+  GRADE_YEARLY
+  ASSESSMENT
+}
+
+enum AssessmentAttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  TIMED_OUT
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum EntitlementSource {
+  PURCHASE
+  ADMIN_GRANT
+  PROMOTION
+  MIGRATION
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
+enum NotificationKind {
+  SYSTEM
+  PURCHASE
+  CONTENT
+  SUBSCRIPTION
+}
+
+enum AssessmentKind {
+  HOMEWORK
+  LESSON_EXAM
+  UNIT_EXAM
+}
+
+// ----------------------------------------------------------------------------
+// Identity
+// ----------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  fullName     String
+  passwordHash String
+  role         Role       @default(STUDENT)
+  status       UserStatus @default(ACTIVE)
+
+  /// Student phone. Egyptian format, stored normalised as 01XXXXXXXXX.
+  phone String @unique
+  /// Parent / guardian phone. Not unique — siblings legitimately share one.
+  parentPhone String
+
+  phoneVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  /// Bumped on password change / forced logout to invalidate refresh tokens.
+  tokenVersion Int @default(0)
+
+  /// Academic placement. Nullable only for staff accounts.
+  educationSystem EducationSystem?
+  gradeLevel      GradeLevel?
+  academicYearId  String?
+  academicYear    AcademicYear?    @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens     RefreshToken[]
+  passwordResets    PasswordReset[]
+  orders            Order[]
+  entitlements      Entitlement[]
+  subscriptions     Subscription[]
+  progress          LessonProgress[]
+  presence          PresenceRecord?
+  notifications     Notification[]
+  auditLogsActed    AuditLog[]         @relation("AuditActor")
+  auditLogsTarget   AuditLog[]         @relation("AuditTarget")
+  playbackTickets   PlaybackTicket[]
+  couponRedemptions CouponRedemption[]
+  assessmentAttempts AssessmentAttempt[]
+
+  @@index([role, status])
+  @@index([educationSystem, gradeLevel])
+  @@index([createdAt])
+  @@map("users")
+}
+
+/// Rotating refresh tokens. Only the SHA-256 hash is stored.
+model RefreshToken {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+
+  /// Set when the token is rotated, so re-use of an old token can be detected.
+  revokedAt    DateTime?
+  replacedById String?
+  userAgent    String?
+  ip           String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_resets")
+}
+
+// ----------------------------------------------------------------------------
+// Academic structure
+// ----------------------------------------------------------------------------
+
+/// e.g. "2026/2027". Exactly one row may be isCurrent.
+model AcademicYear {
+  id        String   @id @default(cuid())
+  label     String   @unique
+  startsOn  DateTime
+  endsOn    DateTime
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users   User[]
+  courses Course[]
+  plans   Plan[]
+
+  @@index([isCurrent])
+  @@map("academic_years")
+}
+
+/// A (system, grade) pair — the unit that themes, courses and plans hang off.
+/// Seeded once; the admin edits presentation fields but not the enum pair.
+model Grade {
+  id              String          @id @default(cuid())
+  educationSystem EducationSystem
+  level           GradeLevel
+
+  /// Arabic display name, e.g. "الصف الثالث الثانوي".
+  nameAr String
+  /// English display name used when the interface locale is English.
+  nameEn String?
+  /// Short label used on compact cards, e.g. "تالتة ثانوي".
+  shortNameAr String
+  shortNameEn String?
+  /// URL segment, e.g. "third-secondary".
+  slug String @unique
+  /// Theme key resolved by the frontend theme registry.
+  themeKey    String
+  description String?
+  descriptionEn String?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses Course[]
+  plans   Plan[]
+
+  @@unique([educationSystem, level])
+  @@index([educationSystem, sortOrder])
+  @@map("grades")
+}
+
+model Course {
+  id      String @id @default(cuid())
+  gradeId String
+  grade   Grade  @relation(fields: [gradeId], references: [id], onDelete: Restrict)
+
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+
+  title        String
+  titleEn      String?
+  slug         String
+  description  String?
+  descriptionEn String?
+  thumbnailKey String?
+  coverKey     String?
+  status       PublishStatus @default(DRAFT)
+  sortOrder    Int           @default(0)
+
+  /// Price when the whole course is sold as one product, in piastres.
+  priceMinor Int?
+
+  /// True when the curriculum data has not yet been verified against an
+  /// official Ministry source. Surfaced in the admin UI as a warning badge.
+  isProvisional Boolean @default(false)
+
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  units    Unit[]
+  products Product[]
+
+  @@unique([gradeId, slug])
+  @@index([gradeId, status])
+  @@index([academicYearId])
+  @@map("courses")
+}
+
+model Unit {
+  id       String @id @default(cuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  title       String
+  titleEn     String?
+  description String?
+  descriptionEn String?
+  sortOrder   Int           @default(0)
+  status      PublishStatus @default(DRAFT)
+  scheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapters Chapter[]
+  assessments Assessment[]
+
+  @@index([courseId, sortOrder])
+  @@map("units")
+}
+
+model Chapter {
+  id     String @id @default(cuid())
+  unitId String
+  unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  title       String
+  titleEn     String?
+  description String?
+  descriptionEn String?
+  sortOrder   Int           @default(0)
+  status      PublishStatus @default(DRAFT)
+  scheduledAt DateTime?
+
+  /// Price when the chapter is sold as a bundle, in piastres.
+  priceMinor Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lessons  Lesson[]
+  products Product[]
+
+  @@index([unitId, sortOrder])
+  @@map("chapters")
+}
+
+model Lesson {
+  id        String  @id @default(cuid())
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  title        String
+  titleEn      String?
+  slug         String
+  description  String?
+  descriptionEn String?
+  thumbnailKey String?
+  sortOrder    Int           @default(0)
+  status       PublishStatus @default(DRAFT)
+
+  /// Price for an individual lesson purchase, in piastres.
+  priceMinor Int?
+  /// Free lessons are playable by any authenticated student.
+  isFreePreview Boolean @default(false)
+
+  /// Denormalised from the ready VideoAsset so lesson lists avoid a join.
+  durationSeconds Int @default(0)
+
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  videoAsset  VideoAsset?
+  attachments Attachment[]
+  progress    LessonProgress[]
+  products    Product[]
+  tickets     PlaybackTicket[]
+  assessments Assessment[]
+
+  @@unique([chapterId, slug])
+  @@index([chapterId, sortOrder])
+  @@index([status, publishedAt])
+  @@map("lessons")
+}
+
+model Attachment {
+  id       String @id @default(cuid())
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  title       String
+  titleEn     String?
+  storageKey  String
+  contentType String
+  sizeBytes   Int
+  createdAt   DateTime @default(now())
+
+  @@index([lessonId])
+  @@map("attachments")
+}
+
+// ----------------------------------------------------------------------------
+// Video pipeline
+// ----------------------------------------------------------------------------
+
+model VideoAsset {
+  id       String @id @default(cuid())
+  lessonId String @unique
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  status VideoStatus @default(AWAITING_UPLOAD)
+
+  /// Key of the original uploaded file in private object storage.
+  sourceKey    String?
+  originalName String?
+  sizeBytes    BigInt?
+  /// Prefix under which the HLS ladder is written, e.g. "hls/<assetId>/".
+  hlsPrefix      String?
+  masterPlaylist String?
+  posterKey      String?
+
+  durationSeconds Int?
+  width           Int?
+  height          Int?
+  /// Renditions actually produced, e.g. ["360p","480p","720p"].
+  renditions String[] @default([])
+
+  /// Multipart upload bookkeeping, so uploads survive a page refresh.
+  uploadId String?
+
+  errorMessage String?
+  processedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  jobs VideoJob[]
+
+  @@index([status])
+  @@map("video_assets")
+}
+
+model VideoJob {
+  id           String     @id @default(cuid())
+  videoAssetId String
+  videoAsset   VideoAsset @relation(fields: [videoAssetId], references: [id], onDelete: Cascade)
+
+  status     JobStatus @default(QUEUED)
+  attempts   Int       @default(0)
+  /// 0-100, updated by the worker as ffmpeg progresses.
+  progress   Int       @default(0)
+  queueJobId String?
+  error      String?
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([videoAssetId, status])
+  @@index([status, createdAt])
+  @@map("video_jobs")
+}
+
+/// Short-lived, single-audience playback authorisation. Issued only after a
+/// server-side entitlement check; consumed by the streaming endpoint.
+model PlaybackTicket {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId, lessonId])
+  @@index([expiresAt])
+  @@map("playback_tickets")
+}
+
+// ----------------------------------------------------------------------------
+// Catalogue: products, plans, coupons
+// ----------------------------------------------------------------------------
+
+/// A sellable thing. Exactly one of lessonId / chapterId / courseId / planId is
+/// set, matching kind. Enforced by a CHECK constraint added in migration SQL.
+model Product {
+  id   String      @id @default(cuid())
+  kind ProductKind
+
+  title       String
+  titleEn     String?
+  description String?
+  descriptionEn String?
+  /// Price in piastres. Copied onto the order line at purchase time so later
+  /// price edits never rewrite historical orders.
+  priceMinor Int
+  currency   String  @default("EGP")
+  isActive   Boolean @default(true)
+
+  lessonId  String?
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  chapterId String?
+  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  courseId  String?
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  planId    String?
+  plan      Plan?    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  assessmentId String?
+  assessment   Assessment? @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@unique([lessonId])
+  @@unique([chapterId])
+  @@unique([courseId])
+  @@unique([planId])
+  @@unique([assessmentId])
+  @@index([kind, isActive])
+  @@map("products")
+}
+
+/// A subscription package (monthly or full-year) scoped to one grade.
+model Plan {
+  id      String @id @default(cuid())
+  gradeId String
+  grade   Grade  @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+
+  kind        ProductKind
+  title       String
+  titleEn     String?
+  description String?
+  descriptionEn String?
+  priceMinor  Int
+  currency    String      @default("EGP")
+
+  /// Access window length. Monthly plans typically 30; yearly plans use
+  /// accessUntil instead when the academic year has a fixed end date.
+  durationDays Int?
+  accessUntil  DateTime?
+
+  isActive  Boolean  @default(false)
+  autoRenew Boolean  @default(false)
+  sortOrder Int      @default(0)
+  /// Marketing bullet points shown on the pricing card.
+  highlights String[] @default([])
+  highlightsEn String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products      Product[]
+  subscriptions Subscription[]
+
+  @@index([gradeId, isActive])
+  @@map("plans")
+}
+
+model Coupon {
+  id   String @id @default(cuid())
+  code String @unique
+
+  discountType DiscountType
+  /// Percent (1-100) or fixed amount in piastres, per discountType.
+  discountValue Int
+
+  maxRedemptions  Int?
+  redemptionCount Int  @default(0)
+  maxPerUser      Int  @default(1)
+  minOrderMinor   Int?
+
+  startsAt  DateTime?
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  redemptions CouponRedemption[]
+  orders      Order[]
+
+  @@index([isActive, expiresAt])
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id       String @id @default(cuid())
+  couponId String
+  coupon   Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId  String @unique
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@map("coupon_redemptions")
+}
+
+// ----------------------------------------------------------------------------
+// Commerce
+// ----------------------------------------------------------------------------
+
+model Order {
+  id     String      @id @default(cuid())
+  userId String
+  user   User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status OrderStatus @default(PENDING)
+
+  /// Human-friendly reference shown to the student and to support.
+  reference String @unique
+
+  subtotalMinor Int
+  discountMinor Int    @default(0)
+  totalMinor    Int
+  currency      String @default("EGP")
+
+  couponId String?
+  coupon   Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+
+  /// Client-supplied idempotency key, so a double-tapped checkout button
+  /// returns the original order instead of creating a second one.
+  idempotencyKey String? @unique
+
+  paidAt      DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  items         OrderItem[]
+  payments      Payment[]
+  entitlements  Entitlement[]
+  subscriptions Subscription[]
+  redemption    CouponRedemption?
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([paidAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  /// Snapshot of the product at purchase time — historical orders must not
+  /// change when the admin edits a price or a title later.
+  titleSnapshot  String
+  kindSnapshot   ProductKind
+  unitPriceMinor Int
+  quantity       Int         @default(1)
+  totalMinor     Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, productId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Payment {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  provider PaymentProvider
+  method   PaymentMethod?
+  status   PaymentStatus   @default(INITIATED)
+
+  amountMinor Int
+  currency    String @default("EGP")
+
+  /// Provider-side transaction id. Unique per provider so a replayed webhook
+  /// cannot create a second payment row.
+  providerRef String?
+  /// Opaque provider payload kept for reconciliation and dispute handling.
+  /// Never contains card data — only provider-returned metadata.
+  providerPayload Json?
+
+  failureReason String?
+  paidAt        DateTime?
+  refundedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([provider, providerRef])
+  @@index([orderId, status])
+  @@map("payments")
+}
+
+/// Append-only log of every webhook we receive. The unique constraint on
+/// (provider, eventId) is what makes webhook processing idempotent.
+model WebhookEvent {
+  id        String          @id @default(cuid())
+  provider  PaymentProvider
+  eventId   String
+  eventType String?
+
+  payload   Json
+  signature String?
+  /// Null until successfully handled; set once the transaction commits.
+  processedAt DateTime?
+  error       String?
+  attempts    Int       @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([processedAt])
+  @@map("webhook_events")
+}
+
+// ----------------------------------------------------------------------------
+// Access control: entitlements & subscriptions
+// ----------------------------------------------------------------------------
+
+/// The single source of truth for "can this student watch this lesson".
+/// Every access check goes through this table — never through the frontend.
+model Entitlement {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  scope  EntitlementScope
+  status EntitlementStatus @default(ACTIVE)
+  source EntitlementSource @default(PURCHASE)
+
+  /// Exactly one target is set, matching scope. For GRADE_* scopes the
+  /// target is (gradeId + academicYearId).
+  lessonId       String?
+  chapterId      String?
+  courseId       String?
+  gradeId        String?
+  academicYearId String?
+  assessmentId String?
+  assessment Assessment? @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  startsAt DateTime @default(now())
+  /// Null = perpetual (individual lesson / chapter / course purchases).
+  expiresAt DateTime?
+
+  revokedAt     DateTime?
+  revokedReason String?
+  /// Staff member who granted or revoked manually.
+  grantedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Partial-unique indexes preventing duplicate entitlements for the same
+  /// target are added in the migration SQL, because Prisma cannot express
+  /// "unique where column is not null".
+  @@index([userId, status])
+  @@index([userId, lessonId])
+  @@index([userId, courseId])
+  @@index([userId, gradeId, academicYearId])
+  @@index([expiresAt])
+  @@index([userId, assessmentId])
+  @@map("entitlements")
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId String
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  status    SubscriptionStatus @default(PENDING)
+  startsAt  DateTime
+  expiresAt DateTime
+
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([status, expiresAt])
+  @@map("subscriptions")
+}
+
+// ----------------------------------------------------------------------------
+// Learning progress & presence
+// ----------------------------------------------------------------------------
+
+model LessonProgress {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  /// Last playback position in seconds.
+  positionSeconds Int @default(0)
+  /// Duration observed by the player, used to compute the percentage.
+  durationSeconds Int @default(0)
+  /// 0-100, derived server-side — never trusted from the client.
+  percent Int @default(0)
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  /// Legacy mirror of the furthest position; rewatching does not increase it.
+  watchedSeconds Int @default(0)
+
+  lastWatchedAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId, lastWatchedAt])
+  @@index([lessonId, completed])
+  @@map("lesson_progress")
+}
+
+// ----------------------------------------------------------------------------
+// Homework & online assessments
+// ----------------------------------------------------------------------------
+
+model Assessment {
+  id          String         @id @default(cuid())
+  title       String
+  titleEn     String?
+  description String?
+  descriptionEn String?
+  kind        AssessmentKind
+  status      PublishStatus  @default(DRAFT)
+  timeLimitMinutes Int?
+  passingScore Int           @default(50)
+  maxAttempts  Int           @default(1)
+  shuffleQuestions Boolean   @default(false)
+  shuffleOptions   Boolean   @default(false)
+  availableFrom DateTime?
+  dueAt        DateTime?
+  isFree       Boolean        @default(true)
+  priceMinor   Int?
+
+  lessonId String?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  unitId   String?
+  unit     Unit?   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  questions AssessmentQuestion[]
+  attempts  AssessmentAttempt[]
+  products  Product[]
+  entitlements Entitlement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lessonId, status])
+  @@index([unitId, status])
+  @@index([kind, status])
+  @@map("assessments")
+}
+
+model AssessmentQuestion {
+  id           String @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  prompt       String
+  promptEn     String?
+  explanation  String?
+  explanationEn String?
+  points       Int @default(1)
+  sortOrder    Int @default(0)
+  options      AssessmentOption[]
+  answers      AssessmentAnswer[]
+
+  @@index([assessmentId, sortOrder])
+  @@map("assessment_questions")
+}
+
+model AssessmentOption {
+  id         String @id @default(cuid())
+  questionId String
+  question   AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  textEn     String?
+  isCorrect  Boolean @default(false)
+  sortOrder  Int @default(0)
+  answers    AssessmentAnswer[]
+
+  @@index([questionId, sortOrder])
+  @@map("assessment_options")
+}
+
+model AssessmentAttempt {
+  id           String @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       AssessmentAttemptStatus @default(IN_PROGRESS)
+  score        Int @default(0)
+  maxScore     Int @default(0)
+  percentage   Int @default(0)
+  passed       Boolean @default(false)
+  startedAt    DateTime @default(now())
+  expiresAt    DateTime?
+  submittedAt  DateTime?
+  answers      AssessmentAnswer[]
+
+  @@index([userId, submittedAt])
+  @@index([assessmentId, userId])
+  @@map("assessment_attempts")
+}
+
+model AssessmentAnswer {
+  id         String @id @default(cuid())
+  attemptId  String
+  attempt    AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionId   String?
+  option     AssessmentOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  isCorrect  Boolean
+  pointsAwarded Int @default(0)
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+  @@map("assessment_answers")
+}
+
+/// Durable mirror of the Redis presence set. Redis answers "who is online now";
+/// this table survives a Redis flush and backs historical activity reporting.
+model PresenceRecord {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  lastSeenAt DateTime @default(now())
+  /// Coarse location, e.g. "lesson:<id>" or "dashboard".
+  lastRoute String?
+  userAgent String?
+
+  @@index([lastSeenAt])
+  @@map("presence_records")
+}
+
+// ----------------------------------------------------------------------------
+// Platform
+// ----------------------------------------------------------------------------
+
+model Notification {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  kind   NotificationKind @default(SYSTEM)
+  title  String
+  titleEn String?
+  body   String
+  bodyEn String?
+  href   String?
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+/// Every privileged action is recorded here. Written inside the same
+/// transaction as the action itself so the log cannot drift from reality.
+model AuditLog {
+  id      String  @id @default(cuid())
+  actorId String?
+  actor   User?   @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  action     String
+  entityType String
+  entityId   String?
+
+  targetUserId String?
+  targetUser   User?   @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  /// Redacted diff / context. Must never contain secrets or credentials.
+  metadata Json?
+  ip       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// Editable site-wide content (brand text, contact details, legal pages) so the
+/// admin can change copy without a redeploy.
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}

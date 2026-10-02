@@ -1,0 +1,17 @@
+# Keep build contexts small and secrets out of images.
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/.turbo
+.git
+.gitignore
+.legacy-vite-template
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+**/test-results
+**/playwright-report
+docs
+README.md

@@ -1,0 +1,21 @@
+{
+  "name": "@amr-mahrous/e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright end-to-end tests. Run against a live docker compose stack.",
+  "scripts": {
+    "test": "playwright test",
+    "test:mobile": "playwright test --project=mobile-360",
+    "test:desktop": "playwright test --project=desktop-chrome",
+    "test:responsive": "playwright test specs/responsive.spec.ts --project=desktop-chrome",
+    "test:journey": "playwright test specs/student-journey.spec.ts",
+    "test:api": "playwright test specs/api-contract.spec.ts --project=desktop-chrome",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.18.1",
+    "typescript": "^5.9.3"
+  }
+}

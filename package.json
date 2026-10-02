@@ -1,0 +1,45 @@
+{
+  "name": "amr-mahrous-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "منصة عمرو محروس التعليمية — Amr Mahrous Educational Platform. Developed by Aurexis.",
+  "license": "UNLICENSED",
+  "author": "Aurexis (https://aurexis.cc/)",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "workers",
+    "tests/e2e"
+  ],
+  "scripts": {
+    "//": "--- Docker: the supported way to run this project ---",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down",
+    "reset": "docker compose down -v && docker compose up -d --build",
+    "logs": "docker compose logs -f",
+    "ps": "docker compose ps",
+
+    "//seed": "--- One-shot tasks ---",
+    "seed": "docker compose --profile seed run --rm seed",
+    "bootstrap:admin": "docker compose --profile bootstrap run --rm -e BOOTSTRAP_ADMIN_USERNAME -e BOOTSTRAP_ADMIN_PASSWORD -e BOOTSTRAP_ADMIN_FULLNAME -e BOOTSTRAP_ADMIN_PHONE bootstrap-admin",
+    "migrate": "docker compose exec backend npx prisma migrate deploy",
+
+    "//prod": "--- Production overlay ---",
+    "prod:up": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
+    "prod:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down",
+    "prod:config": "docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet",
+
+    "//test": "--- Tests ---",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "npm --workspace backend test",
+    "test:e2e": "npm --workspace tests/e2e test",
+    "test:e2e:mobile": "npm --workspace tests/e2e run test:mobile",
+
+    "//check": "--- Static checks ---",
+    "typecheck": "npm --workspace backend run typecheck && npm --workspace frontend run typecheck && npm --workspace workers run typecheck",
+    "build": "npm --workspace backend run build && npm --workspace frontend run build && npm --workspace workers run build"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

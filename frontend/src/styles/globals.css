@@ -1,0 +1,596 @@
+@import 'tailwindcss';
+@import './auth-book.css';
+
+@custom-variant dark (&:where(.dark, [data-mode="dark"], [data-mode="dark"] *));
+@custom-variant light (&:where(.light, [data-mode="light"], [data-mode="light"] *));
+
+/* ==========================================================================
+   منصة مستر عمرو محروس التعليمية — design system
+   Developed by Aurexis (https://aurexis.cc/)
+
+   The palette is built from an archival-history direction: deep midnight navy
+   as the ground, warm ivory as the page, and aged gold + bronze as the accent
+   metals. It reads as a museum or an archive rather than a generic SaaS app,
+   while keeping body text on high-contrast surfaces so it stays readable.
+
+   Per-grade accents live in [data-theme] blocks further down — each of the
+   five academic experiences re-points the same accent tokens, so one set of
+   components renders five visually distinct identities.
+   ========================================================================== */
+
+@theme {
+  /* --- Core brand ------------------------------------------------------- */
+  --color-midnight-50: #edf5f6;
+  --color-midnight-100: #d7e7e9;
+  --color-midnight-200: #afd0d5;
+  --color-midnight-300: #7eafb8;
+  --color-midnight-400: #4c8996;
+  --color-midnight-500: #306b7a;
+  --color-midnight-600: #245463;
+  --color-midnight-700: #1c414e;
+  --color-midnight-800: #12313e;
+  --color-midnight-900: #092433;
+  --color-midnight-950: #05131f;
+
+  /* Aged gold — used for emphasis, never for large text blocks. */
+  --color-gold-50: #fff9e8;
+  --color-gold-100: #fcedbb;
+  --color-gold-200: #f2d77e;
+  --color-gold-300: #e8bd46;
+  --color-gold-400: #dca62d;
+  --color-gold-500: #bd7f18;
+  --color-gold-600: #996017;
+  --color-gold-700: #784619;
+  --color-gold-800: #60381a;
+  --color-gold-900: #512f1a;
+
+  --color-bronze-300: #d3a36d;
+  --color-bronze-400: #b97a43;
+  --color-bronze-500: #92562e;
+  --color-bronze-600: #743f25;
+
+  /* Warm ivory — the light surface. */
+  --color-ivory-50: #fffaf0;
+  --color-ivory-100: #f8efd9;
+  --color-ivory-200: #eedfbd;
+  --color-ivory-300: #dfc999;
+  --color-ivory-400: #c9aa70;
+
+  --color-burgundy-500: #8c2f39;
+  --color-burgundy-600: #74252e;
+
+  /* --- Semantic --------------------------------------------------------- */
+  --color-success: #2f7d5d;
+  --color-warning: #b8791f;
+  --color-danger: #b3352f;
+  --color-info: #2f6f9e;
+
+  /* --- Typography ------------------------------------------------------- */
+  --font-arabic: 'Cairo', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Tajawal', 'Cairo', system-ui, sans-serif;
+
+  /* --- Motion ----------------------------------------------------------- */
+  --ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --duration-instant: 120ms;
+  --duration-fast: 220ms;
+  --duration-base: 380ms;
+  --duration-slow: 620ms;
+  --duration-cinematic: 1100ms;
+
+  /* --- Elevation -------------------------------------------------------- */
+  --shadow-card: 0 1px 2px rgb(10 17 32 / 0.04), 0 8px 24px -12px rgb(10 17 32 / 0.18);
+  --shadow-lifted: 0 2px 4px rgb(10 17 32 / 0.06), 0 20px 48px -20px rgb(10 17 32 / 0.28);
+  --shadow-glow: 0 0 0 1px rgb(200 149 42 / 0.28), 0 18px 48px -20px rgb(200 149 42 / 0.35);
+}
+
+/* ==========================================================================
+   Root tokens & Themes
+   ========================================================================== */
+
+:root,
+html.dark {
+  --surface: #02060d;
+  --surface-raised: #05131f;
+  --surface-sunken: #010408;
+  --surface-card: #081726;
+  --border-subtle: rgba(245, 158, 11, 0.25);
+  --border-strong: rgba(245, 158, 11, 0.5);
+  --text-primary: #fffaf0;
+  --text-secondary: #eedfbd;
+  --text-muted: #c9aa70;
+  --accent: var(--color-gold-500);
+  --accent-soft: var(--color-gold-100);
+  --accent-contrast: var(--color-midnight-950);
+  --header-height: 4rem;
+  --hero-wash: radial-gradient(ellipse 80% 60% at 50% 0%, rgb(17 141 151 / 0.18), transparent 70%);
+  color-scheme: dark;
+}
+
+html.light {
+  --surface: #fcfaf4;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f5eedf;
+  --surface-card: #ffffff;
+  --border-subtle: rgba(200, 149, 42, 0.28);
+  --border-strong: rgba(189, 127, 24, 0.55);
+  --text-primary: #05131f;
+  --text-secondary: #1c414e;
+  --text-muted: #4b6584;
+  --accent: #b45309;
+  --accent-soft: #fef3c7;
+  --accent-contrast: #ffffff;
+  --header-height: 4rem;
+  --hero-wash: radial-gradient(ellipse 80% 60% at 50% 0%, rgb(200 149 42 / 0.12), transparent 70%);
+  color-scheme: light;
+}
+
+/* ==========================================================================
+   The five academic identities
+   ========================================================================== */
+
+/* أولى ثانوي — حضارة مصر القديمة. */
+[data-theme='pharaonic-dawn'] {
+  --accent: #d3a126;
+  --accent-soft: #f8e9b5;
+  --accent-contrast: #05131f;
+  --hero-wash: radial-gradient(ellipse 85% 65% at 50% 0%, rgb(211 161 38 / 0.24), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 80% 10%, rgb(17 141 151 / 0.18), transparent 65%);
+}
+
+/* تانية ثانوي — أوروبا الحديثة والكشوف الجغرافية. */
+[data-theme='renaissance-atlas'] {
+  --accent: #118d97;
+  --accent-soft: #d5eff0;
+  --accent-contrast: #041f25;
+  --hero-wash: radial-gradient(ellipse 85% 65% at 50% 0%, rgb(47 125 107 / 0.20), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 20% 12%, rgb(192 133 82 / 0.16), transparent 65%);
+}
+
+/* تالتة ثانوي — تاريخ مصر الحديث، سنة الامتحان. */
+[data-theme='modern-egypt-archive'] {
+  --accent: #9b3f2f;
+  --accent-soft: #f4dfd5;
+  --accent-contrast: #fdfbf7;
+  --hero-wash: radial-gradient(ellipse 85% 65% at 50% 0%, rgb(140 47 57 / 0.20), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 78% 8%, rgb(29 42 71 / 0.18), transparent 60%);
+}
+
+/* أولى بكالوريا — نفس محتوى أولى ثانوي بهوية البكالوريا. */
+[data-theme='bacc-foundations'] {
+  --accent: #1f5b8f;
+  --accent-soft: #dceaf3;
+  --accent-contrast: #fdfbf7;
+  --hero-wash: radial-gradient(ellipse 85% 65% at 50% 0%, rgb(71 97 153 / 0.22), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 22% 10%, rgb(200 149 42 / 0.12), transparent 65%);
+}
+
+/* تانية بكالوريا — ثورة يوليو والتحولات الكبرى. */
+[data-theme='revolution-chronicle'] {
+  --accent: #b7602b;
+  --accent-soft: #f5e1d1;
+  --accent-contrast: #0a1120;
+  --hero-wash: radial-gradient(ellipse 85% 65% at 50% 0%, rgb(181 98 44 / 0.22), transparent 70%),
+    radial-gradient(ellipse 52% 45% at 76% 12%, rgb(18 28 51 / 0.20), transparent 62%);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+* {
+  border-color: var(--border-subtle);
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--surface);
+  color: var(--text-primary);
+  font-family: var(--font-arabic);
+  overflow-x: hidden;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.nums-arabic {
+  font-feature-settings: 'ss01';
+  font-variant-numeric: normal;
+}
+
+.nums-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface-sunken);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-midnight-300);
+  background: rgba(189, 127, 24, 0.4);
+  border-radius: 999px;
+  border: 2px solid var(--surface-sunken);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-midnight-400);
+  background: var(--color-gold-500);
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+@utility container-page {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  max-width: 80rem;
+}
+
+@media (min-width: 640px) {
+  .container-page {
+    padding-inline: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-page {
+    padding-inline: 2rem;
+  }
+
+  /* On wide grade pages, keep the subscription panel's physical left gutter
+     equal to the 2rem gap separating it from the course card. */
+  .plans-edge-aligned {
+    translate: calc(-1 * max(0px, (100vw - 80rem) / 2)) 0;
+  }
+}
+
+@media (min-width: 1280px) {
+  /* xl uses a 2.5rem inter-column gap, so mirror that at the viewport edge. */
+  .plans-edge-aligned {
+    translate: calc(-1 * max(0px, ((100vw - 80rem) / 2) - 0.5rem)) 0;
+  }
+}
+
+@utility texture-parchment {
+  position: relative;
+}
+.texture-parchment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgb(10 17 32 / 0.5) 2px 3px),
+    repeating-linear-gradient(90deg, transparent 0 3px, rgb(10 17 32 / 0.4) 3px 4px);
+  background-size: 7px 7px, 9px 9px;
+}
+
+@utility field-required {
+  &::after {
+    content: '*' / '';
+    margin-inline-start: 0.25rem;
+    color: var(--color-danger);
+  }
+}
+
+@utility editor-label {
+  display: block;
+  margin-block-end: 0.375rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+@utility editor-input {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--surface-raised);
+  padding-inline: 0.875rem;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+
+  &:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+    outline: none;
+  }
+}
+
+@utility rule-fade {
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    var(--border-subtle) 15%,
+    var(--border-subtle) 85%,
+    transparent
+  );
+}
+
+@utility text-gradient-gold {
+  background: linear-gradient(120deg, var(--color-gold-300), var(--color-gold-600) 60%, var(--color-bronze-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border-radius: 0.75rem;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.6),
+    transparent
+  );
+  animation: shimmer 1.6s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-2%, 1.5%, 0) scale(1.04); }
+}
+
+@utility animate-drift {
+  animation: drift 24s var(--ease-smooth) infinite;
+}
+
+@keyframes sheen {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+@keyframes gold-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.3), 0 0 40px -10px rgba(217, 119, 6, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 35px 2px rgba(245, 158, 11, 0.5), 0 0 60px -5px rgba(217, 119, 6, 0.3);
+    border-color: rgba(251, 191, 36, 0.7);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+@keyframes hieroglyph-fade {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.45; }
+}
+
+@utility animate-gold-pulse {
+  animation: gold-pulse 4s ease-in-out infinite;
+}
+
+@utility animate-float {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+@utility gold-border-gradient {
+  border-image: linear-gradient(135deg, #fbbf24 0%, #d97706 50%, #78350f 100%) 1;
+}
+
+@utility gold-glow-box {
+  box-shadow: 0 4px 25px -5px rgba(245, 158, 11, 0.25), 0 10px 40px -10px rgba(180, 83, 9, 0.2);
+}
+
+@utility gold-glow-sm {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+}
+
+@utility royal-glass {
+  background: linear-gradient(135deg, rgba(9, 36, 51, 0.75) 0%, rgba(5, 19, 31, 0.9) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+@utility royal-glass-card {
+  background: radial-gradient(circle at 50% 0%, rgba(200, 149, 42, 0.08) 0%, rgba(5, 19, 31, 0.85) 75%), rgba(9, 36, 51, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+@utility hieroglyph-pattern {
+  background-image: radial-gradient(rgba(245, 158, 11, 0.12) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Light mode overrides for glass & cards */
+html.light .royal-glass {
+  background: linear-gradient(135deg, rgba(255, 252, 245, 0.9) 0%, rgba(246, 238, 222, 0.95) 100%);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  box-shadow: 0 4px 20px -2px rgba(180, 83, 9, 0.08);
+}
+
+html.light .royal-glass-card {
+  background: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.95) 75%), #ffffff;
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  box-shadow: 0 8px 30px -4px rgba(180, 83, 9, 0.12);
+}
+
+/* ==========================================================================
+   Reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton::after {
+    animation: none;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Shared form control used by dense admin editors. */
+.input-base {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid rgb(15 36 51 / 18%);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 90%);
+  padding: 0.625rem 0.75rem;
+  color: #092433;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.input-base:focus-visible {
+  border-color: #c9952a;
+  box-shadow: 0 0 0 3px rgb(201 149 42 / 18%);
+}
+
+html.dark .input-base {
+  border-color: rgb(255 255 255 / 14%);
+  background: rgb(255 255 255 / 5%);
+  color: #fffaf0;
+}
+
+html.dark .input-base option {
+  background: #092433;
+  color: #fffaf0;
+}
+/* Hide duplicate controls injected over the player by common browser
+   video-speed extensions. The lesson player supplies its own controls. */
+.vsc-controller,
+[class*="video-speed-controller"] {
+  display: none !important;
+}
+
+/* Cross-browser thumb for the custom timeline. The transparent range input
+   remains above the painted track, so its full width is draggable. */
+.video-progress-slider::-webkit-slider-runnable-track {
+  height: 0.375rem;
+  background: transparent;
+}
+
+.video-progress-slider::-webkit-slider-thumb {
+  margin-top: -0.3125rem;
+  height: 1rem;
+  width: 1rem;
+  appearance: none;
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: #d8a328;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+}
+
+.video-progress-slider::-moz-range-track {
+  height: 0.375rem;
+  background: transparent;
+}
+
+.video-progress-slider::-moz-range-thumb {
+  height: 0.875rem;
+  width: 0.875rem;
+  border: 2px solid white;
+  border-radius: 9999px;
+  background: #d8a328;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 45%);
+}
+
+.video-volume-slider::-webkit-slider-runnable-track {
+  height: 0.375rem;
+  background: transparent;
+}
+
+.video-volume-slider::-webkit-slider-thumb {
+  margin-top: -0.25rem;
+  height: 0.875rem;
+  width: 0.875rem;
+  appearance: none;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: #d8a328;
+  box-shadow: 0 2px 7px rgb(0 0 0 / 50%);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.video-volume-slider:hover::-webkit-slider-thumb,
+.video-volume-slider:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgb(216 163 40 / 20%), 0 2px 7px rgb(0 0 0 / 50%);
+}
+
+.video-volume-slider::-moz-range-track {
+  height: 0.375rem;
+  background: transparent;
+}
+
+.video-volume-slider::-moz-range-thumb {
+  height: 0.75rem;
+  width: 0.75rem;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: #d8a328;
+  box-shadow: 0 2px 7px rgb(0 0 0 / 50%);
+}
+
