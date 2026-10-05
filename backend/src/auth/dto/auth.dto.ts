@@ -14,7 +14,7 @@ import {
   type ValidationArguments,
   type ValidatorConstraintInterface,
 } from 'class-validator';
-import { EducationSystem, GradeLevel } from '../../generated/prisma/enums';
+import { EducationSystem, GradeLevel, StudentType } from '../../generated/prisma/enums';
 import { normalizeEgyptianPhone } from '../../common/utils/phone.util';
 
 /**
@@ -62,6 +62,8 @@ class GradeMatchesSystemConstraint implements ValidatorConstraintInterface {
 }
 
 export class RegisterDto {
+  @IsOptional() @IsEnum(StudentType)
+  studentType?: StudentType;
   @ApiProperty({ example: 'أحمد محمد علي', description: 'الاسم الكامل' })
   @IsString()
   @IsNotEmpty({ message: 'الاسم مطلوب' })
@@ -150,6 +152,7 @@ export class ConfirmPasswordResetDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty({ message: 'كود إعادة التعيين مطلوب' })
+  @Matches(/^[A-Za-z0-9_-]{43}$/, { message: 'جلسة إعادة التعيين غير صالحة' })
   token!: string;
 
   @ApiProperty({ minLength: 6 })
@@ -157,6 +160,19 @@ export class ConfirmPasswordResetDto {
   @MinLength(6, { message: 'كلمة السر لازم تكون 6 خانات على الأقل' })
   @MaxLength(128)
   newPassword!: string;
+}
+
+export class OtpChallengeDto {
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{43}$/, { message: 'جلسة التحقق غير صالحة' })
+  challengeId!: string;
+}
+
+export class VerifyOtpDto extends OtpChallengeDto {
+  @IsString()
+  @Transform(({ value }) => typeof value === 'string' ? value.trim().replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)) : value)
+  @Matches(/^\d{6}$/, { message: 'اكتب كود التحقق المكوّن من ٦ أرقام' })
+  code!: string;
 }
 
 export class UpdateProfileDto {

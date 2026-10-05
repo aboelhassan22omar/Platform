@@ -173,6 +173,11 @@ enum NotificationKind {
   SUBSCRIPTION
 }
 
+enum StudentType {
+  ONLINE
+  CENTER
+}
+
 enum LiveSessionStatus {
   SCHEDULED
   LIVE
@@ -209,6 +214,7 @@ model User {
   passwordHash String
   role         Role       @default(STUDENT)
   status       UserStatus @default(ACTIVE)
+  studentType  StudentType @default(ONLINE)
 
   /// Student phone. Egyptian format, stored normalised as 01XXXXXXXXX.
   phone String @unique
@@ -448,6 +454,8 @@ model Lesson {
   priceMinor Int?
   /// Free lessons are playable by any authenticated student.
   isFreePreview Boolean @default(false)
+  /// Null keeps the online price; zero grants free access to center students.
+  centerPriceMinor Int?
 
   /// Denormalised from the ready VideoAsset so lesson lists avoid a join.
   durationSeconds Int @default(0)

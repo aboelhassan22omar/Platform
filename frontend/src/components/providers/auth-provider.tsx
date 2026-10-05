@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
-import type { EducationSystem, GradeLevel, Role } from '@/types/api';
+import type { EducationSystem, GradeLevel, Role, StudentType } from '@/types/api';
 
 export interface AuthUser {
   id: string;
@@ -13,6 +13,7 @@ export interface AuthUser {
   parentPhone: string;
   role: Role;
   status: string;
+  studentType: StudentType;
   educationSystem: EducationSystem | null;
   gradeLevel: GradeLevel | null;
   academicYearId: string | null;
@@ -35,12 +36,14 @@ interface AuthContextValue {
    */
   isSigningOut: boolean;
   login: (identifier: string, password: string) => Promise<AuthUser>;
-  register: (input: RegisterInput) => Promise<AuthUser>;
+  register: (input: RegisterInput) => Promise<OtpChallenge>;
+  verifyRegistration: (challengeId: string, code: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
 export interface RegisterInput {
+  studentType: StudentType;
   fullName: string;
   username: string;
   password: string;
@@ -48,6 +51,12 @@ export interface RegisterInput {
   parentPhone: string;
   educationSystem: EducationSystem;
   gradeLevel: GradeLevel;
+}
+
+export interface OtpChallenge {
+  challengeId: string;
+  expiresIn: number;
+  resendAfterSeconds: number;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -104,8 +113,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const register = useCallback(
-    async (input: RegisterInput) => {
-      const { user: next } = await api.post<{ user: AuthUser }>('/auth/register', input);
+    (input: RegisterInput) => api.post<OtpChallenge>('/auth/register', input),
+    [],
+  );
+
+  const verifyRegistration = useCallback(
+    async (challengeId: string, code: string) => {
+      const { user: next } = await api.post<{ user: AuthUser }>('/auth/register/verify', { challengeId, code });
       setUser(next);
       router.refresh();
       return next;
@@ -131,8 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isSigningOut, user]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isLoading, isSigningOut, login, register, logout, refresh: loadSession }),
-    [user, isLoading, isSigningOut, login, register, logout, loadSession],
+    () => ({ user, isLoading, isSigningOut, login, register, verifyRegistration, logout, refresh: loadSession }),
+    [user, isLoading, isSigningOut, login, register, verifyRegistration, logout, loadSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

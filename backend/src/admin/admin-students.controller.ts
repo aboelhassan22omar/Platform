@@ -29,6 +29,7 @@ import { CurrentUser, Roles } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
 import { AuditService } from '../common/audit/audit.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
+import { lessonPriceFor } from '../common/utils/lesson-pricing';
 
 class UpdateStudentStatusDto {
   @IsEnum(UserStatus)
@@ -121,6 +122,7 @@ export class AdminStudentsController {
           parentPhone: true,
           educationSystem: true,
           gradeLevel: true,
+          studentType: true,
           status: true,
           createdAt: true,
           lastLoginAt: true,
@@ -146,6 +148,7 @@ export class AdminStudentsController {
         parentPhone: true,
         educationSystem: true,
         gradeLevel: true,
+        studentType: true,
         status: true,
         createdAt: true,
         lastLoginAt: true,
@@ -188,6 +191,7 @@ export class AdminStudentsController {
         role: true,
         educationSystem: true,
         gradeLevel: true,
+        studentType: true,
       },
     });
     if (!student || student.role !== Role.STUDENT) {
@@ -225,6 +229,8 @@ export class AdminStudentsController {
           id: true,
           title: true,
           priceMinor: true,
+          centerPriceMinor: true,
+          isFreePreview: true,
           chapterId: true,
           chapter: {
             select: {
@@ -267,6 +273,7 @@ export class AdminStudentsController {
       }),
     ]);
 
+    const accessibleIds = await this.entitlements.filterAccessibleLessonIds(id, lessons.map((lesson) => lesson.id));
     return lessons.map((lesson) => {
       const course = lesson.chapter.unit.course;
       const coveringGrant = grants.find(
@@ -289,13 +296,13 @@ export class AdminStudentsController {
       return {
         id: lesson.id,
         title: lesson.title,
-        priceMinor: lesson.priceMinor,
+        priceMinor: lessonPriceFor(lesson, student.studentType),
         chapterTitle: lesson.chapter.title,
         unitTitle: lesson.chapter.unit.title,
         courseId: course.id,
         courseTitle: course.title,
         gradeName: course.grade.nameAr,
-        isAccessible: Boolean(coveringGrant),
+        isAccessible: accessibleIds.has(lesson.id),
         accessKind: directAdminGrant
           ? 'ADMIN_GRANT'
           : coveringGrant

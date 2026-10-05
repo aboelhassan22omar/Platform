@@ -25,6 +25,8 @@ import {
   RegisterDto,
   RequestPasswordResetDto,
   UpdateProfileDto,
+  VerifyOtpDto,
+  OtpChallengeDto,
 } from './dto/auth.dto';
 
 const ACCESS_COOKIE = 'access_token';
@@ -113,12 +115,20 @@ export class AuthController {
   @Post('register')
   @Throttle({ default: { limit: REGISTER_LIMIT, ttl: AUTH_WINDOW_MS } })
   @ApiOperation({ summary: 'تسجيل طالب جديد' })
-  async register(
-    @Body() dto: RegisterDto,
+  async register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto);
+  }
+
+  @Public()
+  @Post('register/verify')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: authLimit(10), ttl: AUTH_WINDOW_MS } })
+  async verifyRegistration(
+    @Body() dto: VerifyOtpDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, tokens } = await this.auth.register(dto, this.sessionContext(req));
+    const { user, tokens } = await this.auth.verifyRegistration(dto.challengeId, dto.code, this.sessionContext(req));
     this.setAuthCookies(res, tokens);
     return { user, accessToken: tokens.accessToken };
   }
@@ -218,15 +228,25 @@ export class AuthController {
     const result = await this.auth.requestPasswordReset(dto.phone);
     return {
       // Always the same response, whether or not the phone is registered.
-      message: 'لو الرقم ده مسجل عندنا هتوصلك خطوات إعادة التعيين',
-      ...(result.devToken
-        ? {
-            devToken: result.devToken,
-            devNotice:
-              'وضع التطوير: لم يتم إرسال أي رسالة SMS. هذا الكود ظاهر لأغراض الاختبار فقط.',
-          }
-        : {}),
+      message: 'لو الرقم مسجل عندنا هيوصلك كود التحقق على واتساب.',
+      ...result,
     };
+  }
+
+  @Public()
+  @Post('otp/resend')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: authLimit(5), ttl: AUTH_WINDOW_MS } })
+  resendOtp(@Body() dto: OtpChallengeDto) {
+    return this.auth.resendOtp(dto.challengeId);
+  }
+
+  @Public()
+  @Post('password/reset/verify')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: authLimit(10), ttl: AUTH_WINDOW_MS } })
+  verifyReset(@Body() dto: VerifyOtpDto) {
+    return this.auth.verifyPasswordReset(dto.challengeId, dto.code);
   }
 
   @Public()

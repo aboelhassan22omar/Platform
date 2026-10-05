@@ -22,6 +22,7 @@ export interface AdminCourseSummary {
 }
 
 export interface AdminLesson {
+  centerPriceMinor: number | null;
   id: string;
   title: string;
   description: string | null;
@@ -76,6 +77,7 @@ export interface EditorTarget {
     status: PublishStatus;
     sortOrder?: number;
     priceMinor?: number | null;
+    centerPriceMinor?: number | null;
     isFreePreview?: boolean;
     gradeId?: string;
     scheduledAt?: string | null;

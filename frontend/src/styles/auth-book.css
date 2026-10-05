@@ -153,7 +153,7 @@
 }
 
 .auth-card--wide {
-  width: min(100%, 30.5rem);
+  width: min(100%, 34rem);
   padding: clamp(1.1rem, 1.8vh, 1.45rem) clamp(1.1rem, 1.5vw, 1.65rem);
 }
 
@@ -640,6 +640,41 @@
 
 .auth-register-step[hidden] {
   display: none !important;
+}
+
+.auth-student-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 44px;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgb(245 158 11 / 0.28);
+  border-radius: 0.85rem;
+  background: rgb(7 20 34 / 0.7);
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.auth-student-choice.is-selected {
+  border-color: #f59e0b;
+  background: rgb(245 158 11 / 0.15);
+  color: #ffffff;
+}
+
+.auth-student-choice:focus-within {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+
+:is(html.light, [data-mode="light"], .light) .auth-student-choice {
+  background: #fffaf0;
+  color: #334155;
+}
+
+:is(html.light, [data-mode="light"], .light) .auth-student-choice.is-selected {
+  background: #fef3c7;
+  color: #78350f;
 }
 
 .auth-register-actions {

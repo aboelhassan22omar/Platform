@@ -8,6 +8,7 @@ import {
   PublishStatus,
 } from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { isLessonFreeFor } from '../common/utils/lesson-pricing';
 
 /** Why a student can (or cannot) watch a given lesson. */
 export type AccessReason =
@@ -85,6 +86,7 @@ export class EntitlementsService {
         id: true,
         status: true,
         isFreePreview: true,
+        centerPriceMinor: true,
         chapterId: true,
         chapter: {
           select: {
@@ -118,7 +120,7 @@ export class EntitlementsService {
 
     const student = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { educationSystem: true, gradeLevel: true },
+      select: { educationSystem: true, gradeLevel: true, studentType: true },
     });
     if (
       !student ||
@@ -127,7 +129,7 @@ export class EntitlementsService {
     ) {
       return { allowed: false, reason: 'WRONG_GRADE' };
     }
-    if (lesson.isFreePreview) return { allowed: true, reason: 'FREE_PREVIEW' };
+    if (isLessonFreeFor(lesson, student.studentType)) return { allowed: true, reason: 'FREE_PREVIEW' };
 
     const now = new Date();
 
@@ -228,6 +230,7 @@ export class EntitlementsService {
       select: {
         id: true,
         isFreePreview: true,
+        centerPriceMinor: true,
         status: true,
         chapterId: true,
         chapter: {
@@ -253,7 +256,7 @@ export class EntitlementsService {
 
     const student = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { educationSystem: true, gradeLevel: true },
+      select: { educationSystem: true, gradeLevel: true, studentType: true },
     });
     if (!student?.educationSystem || !student.gradeLevel) return new Set();
 
@@ -293,7 +296,7 @@ export class EntitlementsService {
       const viaGrade = ownedGrades.has(`${course.gradeId}:${course.academicYearId}`);
       if (
         isStudentGrade &&
-        (lesson.isFreePreview ||
+        (isLessonFreeFor(lesson, student.studentType) ||
           ownedLessons.has(lesson.id) ||
           ownedChapters.has(lesson.chapterId) ||
           ownedCourses.has(course.id) ||

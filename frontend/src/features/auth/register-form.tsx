@@ -3,9 +3,10 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/components/providers/auth-provider';
+import { useAuth, type OtpChallenge } from '@/components/providers/auth-provider';
+import { OtpVerificationForm } from './otp-verification-form';
 import { ApiError } from '@/lib/api';
-import type { EducationSystem, GradeLevel } from '@/types/api';
+import type { EducationSystem, GradeLevel, StudentType } from '@/types/api';
 import {
   authSwitchHref,
   EGYPTIAN_PHONE,
@@ -43,6 +44,7 @@ const SYSTEMS: Array<{
 
 type RegisterField =
   | 'fullName'
+  | 'studentType'
   | 'username'
   | 'phone'
   | 'parentPhone'
@@ -63,12 +65,14 @@ function firstErrorOnly(errors: RegisterErrors): RegisterErrors {
 }
 
 export function RegisterForm() {
-  const { register } = useAuth();
+  const { register, verifyRegistration } = useAuth();
+  const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
 
   const [fullName, setFullName] = useState('');
+  const [studentType, setStudentType] = useState<StudentType | null>(null);
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
   const [parentPhone, setParentPhone] = useState('');
@@ -109,6 +113,7 @@ export function RegisterForm() {
 
     if (!educationSystem) nextErrors.educationSystem = 'اختار نظامك التعليمي.';
     if (!gradeLevel) nextErrors.gradeLevel = 'اختار صفك الدراسي.';
+    if (!studentType) nextErrors.studentType = 'اختار طالب سنتر ولا أونلاين.';
 
     if (scope === 'account') return nextErrors;
 
@@ -167,6 +172,7 @@ export function RegisterForm() {
     if (Object.keys(nextErrors).length) {
       if (
         nextErrors.educationSystem ||
+        nextErrors.studentType ||
         nextErrors.gradeLevel ||
         nextErrors.fullName ||
         nextErrors.username
@@ -177,21 +183,23 @@ export function RegisterForm() {
       return;
     }
 
-    if (!educationSystem || !gradeLevel) return;
+    if (!educationSystem || !gradeLevel || !studentType) return;
 
     setIsSubmitting(true);
     try {
-      await register({
+      const next = await register({
         fullName: fullName.trim().replace(/\s+/g, ' '),
         username: username.trim().toLowerCase(),
         password,
         phone: normalizePhone(phone),
         parentPhone: normalizePhone(parentPhone),
         educationSystem,
+        studentType,
         gradeLevel,
       });
 
-      router.replace(safeRedirectTarget(searchParams.get('next'), '/dashboard'));
+      setChallenge(next);
+      setIsSubmitting(false);
     } catch (caught) {
       setServerError(
         caught instanceof ApiError
@@ -201,6 +209,14 @@ export function RegisterForm() {
       setIsSubmitting(false);
     }
   };
+
+  if (challenge) return <OtpVerificationForm challenge={challenge} phone={normalizePhone(phone)} onChallenge={setChallenge}
+    onBack={() => { setChallenge(null); setServerError(null); }}
+    onVerify={async code => {
+      await verifyRegistration(challenge.challengeId, code);
+      setPassword(''); setConfirmPassword('');
+      router.replace(safeRedirectTarget(searchParams.get('next'), '/dashboard'));
+    }} />;
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="auth-form auth-form--register" aria-busy={isSubmitting}>
@@ -235,10 +251,21 @@ export function RegisterForm() {
       </div>
 
       <section className="auth-register-step" aria-label="بيانات الدراسة والحساب" hidden={step !== 1}>
+      <fieldset className="auth-pathway auth-field-grid__full">
+        <legend>إنت طالب سنتر ولا أونلاين؟</legend>
+        <div className="auth-pathway__systems">
+          {([{ value: 'CENTER', label: 'طالب سنتر', hint: 'بحضر مع المستر في السنتر' }, { value: 'ONLINE', label: 'طالب أونلاين', hint: 'بتابع الحصص على المنصة' }] as const).map((option) => (
+            <label key={option.value} className={`auth-student-choice${studentType === option.value ? ' is-selected' : ''}`}>
+              <input type="radio" name="studentType" value={option.value} checked={studentType === option.value} onChange={() => { setStudentType(option.value); clearError('studentType'); }} disabled={isSubmitting} aria-invalid={Boolean(errors.studentType)} aria-describedby={errors.studentType ? 'register-type-error' : undefined} required className="h-5 w-5 accent-gold-600" />
+              <span><strong className="block">{option.label}</strong></span>
+            </label>
+          ))}
+        </div>
+        <FormError id="register-type-error">{errors.studentType}</FormError>
+      </fieldset>
 
       <fieldset className="auth-pathway auth-field-grid__full">
         <legend>اختار نظامك وصفك الدراسي</legend>
-        <p>علشان نظهر لك المحتوى المناسب لمنهجك.</p>
 
         <div className="auth-pathway__systems">
           {SYSTEMS.map((system) => {
@@ -319,7 +346,7 @@ export function RegisterForm() {
       </fieldset>
 
       <div className="auth-field-grid">
-        <div className="auth-field auth-field-grid__full">
+        <div className="auth-field">
           <label htmlFor="reg-fullname">الاسم الكامل</label>
           <div className="auth-input-wrap">
             <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -343,10 +370,9 @@ export function RegisterForm() {
           <FormError id="register-name-error">{errors.fullName}</FormError>
         </div>
 
-        <div className="auth-field auth-field-grid__full">
+        <div className="auth-field">
           <div className="auth-field__label-row">
             <label htmlFor="reg-username">اسم المستخدم</label>
-            <span>هتستخدمه في تسجيل الدخول</span>
           </div>
           <div className="auth-input-wrap">
             <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" aria-hidden>

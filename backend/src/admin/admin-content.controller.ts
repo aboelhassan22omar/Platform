@@ -29,6 +29,7 @@ import {
   UpsertChapterDto,
   UpsertCourseDto,
   UpsertLessonDto,
+  UpdateLessonDto,
   UpsertUnitDto,
 } from './dto/content.dto';
 
@@ -553,11 +554,12 @@ export class AdminContentController {
         status: dto.status ?? PublishStatus.DRAFT,
         priceMinor: dto.priceMinor,
         isFreePreview: dto.isFreePreview ?? false,
+        centerPriceMinor: dto.centerPriceMinor,
         thumbnailKey: dto.thumbnailKey,
         scheduledAt: this.schedule(dto.status, dto.scheduledAt),
       } });
 
-      if (dto.priceMinor && dto.priceMinor > 0) {
+      if ((created.priceMinor ?? 0) > 0 || (created.centerPriceMinor ?? 0) > 0) {
         await tx.product.create({
         data: {
           kind: ProductKind.LESSON,
@@ -566,7 +568,7 @@ export class AdminContentController {
           titleEn: created.titleEn,
           description: created.description,
           descriptionEn: created.descriptionEn,
-          priceMinor: dto.priceMinor,
+          priceMinor: created.priceMinor ?? 0,
         },
         });
       }
@@ -590,7 +592,7 @@ export class AdminContentController {
   async updateLesson(
     @CurrentUser() actor: AuthenticatedUser,
     @Param('id') id: string,
-    @Body() dto: Partial<UpsertLessonDto>,
+    @Body() dto: UpdateLessonDto,
     @Req() req: Request,
   ) {
     const existing = await this.prisma.lesson.findUnique({
@@ -624,6 +626,7 @@ export class AdminContentController {
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
         ...(dto.priceMinor !== undefined ? { priceMinor: dto.priceMinor } : {}),
         ...(dto.isFreePreview !== undefined ? { isFreePreview: dto.isFreePreview } : {}),
+        ...(dto.centerPriceMinor !== undefined ? { centerPriceMinor: dto.centerPriceMinor } : {}),
         ...(dto.thumbnailKey !== undefined ? { thumbnailKey: dto.thumbnailKey } : {}),
         ...(dto.status || dto.scheduledAt !== undefined
           ? { scheduledAt: this.schedule(dto.status ?? existing.status, dto.scheduledAt) }
@@ -635,21 +638,21 @@ export class AdminContentController {
       });
 
       // Keep the sellable Product in step with the lesson's price.
-      if (dto.priceMinor !== undefined) {
+      if (dto.priceMinor !== undefined || dto.centerPriceMinor !== undefined || dto.title || dto.isFreePreview !== undefined) {
         const product = existing.products[0];
-        if (dto.priceMinor > 0) {
+        if ((updated.priceMinor ?? 0) > 0 || (updated.centerPriceMinor ?? 0) > 0) {
           await tx.product.upsert({
           where: { lessonId: id },
           create: {
             kind: ProductKind.LESSON,
             lessonId: id,
-            title: lesson.title,
-            titleEn: lesson.titleEn,
-            description: lesson.description,
-            descriptionEn: lesson.descriptionEn,
-            priceMinor: dto.priceMinor,
+            title: updated.title,
+            titleEn: updated.titleEn,
+            description: updated.description,
+            descriptionEn: updated.descriptionEn,
+            priceMinor: updated.priceMinor ?? 0,
           },
-          update: { priceMinor: dto.priceMinor, title: lesson.title, titleEn: lesson.titleEn, description: lesson.description, descriptionEn: lesson.descriptionEn, isActive: true },
+          update: { priceMinor: updated.priceMinor ?? 0, title: updated.title, titleEn: updated.titleEn, description: updated.description, descriptionEn: updated.descriptionEn, isActive: true },
         });
         } else if (product) {
           // Deactivated rather than deleted: historical order lines reference it.

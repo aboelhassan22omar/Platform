@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { PublishStatus, VideoStatus } from '../generated/prisma/enums';
+import { PublishStatus, VideoStatus, StudentType } from '../generated/prisma/enums';
+import { isLessonFreeFor, lessonPriceFor } from '../common/utils/lesson-pricing';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
@@ -78,6 +79,7 @@ export class CoursesService {
 
     // A signed-out visitor still sees which lessons are free previews.
     const progress = viewer ? await this.progressMap(viewer.id, lessonIds) : new Map();
+    const studentType = viewer ? await this.studentTypeFor(viewer.id) : undefined;
 
     return {
       id: course.id,
@@ -114,7 +116,7 @@ export class CoursesService {
           priceMinor: chapter.priceMinor,
           productId: chapter.products[0]?.id ?? null,
           lessons: chapter.lessons.map((lesson) =>
-            this.presentLesson(lesson, accessible.has(lesson.id), progress.get(lesson.id)),
+            this.presentLesson(lesson, accessible.has(lesson.id), progress.get(lesson.id), studentType),
           ),
         })),
       })),
@@ -138,7 +140,7 @@ export class CoursesService {
     const [student, watchedRows] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { educationSystem: true, gradeLevel: true },
+        select: { educationSystem: true, gradeLevel: true, studentType: true },
       }),
       this.prisma.lessonProgress.findMany({
         where: { userId },
@@ -190,6 +192,7 @@ export class CoursesService {
         OR: [
           // A free lesson joins "My lessons" only after the student starts it.
           { id: { in: watchedLessonIds }, isFreePreview: true },
+          ...(student?.studentType === StudentType.CENTER ? [{ id: { in: watchedLessonIds }, centerPriceMinor: 0 }] : []),
           { id: { in: entitlements.map((e) => e.lessonId).filter(Boolean) as string[] } },
           {
             chapterId: {
@@ -269,7 +272,7 @@ export class CoursesService {
       const p = progress.get(lesson.id);
 
       return {
-        ...this.presentLesson(lesson, true, p),
+        ...this.presentLesson(lesson, true, p, student?.studentType),
         accessVia,
         expiresAt,
         course: {
@@ -287,6 +290,7 @@ export class CoursesService {
 
   /** "كمّل من مكان ما وقفت" — recently watched, not yet finished. */
   async listContinueWatching(userId: string, limit = 6) {
+    const studentType = await this.studentTypeFor(userId);
     const rows = await this.prisma.lessonProgress.findMany({
       where: {
         userId,
@@ -321,7 +325,7 @@ export class CoursesService {
       .map((row) => {
         const course = row.lesson.chapter.unit.course;
         return {
-          ...this.presentLesson(row.lesson, true, row),
+          ...this.presentLesson(row.lesson, true, row, studentType),
           course: {
             id: course.id,
             title: course.title,
@@ -335,6 +339,7 @@ export class CoursesService {
   }
 
   async getLessonForViewer(lessonId: string, viewer: { id: string; isStaff: boolean }) {
+    const studentType = await this.studentTypeFor(viewer.id);
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
       include: {
@@ -360,13 +365,12 @@ export class CoursesService {
     const course = lesson.chapter.unit.course;
 
     return {
-      ...this.presentLesson(lesson, decision.allowed, progress ?? undefined),
+      ...this.presentLesson(lesson, decision.allowed, progress ?? undefined, studentType),
       access: {
         allowed: decision.allowed,
         reason: decision.reason,
         expiresAt: decision.expiresAt ?? null,
       },
-      productId: lesson.products[0]?.id ?? null,
       attachments: decision.allowed
         ? lesson.attachments.map((a) => ({
             id: a.id,
@@ -416,6 +420,10 @@ export class CoursesService {
     return new Map(rows.map((row) => [row.lessonId, row]));
   }
 
+  private async studentTypeFor(userId: string) {
+    return (await this.prisma.user.findUnique({ where: { id: userId }, select: { studentType: true } }))?.studentType;
+  }
+
   private presentLesson(
     lesson: {
       id: string;
@@ -426,6 +434,7 @@ export class CoursesService {
       sortOrder: number;
       status: PublishStatus;
       priceMinor: number | null;
+      centerPriceMinor?: number | null;
       isFreePreview: boolean;
       durationSeconds: number;
       chapterId: string;
@@ -439,6 +448,7 @@ export class CoursesService {
       completed: boolean;
       lastWatchedAt: Date;
     },
+    studentType?: StudentType,
   ) {
     return {
       id: lesson.id,
@@ -448,9 +458,9 @@ export class CoursesService {
       thumbnailUrl: this.storage.publicUrl(lesson.thumbnailKey),
       sortOrder: lesson.sortOrder,
       status: lesson.status,
-      priceMinor: lesson.priceMinor,
-      productId: lesson.products?.[0]?.id ?? null,
-      isFreePreview: lesson.isFreePreview,
+      priceMinor: lessonPriceFor(lesson, studentType),
+      productId: (lessonPriceFor(lesson, studentType) ?? 0) > 0 ? lesson.products?.[0]?.id ?? null : null,
+      isFreePreview: isLessonFreeFor(lesson, studentType),
       durationSeconds: lesson.videoAsset?.durationSeconds ?? lesson.durationSeconds,
       chapterId: lesson.chapterId,
       videoStatus: lesson.videoAsset?.status ?? VideoStatus.AWAITING_UPLOAD,
