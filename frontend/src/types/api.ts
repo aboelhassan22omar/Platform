@@ -428,3 +428,71 @@ export interface AdminPlan {
   _count: { subscriptions: number };
 }
 
+
+// ---------------------------------------------------------------------------
+// Live classes
+// ---------------------------------------------------------------------------
+
+export type LiveSessionStatus = 'SCHEDULED' | 'LIVE' | 'ENDED' | 'CANCELLED';
+
+export interface LiveSessionSummary {
+  id: string;
+  title: string;
+  description: string | null;
+  scheduledAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  status: LiveSessionStatus;
+  chatEnabled: boolean;
+  recordingEnabled: boolean;
+  /** Why it ended: the teacher pressed end, or left and never came back. */
+  endReason: 'HOST_ENDED' | 'HOST_LEFT' | null;
+  grade: { id: string; nameAr: string; shortNameAr: string; slug: string; themeKey: string };
+}
+
+export interface LiveSessionDetail extends LiveSessionSummary {
+  isHost: boolean;
+  /** Teacher only: a recording segment is running right now. */
+  recording: boolean;
+  /** False until LiveKit keys are configured on the server. */
+  streamingReady: boolean;
+}
+
+export type LiveRecordingStatus = 'RECORDING' | 'PROCESSING' | 'READY' | 'FAILED';
+
+export interface LiveRecording {
+  id: string;
+  status: LiveRecordingStatus;
+  startedAt: string;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  sizeBytes: number | null;
+  error: string | null;
+}
+
+export interface AdminLiveSession extends LiveSessionSummary {
+  counts: { messages: number; reactions: number };
+  recordings: LiveRecording[];
+}
+
+export interface LiveChatMessage {
+  id: string;
+  body: string;
+  createdAt: string;
+  user: { id: string; name: string; isHost: boolean };
+}
+
+export interface LiveReactionEvent {
+  id: string;
+  emoji: string;
+  userId: string;
+  name: string;
+  createdAt: string;
+}
+
+export type LiveEvent =
+  | { type: 'chat'; message: LiveChatMessage }
+  | { type: 'chat-state'; enabled: boolean }
+  | { type: 'reaction'; reaction: LiveReactionEvent }
+  | { type: 'recording'; active: boolean }
+  | { type: 'ended' };

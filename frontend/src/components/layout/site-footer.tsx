@@ -56,6 +56,9 @@ export function SiteFooter() {
       )
     : NAV_SECTIONS;
 
+  // The live room owns the whole viewport, like a call.
+  if (pathname.startsWith('/live/')) return null;
+
   return (
     <footer className="mt-auto border-t border-gold-500/25 bg-[#f5ebd8] dark:bg-[#02060c] text-midnight-950 dark:text-ivory-200 relative overflow-hidden transition-colors duration-300">
       {/* إفريز ذهبي علوي دقيق مع زهرة اللوتس في المنتصف */}

@@ -140,6 +140,25 @@ export const configuration = () => ({
     heartbeatSeconds: int(process.env.PRESENCE_HEARTBEAT_SECONDS, 45),
   },
 
+  /**
+   * Live classes run on LiveKit Cloud. The API key/secret only ever sign
+   * short-lived room tokens server-side; the browser receives the URL and a
+   * token, never the secret. Empty values disable going live.
+   */
+  livekit: {
+    url: process.env.LIVEKIT_URL?.trim() ?? '',
+    /** Optional server-to-server URL when the API cannot reach LIVEKIT_URL (e.g. a local container). */
+    apiUrl: process.env.LIVEKIT_API_URL?.trim() ?? '',
+    /**
+     * Where LiveKit uploads recordings (S3 API endpoint of the video bucket).
+     * Must be reachable from LiveKit's servers; defaults to the public storage
+     * endpoint, which is right for a real S3 bucket.
+     */
+    recordingS3Endpoint: process.env.RECORDING_S3_ENDPOINT?.trim() ?? '',
+    apiKey: process.env.LIVEKIT_API_KEY?.trim() ?? '',
+    apiSecret: process.env.LIVEKIT_API_SECRET?.trim() ?? '',
+  },
+
   rateLimit: {
     ttl: int(process.env.RATE_LIMIT_TTL, 60),
     max: int(process.env.RATE_LIMIT_MAX, 120),

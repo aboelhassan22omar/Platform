@@ -12,6 +12,7 @@ const TABS = [
   { href: '/admin/students', label: 'الطلاب' },
   { href: '/admin/content', label: 'المحتوى ورفع الفيديوهات' },
   { href: '/admin/assessments', label: 'الواجبات والامتحانات' },
+  { href: '/admin/live', label: 'اللايف' },
   { href: '/admin/pricing', label: 'الأسعار' },
 ];
 
