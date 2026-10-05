@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DateTimePicker, isoToLocalInput } from '@/components/ui/date-time-picker';
 import { VideoUploader } from './video-uploader';
 import { cn, formatEgp, formatNumber } from '@/lib/utils';
 import type { PublishStatus } from '@/types/api';
@@ -328,7 +329,7 @@ function EntityEditor({ target, grades, onClose, onSaved }: { target: EditorTarg
           <label className="sm:col-span-2"><span className="editor-label">الاسم</span><input name="title" required minLength={2} maxLength={200} defaultValue={entity?.title ?? ''} className="editor-input" autoFocus /></label>
           {target.kind === 'course' && <label><span className="editor-label">الصف</span><select name="gradeId" required defaultValue={entity?.gradeId ?? target.gradeId ?? ''} className="editor-input"><option value="" disabled>اختار الصف</option>{grades.map((grade) => <option key={grade.id} value={grade.id}>{grade.nameAr}</option>)}</select></label>}
           <label><span className="editor-label">الحالة</span><select name="status" defaultValue={entity?.status ?? 'PUBLISHED'} className="editor-input"><option value="PUBLISHED">منشور — يظهر للطلاب فورًا</option><option value="DRAFT">مسودة — لا تظهر للطلاب</option><option value="SCHEDULED">مجدول</option><option value="ARCHIVED">مؤرشف</option></select><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">المسودات لا تظهر في صفحة الصف الدراسي.</span></label>
-          <label><span className="editor-label">وقت النشر المجدول</span><input name="scheduledAt" type="datetime-local" defaultValue={entity?.scheduledAt ? entity.scheduledAt.slice(0, 16) : ''} className="editor-input" /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">مطلوب عند اختيار حالة «مجدول».</span></label>
+          <div><span className="editor-label">وقت النشر المجدول</span><DateTimePicker name="scheduledAt" disablePast defaultValue={isoToLocalInput(entity?.scheduledAt)} /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">مطلوب عند اختيار حالة «مجدول».</span></div>
           <label><span className="editor-label">الترتيب</span><input name="sortOrder" type="number" min="0" defaultValue={entity?.sortOrder ?? ''} placeholder="تلقائي بعد آخر عنصر" className="editor-input" /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">اتركه فارغًا للإضافة في الآخر، أو اكتب مكانًا وسيتم تحريك ما بعده تلقائيًا.</span></label>
           {(target.kind === 'course' || target.kind === 'chapter' || target.kind === 'lesson') && <label><span className="editor-label">السعر بالجنيه</span><input name="price" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={(entity?.priceMinor ?? 0) / 100} className="editor-input" /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">اكتب 0 لو غير متاح للبيع منفردًا.</span></label>}
           <label className="sm:col-span-2"><span className="editor-label">الوصف</span><textarea name="description" rows={4} maxLength={2000} defaultValue={entity?.description ?? ''} className="editor-input resize-y py-3" /></label>

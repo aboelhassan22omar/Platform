@@ -147,8 +147,13 @@ export class StorageService implements OnModuleInit {
    * re-sharing the stream or screen-recording it — that needs DRM, which is a
    * separate commercial capability. See docs/architecture/video-pipeline.md.
    */
-  async presignDownload(bucket: string, key: string, expiresIn = 300): Promise<string> {
-    return this.signingClient.presignedGetObject(bucket, key, expiresIn);
+  async presignDownload(
+    bucket: string,
+    key: string,
+    expiresIn = 300,
+    responseHeaders?: Record<string, string>,
+  ): Promise<string> {
+    return this.signingClient.presignedGetObject(bucket, key, expiresIn, responseHeaders);
   }
 
   /** Stable public URL for an object in the public bucket. */

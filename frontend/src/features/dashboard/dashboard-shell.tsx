@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { springSnappy } from '@/lib/motion';
+import { LiveBanner } from '@/features/live/live-banner';
 
 const TABS = [
   { href: '/dashboard', label: 'نظرة عامة', exact: true },
@@ -56,7 +57,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <div className="container-page py-8 sm:py-10">{children}</div>
+      <div className="container-page py-8 sm:py-10">
+        <LiveBanner />
+        {children}
+      </div>
     </div>
   );
 }

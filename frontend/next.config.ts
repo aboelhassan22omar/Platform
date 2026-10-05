@@ -24,7 +24,9 @@ const config: NextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            // Same-origin only: the teacher's live studio needs camera, mic
+            // and screen sharing; third-party frames still get none.
+            value: 'camera=(self), microphone=(self), display-capture=(self), geolocation=()',
           },
         ],
       },

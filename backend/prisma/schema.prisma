@@ -173,6 +173,25 @@ enum NotificationKind {
   SUBSCRIPTION
 }
 
+enum LiveSessionStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum LiveEndReason {
+  HOST_ENDED
+  HOST_LEFT
+}
+
+enum LiveRecordingStatus {
+  RECORDING
+  PROCESSING
+  READY
+  FAILED
+}
+
 enum AssessmentKind {
   HOMEWORK
   LESSON_EXAM
@@ -223,6 +242,9 @@ model User {
   playbackTickets   PlaybackTicket[]
   couponRedemptions CouponRedemption[]
   assessmentAttempts AssessmentAttempt[]
+  liveSessionsCreated LiveSession[]     @relation("LiveSessionCreator")
+  liveChatMessages    LiveChatMessage[]
+  liveReactions       LiveReaction[]
 
   @@index([role, status])
   @@index([educationSystem, gradeLevel])
@@ -311,8 +333,9 @@ model Grade {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  courses Course[]
-  plans   Plan[]
+  courses      Course[]
+  plans        Plan[]
+  liveSessions LiveSession[]
 
   @@unique([educationSystem, level])
   @@index([educationSystem, sortOrder])
@@ -1077,4 +1100,90 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")
+}
+
+/// A live class streamed through LiveKit, visible to the students of one grade.
+model LiveSession {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  gradeId     String
+  grade       Grade             @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  startedAt   DateTime?
+  endedAt     DateTime?
+  status      LiveSessionStatus @default(SCHEDULED)
+  /// The teacher can close the chat mid-session.
+  chatEnabled Boolean           @default(true)
+  kickedUserIds String[]        @default([])
+  /// Chosen by the teacher when scheduling: record the class to the video bucket.
+  recordingEnabled Boolean      @default(false)
+  /// Set while the presenter is missing from the room; the class auto-ends after a grace period.
+  hostAbsentSince  DateTime?
+  endReason        LiveEndReason?
+  /// LiveKit room name. Generated server-side, never taken from input.
+  roomName    String            @unique
+  createdById String?
+  createdBy   User?             @relation("LiveSessionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages   LiveChatMessage[]
+  reactions  LiveReaction[]
+  recordings LiveRecording[]
+
+  @@index([gradeId, status, scheduledAt])
+  @@index([status, scheduledAt])
+  @@map("live_sessions")
+}
+
+model LiveChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+  @@map("live_chat_messages")
+}
+
+model LiveReaction {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId, createdAt])
+  @@map("live_reactions")
+}
+
+/// One recorded segment of a live class. A teacher who drops out and rejoins
+/// produces a new segment, so each file ends exactly where the stream stopped.
+model LiveRecording {
+  id              String              @id @default(cuid())
+  sessionId       String
+  session         LiveSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  egressId        String              @unique
+  status          LiveRecordingStatus @default(RECORDING)
+  /// Object key inside the private video bucket.
+  objectKey       String
+  startedAt       DateTime            @default(now())
+  endedAt         DateTime?
+  durationSeconds Int?
+  sizeBytes       BigInt?
+  error           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@index([status])
+  @@map("live_recordings")
 }
