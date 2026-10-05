@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'node:crypto';
 import { Prisma } from '../generated/prisma/client';
-import { Role, UserStatus } from '../generated/prisma/enums';
+import { EducationSystem, GradeLevel, Role, StudentType, UserStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 import { generateToken, hashToken } from '../common/utils/reference.util';
@@ -24,6 +24,7 @@ import type {
 } from './dto/auth.dto';
 import type { AccessTokenPayload } from './strategies/jwt.strategy';
 import { LoginLockedException } from './login-locked.exception';
+import { OtpService } from './otp.service';
 
 export interface IssuedTokens {
   accessToken: string;
@@ -47,13 +48,14 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly redis: RedisService,
+    private readonly otp: OtpService,
   ) {}
 
   // --------------------------------------------------------------------------
   // Registration
   // --------------------------------------------------------------------------
 
-  async register(dto: RegisterDto, ctx: SessionContext) {
+  async register(dto: RegisterDto) {
     const phone = normalizeEgyptianPhone(dto.phone)!;
     const parentPhone = normalizeEgyptianPhone(dto.parentPhone)!;
 
@@ -74,23 +76,37 @@ export class AuthService {
       );
     }
 
+    const passwordHash = await this.passwords.hash(dto.password);
+    return this.otp.create('register', {
+      phone,
+      registration: {
+        fullName: dto.fullName, username: dto.username, passwordHash, parentPhone,
+        educationSystem: dto.educationSystem, gradeLevel: dto.gradeLevel, studentType: dto.studentType,
+      },
+    });
+  }
+
+  async verifyRegistration(challengeId: string, code: string, ctx: SessionContext) {
+    const payload = await this.otp.verify(challengeId, code, 'register');
+    const dto = payload.registration;
+    if (!dto) throw new BadRequestException('جلسة التسجيل غير صالحة');
     const currentYear = await this.prisma.academicYear.findFirst({
       where: { isCurrent: true },
       select: { id: true },
     });
-
-    const passwordHash = await this.passwords.hash(dto.password);
 
     try {
       const user = await this.prisma.user.create({
         data: {
           fullName: dto.fullName,
           username: dto.username,
-          passwordHash,
-          phone,
-          parentPhone,
-          educationSystem: dto.educationSystem,
-          gradeLevel: dto.gradeLevel,
+          passwordHash: dto.passwordHash,
+          phone: payload.phone,
+          parentPhone: dto.parentPhone,
+          phoneVerifiedAt: new Date(),
+          educationSystem: dto.educationSystem as EducationSystem,
+          gradeLevel: dto.gradeLevel as GradeLevel,
+          studentType: dto.studentType as StudentType | undefined,
           academicYearId: currentYear?.id ?? null,
           role: Role.STUDENT,
           status: UserStatus.ACTIVE,
@@ -324,46 +340,25 @@ export class AuthService {
     ]);
   }
 
-  /**
-   * Starts a password reset.
-   *
-   * Always resolves successfully so the endpoint cannot be used to discover
-   * which phone numbers are registered. Whether the token actually reaches the
-   * student depends on PHONE_VERIFICATION: with the default `off`/`console`
-   * setting NO SMS IS SENT — the token is returned to the caller in
-   * development only, and logged. Configure a real SMS provider for production.
-   */
-  async requestPasswordReset(rawPhone: string): Promise<{ devToken?: string }> {
-    const phone = normalizeEgyptianPhone(rawPhone);
-    if (!phone) return {};
+  async requestPasswordReset(rawPhone: string) {
+    const phone = normalizeEgyptianPhone(rawPhone)!;
+    const user = await this.prisma.user.findUnique({ where: { phone }, select: { id: true, status: true } });
+    return this.otp.create('password-reset', {
+      phone, userId: user?.status === UserStatus.ACTIVE ? user.id : undefined,
+    });
+  }
 
-    const user = await this.prisma.user.findUnique({ where: { phone } });
-    if (!user) return {};
-
+  async verifyPasswordReset(challengeId: string, code: string) {
+    const payload = await this.otp.verify(challengeId, code, 'password-reset');
+    if (!payload.userId) throw new BadRequestException('الكود غير صحيح أو انتهت صلاحيته.');
     const token = generateToken(32);
     await this.prisma.passwordReset.create({
-      data: {
-        userId: user.id,
-        tokenHash: hashToken(token),
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-      },
+      data: { userId: payload.userId, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 5 * 60 * 1000) },
     });
-
-    const mode = this.config.get<string>('phoneVerification');
-    if (mode === 'sms') {
-      // No SMS provider is wired up in this build. Failing loudly is safer
-      // than silently pretending a message was delivered.
-      this.logger.error(
-        'PHONE_VERIFICATION=sms but no SMS provider is configured; reset token was NOT delivered.',
-      );
-      return {};
-    }
-
-    this.logger.warn(
-      `[DEV] Password reset token for ${user.username}: ${token} — no SMS was sent.`,
-    );
-    return this.config.get<boolean>('isProduction') ? {} : { devToken: token };
+    return { token, expiresIn: 300 };
   }
+
+  resendOtp(challengeId: string) { return this.otp.resend(challengeId); }
 
   async confirmPasswordReset(dto: ConfirmPasswordResetDto): Promise<void> {
     const record = await this.prisma.passwordReset.findUnique({
@@ -376,20 +371,19 @@ export class AuthService {
 
     const passwordHash = await this.passwords.hash(dto.newPassword);
 
-    await this.prisma.$transaction([
-      this.prisma.passwordReset.update({
-        where: { id: record.id },
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.passwordReset.updateMany({
+        where: { id: record.id, usedAt: null, expiresAt: { gt: new Date() } },
         data: { usedAt: new Date() },
-      }),
-      this.prisma.user.update({
+      });
+      if (claimed.count !== 1) throw new BadRequestException('انتهت جلسة إعادة التعيين، اطلب كود جديد.');
+      await tx.user.update({
         where: { id: record.userId },
         data: { passwordHash, tokenVersion: { increment: 1 } },
-      }),
-      this.prisma.refreshToken.updateMany({
-        where: { userId: record.userId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      }),
-    ]);
+      });
+      await tx.passwordReset.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt: new Date() } });
+      await tx.refreshToken.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    });
   }
 
   // --------------------------------------------------------------------------
@@ -407,6 +401,7 @@ export class AuthService {
     status: UserStatus;
     educationSystem: string | null;
     gradeLevel: string | null;
+    studentType: string;
     academicYearId: string | null;
     createdAt: Date;
     lastLoginAt: Date | null;
@@ -421,6 +416,7 @@ export class AuthService {
       status: user.status,
       educationSystem: user.educationSystem,
       gradeLevel: user.gradeLevel,
+      studentType: user.studentType,
       academicYearId: user.academicYearId,
       createdAt: user.createdAt,
       lastLoginAt: user.lastLoginAt,

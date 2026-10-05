@@ -12,7 +12,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell
       title="نسيت كلمة السر؟"
-      subtitle="اكتب رقم موبايلك المسجل وهنبعتلك خطوات إعادة التعيين."
+      subtitle="أكد رقمك بكود واتساب، وبعدها اختار كلمة سر جديدة."
       allowScroll
     >
       {/* The form reads query parameters, which needs a Suspense boundary. */}

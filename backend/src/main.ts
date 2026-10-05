@@ -27,6 +27,7 @@ async function bootstrap(): Promise<void> {
     auth: config.get('auth'),
     playback: config.get('playback'),
     payments: config.get('payments'),
+    whatsapp: config.get('whatsapp'),
     corsOrigins: config.get('corsOrigins'),
     rateLimit: config.get('rateLimit'),
     seedDemoData: config.get('seedDemoData'),

@@ -192,6 +192,7 @@ export function AdminStudents() {
                         <span className="block font-bold text-midnight-950 dark:text-ivory-50">
                           {student.fullName}
                         </span>
+                        <span className="block text-xs font-bold text-gold-700 dark:text-gold-300">{student.studentType === 'CENTER' ? 'طالب سنتر' : 'طالب أونلاين'}</span>
                         <span className="block text-xs text-midnight-500 dark:text-ivory-300/60" dir="ltr">
                           {student.username}
                         </span>

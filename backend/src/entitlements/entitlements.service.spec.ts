@@ -70,6 +70,19 @@ describe('EntitlementsService', () => {
 
   // -------------------------------------------------------------------------
   describe('checkLessonAccess', () => {
+    it('opens a center-free lesson only for a center student', async () => {
+      prisma.lesson.findUnique.mockResolvedValue(publishedLesson({ centerPriceMinor: 0 }));
+      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'CENTER' });
+      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({ allowed: true, reason: 'FREE_PREVIEW' });
+      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'ONLINE' });
+      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({ allowed: false, reason: 'NO_ENTITLEMENT' });
+    });
+
+    it('does not open a paid center lesson without an entitlement', async () => {
+      prisma.lesson.findUnique.mockResolvedValue(publishedLesson({ centerPriceMinor: 2500 }));
+      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'CENTER' });
+      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({ allowed: false, reason: 'NO_ENTITLEMENT' });
+    });
     it('denies access to a lesson that does not exist', async () => {
       prisma.lesson.findUnique.mockResolvedValue(null);
 
@@ -222,6 +235,14 @@ describe('EntitlementsService', () => {
 
   // -------------------------------------------------------------------------
   describe('filterAccessibleLessonIds', () => {
+    it('includes center-free lessons in bulk access without granting them to online students', async () => {
+      prisma.lesson.findMany.mockResolvedValue([publishedLesson({ centerPriceMinor: 0 })]);
+      prisma.entitlement.findMany.mockResolvedValue([]);
+      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'CENTER' });
+      expect(await service.filterAccessibleLessonIds('user-1', ['lesson-1'])).toEqual(new Set(['lesson-1']));
+      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'ONLINE' });
+      expect(await service.filterAccessibleLessonIds('user-1', ['lesson-1'])).toEqual(new Set());
+    });
     const lessons = [
       {
         id: 'l-free',

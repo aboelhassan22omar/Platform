@@ -1,6 +1,7 @@
 /** Shared API types. Mirrors the backend Prisma enums and read models. */
 
 export type Role = 'STUDENT' | 'SUPPORT' | 'CONTENT_MANAGER' | 'ADMIN' | 'SUPER_ADMIN';
+export type StudentType = 'ONLINE' | 'CENTER';
 export type EducationSystem = 'GENERAL' | 'BACC';
 export type GradeLevel = 'SEC_1' | 'SEC_2' | 'SEC_3' | 'BACC_1' | 'BACC_2';
 export type PublishStatus = 'DRAFT' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED';
@@ -374,6 +375,7 @@ export interface AdminOverview {
 }
 
 export interface AdminStudent {
+  studentType: StudentType;
   id: string;
   fullName: string;
   username: string;

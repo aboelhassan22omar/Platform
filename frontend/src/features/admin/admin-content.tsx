@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DateTimePicker, isoToLocalInput } from '@/components/ui/date-time-picker';
 import { VideoUploader } from './video-uploader';
+import { LessonPricingFields } from './lesson-pricing-fields';
 import { cn, formatEgp, formatNumber } from '@/lib/utils';
 import type { PublishStatus } from '@/types/api';
 import {
@@ -282,6 +283,7 @@ function CourseTree({ course, onEdit, onUpload, onArchive, onDelete }: {
 }
 
 function EntityEditor({ target, grades, onClose, onSaved }: { target: EditorTarget | null; grades: AdminGrade[]; onClose: () => void; onSaved: (value?: { id?: string }) => void | Promise<void> }) {
+  const [status, setStatus] = useState('PUBLISHED');
   const [error, setError] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
@@ -296,7 +298,7 @@ function EntityEditor({ target, grades, onClose, onSaved }: { target: EditorTarg
     onError: (caught) => setError(caught instanceof ApiError ? caught.message : 'تعذر حفظ التعديل.'),
   });
 
-  useEffect(() => setError(null), [target]);
+  useEffect(() => { setError(null); setStatus(target?.entity?.status ?? 'PUBLISHED'); }, [target]);
   if (!target) return null;
   const labels: Record<EntityKind, string> = { course: 'الكورس / الباكدج', unit: 'الوحدة', chapter: 'الفصل / الباكدج', lesson: 'الحصة' };
   const entity = target.entity;
@@ -318,26 +320,28 @@ function EntityEditor({ target, grades, onClose, onSaved }: { target: EditorTarg
           if (target.kind === 'course') payload.gradeId = String(form.get('gradeId') ?? '');
           if (target.kind === 'course' || target.kind === 'chapter' || target.kind === 'lesson') payload.priceMinor = Math.max(0, Math.round(Number(form.get('price') ?? 0) * 100));
           if (target.kind === 'lesson') payload.isFreePreview = form.get('isFreePreview') === 'on';
+          if (target.kind === 'lesson') payload.centerPriceMinor = form.get('customCenterPrice') !== 'on' ? null : form.get('centerFree') === 'on' ? 0 : Math.round(Number(form.get('centerPrice')) * 100);
           mutation.mutate(payload);
         }}
         role="dialog" aria-modal="true" aria-labelledby="entity-editor-title"
-        className="relative max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-2xl border border-gold-500/30 bg-white p-5 shadow-2xl dark:bg-midnight-950 sm:p-6"
+        className="relative max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-2xl border border-gold-500/30 bg-white p-4 shadow-2xl dark:bg-midnight-950 sm:p-4"
       >
         <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black text-gold-700 dark:text-gold-300">{target.mode === 'create' ? 'إضافة جديدة' : 'تعديل'}</p><h2 id="entity-editor-title" className="font-display text-xl font-black text-midnight-950 dark:text-ivory-50">{labels[target.kind]}</h2></div><button type="button" onClick={onClose} aria-label="إغلاق" className="grid h-10 w-10 place-items-center rounded-xl text-xl text-midnight-500 hover:bg-midnight-50 dark:text-ivory-300 dark:hover:bg-midnight-800">×</button></div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <label className="sm:col-span-2"><span className="editor-label">الاسم</span><input name="title" required minLength={2} maxLength={200} defaultValue={entity?.title ?? ''} className="editor-input" autoFocus /></label>
           {target.kind === 'course' && <label><span className="editor-label">الصف</span><select name="gradeId" required defaultValue={entity?.gradeId ?? target.gradeId ?? ''} className="editor-input"><option value="" disabled>اختار الصف</option>{grades.map((grade) => <option key={grade.id} value={grade.id}>{grade.nameAr}</option>)}</select></label>}
-          <label><span className="editor-label">الحالة</span><select name="status" defaultValue={entity?.status ?? 'PUBLISHED'} className="editor-input"><option value="PUBLISHED">منشور — يظهر للطلاب فورًا</option><option value="DRAFT">مسودة — لا تظهر للطلاب</option><option value="SCHEDULED">مجدول</option><option value="ARCHIVED">مؤرشف</option></select><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">المسودات لا تظهر في صفحة الصف الدراسي.</span></label>
-          <div><span className="editor-label">وقت النشر المجدول</span><DateTimePicker name="scheduledAt" disablePast defaultValue={isoToLocalInput(entity?.scheduledAt)} /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">مطلوب عند اختيار حالة «مجدول».</span></div>
-          <label><span className="editor-label">الترتيب</span><input name="sortOrder" type="number" min="0" defaultValue={entity?.sortOrder ?? ''} placeholder="تلقائي بعد آخر عنصر" className="editor-input" /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">اتركه فارغًا للإضافة في الآخر، أو اكتب مكانًا وسيتم تحريك ما بعده تلقائيًا.</span></label>
-          {(target.kind === 'course' || target.kind === 'chapter' || target.kind === 'lesson') && <label><span className="editor-label">السعر بالجنيه</span><input name="price" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={(entity?.priceMinor ?? 0) / 100} className="editor-input" /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">اكتب 0 لو غير متاح للبيع منفردًا.</span></label>}
-          <label className="sm:col-span-2"><span className="editor-label">الوصف</span><textarea name="description" rows={4} maxLength={2000} defaultValue={entity?.description ?? ''} className="editor-input resize-y py-3" /></label>
+          <label><span className="editor-label">الحالة</span><select name="status" value={status} onChange={(event) => setStatus(event.target.value)} className="editor-input"><option value="PUBLISHED">منشور — يظهر للطلاب فورًا</option><option value="DRAFT">مسودة — لا تظهر للطلاب</option><option value="SCHEDULED">مجدول</option><option value="ARCHIVED">مؤرشف</option></select></label>
+          {status === 'SCHEDULED' && <div><span className="editor-label">وقت النشر المجدول</span><DateTimePicker name="scheduledAt" disablePast defaultValue={isoToLocalInput(entity?.scheduledAt)} /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">مطلوب عند اختيار حالة «مجدول».</span></div>}
+          <label><span className="editor-label">الترتيب</span><input name="sortOrder" type="number" min="0" defaultValue={entity?.sortOrder ?? ''} placeholder="تلقائي بعد آخر عنصر" className="editor-input" /></label>
+          {(target.kind === 'course' || target.kind === 'chapter') && <label><span className="editor-label">السعر بالجنيه</span><input name="price" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={(entity?.priceMinor ?? 0) / 100} className="editor-input" /><span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">اكتب 0 لو غير متاح للبيع منفردًا.</span></label>}
+          {target.kind === 'lesson' && <LessonPricingFields priceMinor={entity?.priceMinor} centerPriceMinor={entity?.centerPriceMinor} />}
+          <label className="sm:col-span-2"><span className="editor-label">الوصف</span><textarea name="description" rows={1} maxLength={2000} defaultValue={entity?.description ?? ''} className="editor-input resize-y py-2" /></label>
           {target.kind === 'lesson' && <label className="sm:col-span-2 flex min-h-12 items-center gap-3 rounded-xl border border-gold-500/20 bg-gold-500/5 px-4"><input name="isFreePreview" type="checkbox" defaultChecked={entity?.isFreePreview} className="h-5 w-5 accent-gold-600" /><span className="text-sm font-bold text-midnight-800 dark:text-ivory-200">اسمح للطلاب بمشاهدة الحصة مجانًا</span></label>}
         </div>
 
         {error && <p role="alert" className="mt-4 rounded-xl border border-red-500/25 bg-red-50 px-4 py-3 text-sm font-bold text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
-        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>إلغاء</Button><Button type="submit" variant="accent" isLoading={mutation.isPending}>حفظ التغييرات</Button></div>
+        <div className="sticky bottom-0 mt-3 flex justify-end gap-2 bg-white pt-2 dark:bg-midnight-950"><Button type="button" variant="ghost" onClick={onClose} disabled={mutation.isPending}>إلغاء</Button><Button type="submit" variant="accent" isLoading={mutation.isPending}>حفظ التغييرات</Button></div>
       </motion.form>
     </div>
   );

@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
+import { registrationChallenge } from '../helpers/otp-fixture';
 
 /**
  * The complete student journey, end to end, against the running stack.
@@ -43,9 +44,17 @@ async function firstCourse(request: APIRequestContext) {
 test.describe('student journey', () => {
   test('lock → purchase → unlock → watch → resume', async ({ page, request }) => {
     const student = newStudent();
+    let verificationCode = '';
+    await page.route('**/api/auth/register', async route => {
+      const fixture = registrationChallenge(route.request().postDataJSON());
+      verificationCode = fixture.code;
+      const { code: _code, ...challenge } = fixture;
+      await route.fulfill({ status: 201, json: challenge });
+    });
 
     // --- 1. Register through the real form -------------------------------
     await page.goto('/register');
+    await page.getByRole('radio', { name: 'طالب أونلاين' }).check();
     await page.getByRole('button', { name: 'الثانوية العامة' }).click();
     await page.getByRole('button', { name: 'الصف الأول الثانوي' }).click();
 
@@ -60,6 +69,9 @@ test.describe('student journey', () => {
     await page.locator('input[name="confirmPassword"]').fill(student.password);
 
     await page.getByRole('button', { name: 'اعمل حسابي' }).click();
+    await expect(page.getByLabel('كود التحقق', { exact: true })).toBeVisible();
+    await page.getByLabel('كود التحقق', { exact: true }).fill(verificationCode);
+    await page.getByRole('button', { name: 'تأكيد الكود' }).click();
     await page.waitForURL('**/dashboard', { timeout: 20_000 });
 
     // The greeting must actually use the student's first name.

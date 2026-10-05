@@ -10,6 +10,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { PublishStatus } from '../../generated/prisma/enums';
+import { PartialType } from '@nestjs/swagger';
 
 export class UpsertCourseDto {
   @IsString() @MinLength(2) @MaxLength(160) title!: string;
@@ -42,6 +43,7 @@ export class UpsertChapterDto extends UpsertUnitDto {
 }
 
 export class UpsertLessonDto {
+  @IsOptional() @IsInt() @Min(0) centerPriceMinor?: number | null;
   @IsString() @MinLength(2) @MaxLength(200) title!: string;
   @IsOptional() @IsString() @MaxLength(200) titleEn?: string;
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
@@ -53,6 +55,8 @@ export class UpsertLessonDto {
   @IsOptional() @IsString() thumbnailKey?: string;
   @IsOptional() @IsDateString() scheduledAt?: string;
 }
+
+export class UpdateLessonDto extends PartialType(UpsertLessonDto) {}
 
 export class UploadTicketDto {
   @IsString() fileName!: string;

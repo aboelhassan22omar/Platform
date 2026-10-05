@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type APIRequestContext } from '@playwright/test';
 import { API_BASE_URL } from '../playwright.config';
+import { registrationChallenge } from '../helpers/otp-fixture';
 
 /**
  * API-level contract and security tests.
@@ -49,8 +50,9 @@ async function newSession(_baseURL?: string): Promise<APIRequestContext> {
 }
 
 async function registerStudent(ctx: APIRequestContext, student = newStudent()) {
-  const response = await ctx.post(`${API}/auth/register`, { data: student });
-  expect(response.status(), await response.text()).toBe(201);
+  const challenge = registrationChallenge(student);
+  const response = await ctx.post(`${API}/auth/register/verify`, { data: { challengeId: challenge.challengeId, code: challenge.code } });
+  expect(response.status(), await response.text()).toBe(200);
   return student;
 }
 
@@ -124,11 +126,8 @@ test.describe('authentication', () => {
     test('normalises +20 and Eastern-Arabic digits to the national form', async ({ baseURL }) => {
       const ctx = await newSession(baseURL!);
       const national = `0101${Math.floor(Math.random() * 9000000) + 1000000}`;
-      const response = await ctx.post(`${API}/auth/register`, {
-        data: newStudent({ phone: `+20${national.slice(1)}` }),
-      });
-      expect(response.status()).toBe(201);
-      expect((await response.json()).user.phone).toBe(national);
+      await registerStudent(ctx, newStudent({ phone: `+20${national.slice(1)}` }));
+      expect((await (await ctx.get(`${API}/auth/me`)).json()).phone).toBe(national);
       await ctx.dispose();
     });
   });

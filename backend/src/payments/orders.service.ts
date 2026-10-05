@@ -18,6 +18,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { computeDiscountMinor, generateOrderReference } from '../common/utils';
 import { PAYMENT_PROVIDER } from './payments.constants';
+import { lessonPriceFor } from '../common/utils/lesson-pricing';
 import type { IPaymentProvider, VerifiedWebhook } from './providers/payment-provider.interface';
 
 export interface CreateOrderParams {
@@ -69,15 +70,23 @@ export class OrdersService {
       if (existing) return this.presentOrder(existing, null);
     }
 
-    const products = await this.prisma.product.findMany({
+    const storedProducts = await this.prisma.product.findMany({
       where: { id: { in: productIds }, isActive: true },
-      include: { plan: true },
+      include: { plan: true, lesson: true },
     });
 
-    if (products.length !== productIds.length) {
+    if (storedProducts.length !== productIds.length) {
       throw new BadRequestException('في حاجة في طلبك مش متاحة دلوقتي');
     }
 
+    const pricingUser = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { studentType: true } });
+    const products = storedProducts.map((product) => {
+      const priceMinor = product.kind === ProductKind.LESSON && product.lesson
+        ? lessonPriceFor(product.lesson, pricingUser.studentType)
+        : product.priceMinor;
+      if (product.kind === ProductKind.LESSON && (priceMinor === null || priceMinor <= 0)) throw new BadRequestException('الحصة مجانية لحسابك أو غير متاحة للبيع منفردة');
+      return { ...product, priceMinor: priceMinor ?? product.priceMinor };
+    });
     await this.assertNotAlreadyOwned(userId, products);
 
     const subtotalMinor = products.reduce((sum, p) => sum + p.priceMinor, 0);

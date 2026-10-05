@@ -8,7 +8,7 @@
  */
 
 export type PaymentProviderKey = 'dev' | 'paymob';
-export type PhoneVerificationMode = 'off' | 'console' | 'sms';
+export type PhoneVerificationMode = 'off' | 'console' | 'sms' | 'whatsapp';
 
 const bool = (value: string | undefined, fallback = false): boolean => {
   if (value === undefined || value === '') return fallback;
@@ -133,6 +133,13 @@ export const configuration = () => ({
   },
 
   phoneVerification: (process.env.PHONE_VERIFICATION ?? 'off') as PhoneVerificationMode,
+  whatsapp: {
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? '',
+    token: process.env.WHATSAPP_TOKEN ?? '',
+    graphVersion: process.env.WHATSAPP_GRAPH_VERSION ?? 'v22.0',
+    otpTemplate: process.env.WHATSAPP_OTP_TEMPLATE ?? '',
+    otpLanguage: process.env.WHATSAPP_OTP_LANGUAGE ?? 'ar',
+  },
 
   presence: {
     /** A heartbeat older than this means the student is no longer "online". */
@@ -186,6 +193,7 @@ export const validateEnv = (config: AppConfig): void => {
   const errors: string[] = [];
 
   if (!config.database.url) errors.push('DATABASE_URL is required.');
+  if (!/^v\d+\.\d+$/.test(config.whatsapp.graphVersion)) errors.push('WHATSAPP_GRAPH_VERSION must be a pinned API version.');
 
   if (!config.platform.name) errors.push('PLATFORM_NAME is required.');
   if (!config.platform.teacherName) errors.push('TEACHER_NAME is required.');
