@@ -7,6 +7,7 @@ import { ThemeProvider } from './theme-provider';
 import { AuthProvider } from './auth-provider';
 import { PresenceReporter } from './presence-reporter';
 import { ScrollToTop } from './scroll-to-top';
+import { StoreProvider } from '@/features/store/store-provider';
 
 export function AppProviders({ children }: {
   children: React.ReactNode;
@@ -33,9 +34,11 @@ export function AppProviders({ children }: {
       <MotionConfig reducedMotion="user">
         <ThemeProvider>
           <AuthProvider>
-            <ScrollToTop />
-            {children}
-            <PresenceReporter />
+            <StoreProvider>
+              <ScrollToTop />
+              {children}
+              <PresenceReporter />
+            </StoreProvider>
           </AuthProvider>
         </ThemeProvider>
       </MotionConfig>

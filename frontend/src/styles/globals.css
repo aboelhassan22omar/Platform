@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './store.css';
 @import './auth-book.css';
 
 @custom-variant dark (&:where(.dark, [data-mode="dark"], [data-mode="dark"] *));
