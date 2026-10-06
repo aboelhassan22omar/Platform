@@ -48,11 +48,11 @@ npm run test:responsive   # layout only
 
 ### Unit — `backend/src/**/*.spec.ts` (73 tests)
 
-| Area | What is asserted |
-|---|---|
+| Area             | What is asserted                                                                                                                                                           |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Entitlements** | All five granting scopes; expiry; staff bypass; renewal extends rather than resets; grade/year isolation; idempotent grants; bulk filtering runs a fixed number of queries |
-| **Money** | Piastre conversion; half-up rounding; discount caps; float-artifact cases (`0.1 + 0.2`, `1.005`) |
-| **Phone** | All accepted input shapes including Eastern-Arabic digits; every invalid operator prefix; masking for logs |
+| **Money**        | Piastre conversion; half-up rounding; discount caps; float-artifact cases (`0.1 + 0.2`, `1.005`)                                                                           |
+| **Phone**        | All accepted input shapes including Eastern-Arabic digits; every invalid operator prefix; masking for logs                                                                 |
 
 One of these caught a real bug — see [Bugs the tests caught](#bugs-the-tests-caught).
 
@@ -97,7 +97,7 @@ mobile drawer behaviour and reduced motion.
 Worth recording, because each was silent.
 
 **1. The global rate limiter locked everyone out.**
-Registering a second named throttler in `ThrottlerModule` applies it to *every*
+Registering a second named throttler in `ThrottlerModule` applies it to _every_
 route, not only the ones referencing it. The strict auth limit (8 per 10
 minutes) therefore applied platform-wide — every student would have been
 locked out of the entire API after eight requests. Found by the container
@@ -107,7 +107,7 @@ healthcheck failing with `429`.
 Two top-level `OR` keys in a Prisma query: the second silently replaced the
 first, dropping the expiry check. Every lapsed subscription would have kept
 working — the platform would simply have stopped charging for renewals. Found
-by a unit test asserting the query's *shape*, not just the happy path.
+by a unit test asserting the query's _shape_, not just the happy path.
 
 **3. `/forgot-password` did not exist.**
 The login page linked to a route that returned 404, so no student could reset
@@ -131,8 +131,8 @@ they had deliberately signed out of.
 
 **7. The required-field asterisk leaked into accessible names.**
 `aria-hidden` removes a node from the accessibility tree but it still
-contributes to text content, so inputs were named "كلمة السر *". Fixed with
-`content: '*' / ''`, which gives the marker empty alternative text.
+contributes to text content, so inputs were named "كلمة السر _". Fixed with
+`content: '_' / ''`, which gives the marker empty alternative text.
 
 Items 1, 2, 3 and 6 were user-facing defects that no amount of code review had
 surfaced. They appeared only when the system was actually run.
@@ -143,15 +143,15 @@ surfaced. They appeared only when the system was actually run.
 
 Stated plainly rather than implied by silence.
 
-| Area | Why automation is not enough |
-|---|---|
-| **Safari / iOS** | The mobile projects run the Chromium engine at iPhone geometry. That validates layout, not WebKit behaviour. **Native HLS playback on iOS must be checked on a real device.** |
-| **Paymob** | The adapter is written to the documented API but has never run against live or sandbox merchant credentials. Work through the checklist in [payments.md](../deployment/payments.md) on a test account first. |
-| **Arabic copy** | Tests assert that strings are present, not that they read naturally. A native Egyptian Arabic speaker should review the student-facing wording. |
-| **Curriculum accuracy** | Tests assert structure, not correctness. Courses flagged `isProvisional` need checking against the official textbooks. |
-| **Real-network video** | Transcoding and playback are verified locally. Behaviour on Egyptian mobile networks — quality switching, buffering, data usage — needs field testing. |
-| **Load** | No load test has been run. The bandwidth arithmetic in [video-pipeline.md](../architecture/video-pipeline.md) is arithmetic, not measurement. |
-| **Lighthouse** | Bundle sizes are known (102 kB shared, most routes under 175 kB first load) but no Lighthouse run has been performed, so no performance score is claimed. |
+| Area                    | Why automation is not enough                                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Safari / iOS**        | The mobile projects run the Chromium engine at iPhone geometry. That validates layout, not WebKit behaviour. **Native HLS playback on iOS must be checked on a real device.**                                |
+| **Paymob**              | The adapter is written to the documented API but has never run against live or sandbox merchant credentials. Work through the checklist in [payments.md](../deployment/payments.md) on a test account first. |
+| **Arabic copy**         | Tests assert that strings are present, not that they read naturally. A native Egyptian Arabic speaker should review the student-facing wording.                                                              |
+| **Curriculum accuracy** | Tests assert structure, not correctness. Courses flagged `isProvisional` need checking against the official textbooks.                                                                                       |
+| **Real-network video**  | Transcoding and playback are verified locally. Behaviour on Egyptian mobile networks — quality switching, buffering, data usage — needs field testing.                                                       |
+| **Load**                | No load test has been run. The bandwidth arithmetic in [video-pipeline.md](../architecture/video-pipeline.md) is arithmetic, not measurement.                                                                |
+| **Lighthouse**          | Bundle sizes are known (102 kB shared, most routes under 175 kB first load) but no Lighthouse run has been performed, so no performance score is claimed.                                                    |
 
 ---
 

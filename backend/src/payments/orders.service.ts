@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '../generated/prisma/client';
 import {
@@ -56,9 +50,7 @@ export class OrdersService {
     if (!productIds.length) throw new BadRequestException('مفيش حاجة في طلبك');
     const method = params.method ?? PaymentMethod.WALLET;
     if (method !== PaymentMethod.WALLET && method !== PaymentMethod.CARD) {
-      throw new BadRequestException(
-        'طريقة الدفع المتاحة هي المحفظة الإلكترونية أو إنستا باي فقط',
-      );
+      throw new BadRequestException('طريقة الدفع المتاحة هي المحفظة الإلكترونية أو إنستا باي فقط');
     }
 
     // A retried checkout returns the original order rather than a second one.
@@ -79,12 +71,17 @@ export class OrdersService {
       throw new BadRequestException('في حاجة في طلبك مش متاحة دلوقتي');
     }
 
-    const pricingUser = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { studentType: true } });
+    const pricingUser = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { studentType: true },
+    });
     const products = storedProducts.map((product) => {
-      const priceMinor = product.kind === ProductKind.LESSON && product.lesson
-        ? lessonPriceFor(product.lesson, pricingUser.studentType)
-        : product.priceMinor;
-      if (product.kind === ProductKind.LESSON && (priceMinor === null || priceMinor <= 0)) throw new BadRequestException('الحصة مجانية لحسابك أو غير متاحة للبيع منفردة');
+      const priceMinor =
+        product.kind === ProductKind.LESSON && product.lesson
+          ? lessonPriceFor(product.lesson, pricingUser.studentType)
+          : product.priceMinor;
+      if (product.kind === ProductKind.LESSON && (priceMinor === null || priceMinor <= 0))
+        throw new BadRequestException('الحصة مجانية لحسابك أو غير متاحة للبيع منفردة');
       return { ...product, priceMinor: priceMinor ?? product.priceMinor };
     });
     await this.assertNotAlreadyOwned(userId, products);
@@ -199,15 +196,24 @@ export class OrdersService {
    */
   private async assertNotAlreadyOwned(
     userId: string,
-    products: Array<{ kind: ProductKind; lessonId: string | null; assessmentId: string | null; title: string }>,
+    products: Array<{
+      kind: ProductKind;
+      lessonId: string | null;
+      assessmentId: string | null;
+      title: string;
+    }>,
   ): Promise<void> {
     const lessonIds = products
       .filter((p) => p.kind === ProductKind.LESSON && p.lessonId)
       .map((p) => p.lessonId!);
 
-    const assessmentIds = products.filter((p) => p.kind === ProductKind.ASSESSMENT && p.assessmentId).map((p) => p.assessmentId!);
+    const assessmentIds = products
+      .filter((p) => p.kind === ProductKind.ASSESSMENT && p.assessmentId)
+      .map((p) => p.assessmentId!);
     if (assessmentIds.length) {
-      const owned = await this.prisma.entitlement.count({ where: { userId, assessmentId: { in: assessmentIds }, status: 'ACTIVE' } });
+      const owned = await this.prisma.entitlement.count({
+        where: { userId, assessmentId: { in: assessmentIds }, status: 'ACTIVE' },
+      });
       if (owned) throw new BadRequestException('إنت بالفعل عندك وصول للمحتوى ده');
     }
     if (!lessonIds.length) return;
@@ -294,10 +300,7 @@ export class OrdersService {
 
       // The provider must have charged what we asked for. A mismatch means
       // either tampering or a provider bug; either way, do not grant access.
-      if (
-        typeof event.amountMinor === 'number' &&
-        event.amountMinor !== order.totalMinor
-      ) {
+      if (typeof event.amountMinor === 'number' && event.amountMinor !== order.totalMinor) {
         this.logger.error(
           `Amount mismatch on ${order.reference}: expected ${order.totalMinor}, got ${event.amountMinor}`,
         );
@@ -422,23 +425,25 @@ export class OrdersService {
 
   async listSubscriptions(userId: string) {
     const now = new Date();
-    return this.prisma.subscription.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        plan: { include: { grade: true } },
-        order: { select: { reference: true, totalMinor: true, paidAt: true } },
-      },
-    }).then((subs) =>
-      subs.map((sub) => ({
-        ...sub,
-        isActive: sub.status === SubscriptionStatus.ACTIVE && sub.expiresAt > now,
-        daysRemaining: Math.max(
-          0,
-          Math.ceil((sub.expiresAt.getTime() - now.getTime()) / 86_400_000),
-        ),
-      })),
-    );
+    return this.prisma.subscription
+      .findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          plan: { include: { grade: true } },
+          order: { select: { reference: true, totalMinor: true, paidAt: true } },
+        },
+      })
+      .then((subs) =>
+        subs.map((sub) => ({
+          ...sub,
+          isActive: sub.status === SubscriptionStatus.ACTIVE && sub.expiresAt > now,
+          daysRemaining: Math.max(
+            0,
+            Math.ceil((sub.expiresAt.getTime() - now.getTime()) / 86_400_000),
+          ),
+        })),
+      );
   }
 
   private presentOrder(
@@ -468,8 +473,7 @@ export class OrdersService {
         isSandbox,
         ...(isSandbox
           ? {
-              notice:
-                'وضع تجريبي: لا تتم أي عملية دفع حقيقية. هذا الوضع للتطوير والاختبار فقط.',
+              notice: 'وضع تجريبي: لا تتم أي عملية دفع حقيقية. هذا الوضع للتطوير والاختبار فقط.',
             }
           : {}),
       },

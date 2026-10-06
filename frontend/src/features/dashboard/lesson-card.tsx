@@ -11,23 +11,28 @@ type Lesson = LibraryLesson | ContinueWatchingItem;
 const ACCESS_LABELS: Record<string, { label: string; className: string }> = {
   FREE_PREVIEW: {
     label: 'حصة مجانية',
-    className: 'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-500/20',
+    className:
+      'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-500/20',
   },
   LESSON: {
     label: 'حصة مشتراة',
-    className: 'bg-gold-50 dark:bg-gold-950/40 text-gold-700 dark:text-gold-300 border border-gold-500/20',
+    className:
+      'bg-gold-50 dark:bg-gold-950/40 text-gold-700 dark:text-gold-300 border border-gold-500/20',
   },
   CHAPTER: {
     label: 'باقة فصل',
-    className: 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20',
+    className:
+      'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20',
   },
   COURSE: {
     label: 'كورس كامل',
-    className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20',
+    className:
+      'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20',
   },
   SUBSCRIPTION: {
     label: 'ضمن اشتراكك',
-    className: 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-500/20',
+    className:
+      'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-500/20',
   },
 };
 
@@ -51,7 +56,6 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
         {/* --- Thumbnail --- */}
         <div className="relative aspect-video overflow-hidden bg-gradient-to-bl from-midnight-800 to-midnight-950">
           {lesson.thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={lesson.thumbnailUrl}
               alt=""
@@ -156,4 +160,3 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
     </motion.article>
   );
 }
-

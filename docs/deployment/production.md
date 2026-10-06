@@ -32,18 +32,18 @@ keep it that way.
 
 ### Configuration
 
-| Variable | Production value | Why |
-|---|---|---|
-| `NODE_ENV` | `production` | Enables the boot-time safety checks |
-| `COOKIE_SECURE` | `true` | Session cookies must be HTTPS-only |
-| `COOKIE_DOMAIN` | *empty*, or `.yourdomain.com` | Empty gives a host-only cookie, which is what a single origin wants. **Never `localhost`** — a single-label Domain attribute is mishandled by several clients and silently breaks login |
-| `PAYMENT_PROVIDER` | `paymob` | `dev` is a sandbox; see [payments.md](payments.md) |
-| `SEED_DEMO_DATA` | `false` | The seed refuses to run otherwise |
-| `RATE_LIMIT_MAX` | `120` | Keep the strict default |
-| `AUTH_RATE_LIMIT_MAX` | `8` | Keep the strict default |
-| `PUBLIC_SITE_URL` | `https://yourdomain.com` | Absolute links and payment returns |
-| `CORS_ORIGINS` | `https://yourdomain.com` | Never leave empty in production |
-| `LOG_LEVEL` | `info` | `debug` is noisy and can log more than you want |
+| Variable              | Production value              | Why                                                                                                                                                                                     |
+| --------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`            | `production`                  | Enables the boot-time safety checks                                                                                                                                                     |
+| `COOKIE_SECURE`       | `true`                        | Session cookies must be HTTPS-only                                                                                                                                                      |
+| `COOKIE_DOMAIN`       | _empty_, or `.yourdomain.com` | Empty gives a host-only cookie, which is what a single origin wants. **Never `localhost`** — a single-label Domain attribute is mishandled by several clients and silently breaks login |
+| `PAYMENT_PROVIDER`    | `paymob`                      | `dev` is a sandbox; see [payments.md](payments.md)                                                                                                                                      |
+| `SEED_DEMO_DATA`      | `false`                       | The seed refuses to run otherwise                                                                                                                                                       |
+| `RATE_LIMIT_MAX`      | `120`                         | Keep the strict default                                                                                                                                                                 |
+| `AUTH_RATE_LIMIT_MAX` | `8`                           | Keep the strict default                                                                                                                                                                 |
+| `PUBLIC_SITE_URL`     | `https://yourdomain.com`      | Absolute links and payment returns                                                                                                                                                      |
+| `CORS_ORIGINS`        | `https://yourdomain.com`      | Never leave empty in production                                                                                                                                                         |
+| `LOG_LEVEL`           | `info`                        | `debug` is noisy and can log more than you want                                                                                                                                         |
 
 The boot-time validator (`backend/src/config/configuration.ts`) enforces most
 of these and prints exactly what is wrong.
@@ -54,11 +54,11 @@ of these and prints exactly what is wrong.
 
 Measured against the shipped stack; adjust once you have real traffic.
 
-| Students | vCPU | RAM | Disk | Notes |
-|---|---|---|---|---|
-| < 200 | 4 | 8 GB | 100 GB SSD | Single host is comfortable |
-| 200–1000 | 8 | 16 GB | 250 GB SSD | Move video to a CDN |
-| 1000+ | — | — | — | Separate database host, CDN mandatory |
+| Students | vCPU | RAM   | Disk       | Notes                                 |
+| -------- | ---- | ----- | ---------- | ------------------------------------- |
+| < 200    | 4    | 8 GB  | 100 GB SSD | Single host is comfortable            |
+| 200–1000 | 8    | 16 GB | 250 GB SSD | Move video to a CDN                   |
+| 1000+    | —    | —     | —          | Separate database host, CDN mandatory |
 
 Disk is dominated by video. Rough guide: **one hour of lesson at the default
 ladder ≈ 1.5–2 GB** across all three renditions plus the source. A 70-lesson
@@ -210,23 +210,23 @@ An untested backup is a guess.
 
 ### Health endpoints
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/health` | Liveness — dependency-free, so it only fails on a real hang |
+| Endpoint                | Purpose                                                      |
+| ----------------------- | ------------------------------------------------------------ |
+| `GET /api/health`       | Liveness — dependency-free, so it only fails on a real hang  |
 | `GET /api/health/ready` | Readiness — reports database, Redis and storage individually |
-| `GET /healthz` (proxy) | Edge liveness |
+| `GET /healthz` (proxy)  | Edge liveness                                                |
 
 Point an uptime monitor at `/api/health/ready` and alert on `status: degraded`.
 
 ### What to watch
 
-| Signal | Where | Alert when |
-|---|---|---|
-| Failed transcodes | `video_jobs` where `status = 'FAILED'` | any |
-| Unprocessed webhooks | `webhook_events` where `processedAt IS NULL` | > 5 minutes old |
-| Orders stuck awaiting payment | `orders` where `status = 'AWAITING_PAYMENT'` | > 1 hour old |
-| Disk usage | host | > 80% |
-| Refresh-token reuse | logs: `Refresh token reuse detected` | any — this indicates a stolen token |
+| Signal                        | Where                                        | Alert when                          |
+| ----------------------------- | -------------------------------------------- | ----------------------------------- |
+| Failed transcodes             | `video_jobs` where `status = 'FAILED'`       | any                                 |
+| Unprocessed webhooks          | `webhook_events` where `processedAt IS NULL` | > 5 minutes old                     |
+| Orders stuck awaiting payment | `orders` where `status = 'AWAITING_PAYMENT'` | > 1 hour old                        |
+| Disk usage                    | host                                         | > 80%                               |
+| Refresh-token reuse           | logs: `Refresh token reuse detected`         | any — this indicates a stolen token |
 
 ```sql
 -- Unprocessed webhooks: money taken, access possibly not granted

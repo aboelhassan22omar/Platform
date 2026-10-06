@@ -10,10 +10,7 @@ export const metadata: Metadata = {
 export default function FaqPage() {
   return (
     <div className="bg-ivory-50 dark:bg-midnight-950 transition-colors duration-300">
-      <PageHero
-        title="أسئلة شائعة"
-        subtitle="لو سؤالك مش هنا، تواصل معانا وهنرد عليك."
-      />
+      <PageHero title="أسئلة شائعة" subtitle="لو سؤالك مش هنا، تواصل معانا وهنرد عليك." />
       <FaqList />
     </div>
   );

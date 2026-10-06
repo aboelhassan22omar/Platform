@@ -11,19 +11,23 @@ import type { Order, Subscription } from '@/types/api';
 const ORDER_STATUS_LABELS: Record<string, { label: string; className: string }> = {
   PAID: {
     label: 'مدفوع',
-    className: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20',
+    className:
+      'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20',
   },
   PENDING: {
     label: 'في الانتظار',
-    className: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-500/20',
+    className:
+      'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-500/20',
   },
   FAILED: {
     label: 'فشل',
-    className: 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-500/20',
+    className:
+      'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border border-red-500/20',
   },
   CANCELLED: {
     label: 'ملغي',
-    className: 'bg-ivory-200 dark:bg-midnight-900 text-midnight-600 dark:text-ivory-300 border border-gold-500/20',
+    className:
+      'bg-ivory-200 dark:bg-midnight-900 text-midnight-600 dark:text-ivory-300 border border-gold-500/20',
   },
 };
 
@@ -33,7 +37,7 @@ export function MySubscriptions() {
     queryFn: () => api.get<Subscription[]>('/subscriptions/mine'),
   });
 
-  const { data: orders, isLoading: ordersLoading } = useQuery({
+  const { data: orders } = useQuery({
     queryKey: ['orders-mine'],
     queryFn: () => api.get<Order[]>('/orders/mine'),
   });
@@ -152,13 +156,7 @@ export function MySubscriptions() {
                     </span>
                   </div>
                 ) : (
-                  <ButtonLink
-                    href="/grades"
-                    variant="accent"
-                    size="sm"
-                    fullWidth
-                    className="mt-4"
-                  >
+                  <ButtonLink href="/grades" variant="accent" size="sm" fullWidth className="mt-4">
                     جدّد الاشتراك
                   </ButtonLink>
                 )}
@@ -183,20 +181,31 @@ export function MySubscriptions() {
               <table className="w-full min-w-[34rem] text-start text-sm">
                 <thead className="bg-ivory-100/70 dark:bg-midnight-900/90 text-xs text-midnight-700 dark:text-gold-300 border-b border-gold-500/20">
                   <tr>
-                    <th scope="col" className="px-4 py-3 text-start font-bold">رقم الطلب</th>
-                    <th scope="col" className="px-4 py-3 text-start font-bold">المحتوى</th>
-                    <th scope="col" className="px-4 py-3 text-start font-bold">المبلغ</th>
-                    <th scope="col" className="px-4 py-3 text-start font-bold">الحالة</th>
-                    <th scope="col" className="px-4 py-3 text-start font-bold">التاريخ</th>
+                    <th scope="col" className="px-4 py-3 text-start font-bold">
+                      رقم الطلب
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-start font-bold">
+                      المحتوى
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-start font-bold">
+                      المبلغ
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-start font-bold">
+                      الحالة
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-start font-bold">
+                      التاريخ
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ivory-200/70 dark:divide-midnight-800">
                   {orders.map((order) => {
-                    const status =
-                      ORDER_STATUS_LABELS[order.status] ??
-                      ORDER_STATUS_LABELS.PENDING;
+                    const status = ORDER_STATUS_LABELS[order.status] ?? ORDER_STATUS_LABELS.PENDING;
                     return (
-                      <tr key={order.id} className="hover:bg-ivory-50/50 dark:hover:bg-midnight-900/40 transition-colors">
+                      <tr
+                        key={order.id}
+                        className="hover:bg-ivory-50/50 dark:hover:bg-midnight-900/40 transition-colors"
+                      >
                         <td className="nums-tabular px-4 py-3 font-semibold text-midnight-800 dark:text-ivory-200">
                           {order.reference}
                         </td>

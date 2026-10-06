@@ -1,4 +1,9 @@
-import { test, expect, request as playwrightRequest, type APIRequestContext } from '@playwright/test';
+import {
+  test,
+  expect,
+  request as playwrightRequest,
+  type APIRequestContext,
+} from '@playwright/test';
 import { API_BASE_URL } from '../playwright.config';
 import { registrationChallenge } from '../helpers/otp-fixture';
 
@@ -51,7 +56,9 @@ async function newSession(_baseURL?: string): Promise<APIRequestContext> {
 
 async function registerStudent(ctx: APIRequestContext, student = newStudent()) {
   const challenge = registrationChallenge(student);
-  const response = await ctx.post(`${API}/auth/register/verify`, { data: { challengeId: challenge.challengeId, code: challenge.code } });
+  const response = await ctx.post(`${API}/auth/register/verify`, {
+    data: { challengeId: challenge.challengeId, code: challenge.code },
+  });
   expect(response.status(), await response.text()).toBe(200);
   return student;
 }
@@ -229,7 +236,7 @@ test.describe('entitlement enforcement', () => {
     await ctx.dispose();
   });
 
-  test('one student cannot reach another student\'s purchase', async ({ baseURL }) => {
+  test("one student cannot reach another student's purchase", async ({ baseURL }) => {
     const buyer = await newSession(baseURL!);
     await registerStudent(buyer);
     const { paid } = await findPaidLesson(buyer);
@@ -444,7 +451,12 @@ test.describe('role-based access control', () => {
 
   test('protected student routes reject anonymous callers', async ({ baseURL }) => {
     const anon = await newSession(baseURL!);
-    for (const route of ['/me/lessons', '/me/continue-watching', '/orders', '/subscriptions/mine']) {
+    for (const route of [
+      '/me/lessons',
+      '/me/continue-watching',
+      '/orders',
+      '/subscriptions/mine',
+    ]) {
       expect((await anon.get(`${API}${route}`)).status(), route).toBe(401);
     }
     await anon.dispose();
@@ -483,10 +495,9 @@ test.describe('public catalogue', () => {
       )
     ).json();
 
-    const statuses = course.units
-      .flatMap((u: { chapters: { lessons: { status: string }[] }[] }) =>
-        u.chapters.flatMap((c) => c.lessons.map((l) => l.status)),
-      );
+    const statuses = course.units.flatMap((u: { chapters: { lessons: { status: string }[] }[] }) =>
+      u.chapters.flatMap((c) => c.lessons.map((l) => l.status)),
+    );
     expect(new Set(statuses)).toEqual(new Set(['PUBLISHED']));
 
     await anon.dispose();

@@ -1,56 +1,61 @@
 # تخصيص المنصة لمدرس أو مادة جديدة
 
-الهدف أن تظل وظائف المنصة (الحسابات، المحتوى، الفيديو، الدفع، الاختبارات،
-والصلاحيات) مستقلة عن هوية المدرس والمادة.
+هوية المنصة مستقلة عن الحسابات والمحتوى والدفع واللايف. التاريخ هو الإعداد الافتراضي؛ الكيمياء والأحياء والفيزياء لها نصوص وصور وألوان مستقلة. استخدم `custom` لمادة أخرى.
 
-## تغيير سريع بدون تعديل الكود
+## تغيير الهوية
 
-1. انسخ `.env.example` إلى `.env`.
-2. غيّر مجموعة `Platform identity` فقط.
-3. ضع ملفات الشعار والصور داخل `frontend/public/brand` أو استخدم مسارات عامة.
-4. أعد بناء الواجهة: `docker compose build frontend`.
-5. شغّلها: `docker compose up -d frontend`.
+من جذر المشروع، اعرض الإعدادات أولًا:
 
-مثال الكيمياء:
-
-```env
-PLATFORM_NAME=منصة مستر أحمد التعليمية
-TEACHER_NAME=مستر أحمد
-SUBJECT_KEY=chemistry
-SUBJECT_NAME=الكيمياء
-NEXT_PUBLIC_PLATFORM_NAME=منصة مستر أحمد التعليمية
-NEXT_PUBLIC_PLATFORM_SHORT_NAME=منصة مستر أحمد
-NEXT_PUBLIC_TEACHER_NAME=مستر أحمد
-NEXT_PUBLIC_TEACHER_SHORT_NAME=أحمد
-NEXT_PUBLIC_TEACHER_TAGLINE=الكيمياء ببساطة
-NEXT_PUBLIC_SUBJECT_KEY=chemistry
-NEXT_PUBLIC_SUBJECT_NAME=الكيمياء
-NEXT_PUBLIC_SUBJECT_ADJECTIVE=الكيميائية
-NEXT_PUBLIC_LOGO_LIGHT=/brand/chemistry-logo-light.png
-NEXT_PUBLIC_LOGO_DARK=/brand/chemistry-logo-dark.png
+```powershell
+npm run platform:configure -- --subject chemistry --teacher "مستر أحمد"
 ```
 
-## حدود الوحدات
+لحفظها في `.env`:
 
-- `frontend/src/config`: هوية النسخة، التنقل، وإعدادات العرض العامة.
-- `frontend/src/components`: مكونات عامة لا تعرف مادة أو مدرسًا بعينه.
-- `frontend/src/features`: منطق وواجهات كل ميزة مستقلة.
-- `frontend/src/app`: تركيب الصفحات والتوجيه فقط؛ لا يوضع منطق أعمال كبير هنا.
-- `backend/src/config`: إعدادات الخادم وهوية النسخة.
-- وحدات backend (`auth`, `payments`, `courses`, ...): كل وحدة تملك controller/service/DTOs الخاصة بها.
-- `backend/prisma`: مخطط البيانات وبيانات المناهج الأولية فقط.
+```powershell
+npm run platform:configure -- --subject chemistry --teacher "مستر أحمد" --write
+docker compose up -d --no-deps --build backend frontend
+docker compose exec -T proxy nginx -s reload
+```
 
-## قاعدة مهمة
+الأمر يحدّث إعدادات الهوية في الخادم والواجهة معًا، ويستبدل النصوص والشعار والصور الافتراضية بما يناسب المادة. يحافظ على إعدادات قاعدة البيانات والدفع والواتساب والتخزين. بدون `--write` يعرض القيم فقط.
 
-أي قيمة تتغير بين مدرس وآخر لا تكتب داخل JSX أو service. إن كانت هوية عامة توضع
-في `platform.config`; وإن كانت محتوى دراسيًا توضع في قاعدة البيانات أو ملفات seed؛
-وإن كانت سرًا توضع في متغير بيئة غير عام.
+خيارات إضافية:
 
-## قائمة فحص نسخة جديدة
+```powershell
+npm run platform:configure -- --subject custom --subject-name "الجيولوجيا" --teacher "دكتور أحمد" --short-name "أحمد" --logo /brand/my-logo.svg --image /brand/my-portrait.webp --env-file .env --write
+```
 
-- الاسم، المادة، الوصف، الشعار، وروابط التواصل.
-- ألوان وصور المادة والثيمات الخاصة بالصفوف.
-- بيانات المناهج والباقات والأسعار.
-- الصفحات القانونية وبيانات جهة التحكم في البيانات.
-- مفاتيح الدفع والتخزين والرسائل في بيئة الإنتاج.
-- تشغيل build وunit tests وE2E على الهاتف وسطح المكتب.
+ضع الصور في `frontend/public/brand` ثم استخدم مسارها العام. راجع روابط وأرقام التواصل في `NEXT_PUBLIC_*` عند تجهيز نسخة لمدرس آخر. متغيرات الواجهة تُقرأ أثناء البناء؛ تغيير `.env` يحتاج إعادة بناء الواجهة.
+
+## المحتوى والبيانات
+
+تغيير الهوية لا يحوّل دروس التاريخ الموجودة في قاعدة البيانات إلى كيمياء. للمنصة الجديدة استخدم قاعدة بيانات مستقلة، وأضف منهجها من لوحة التحكم. بيانات seed للتاريخ محفوظة في `backend/prisma/subjects/history.ts`. المواد الأخرى تبدأ بالصفوف الخمسة دون إنشاء دروس تاريخ أو اختراع منهج جديد.
+
+منتجات المتجر الأولية تتبع المادة المختارة. المتجر الحالي يعمل داخل المتصفح حسب نطاق العرض المطلوب، ولا يحفظ طلبات أو مدفوعات فعلية على الخادم. لكل مادة ومدرس مساحة تخزين مستقلة؛ تفاصيل الطلبات تبقى في جلسة التبويب. راجع [المتجر](../store-demo.md).
+
+## أماكن التعديل
+
+| التعديل                               | المكان                                              |
+| ------------------------------------- | --------------------------------------------------- |
+| الأسماء والشعارات والصور الافتراضية   | `frontend/src/config/platform-identity.ts`          |
+| إعدادات البيئة العامة وروابط التواصل  | `frontend/src/config/platform.config.ts`            |
+| نصوص الرئيسية وفوائد كل مادة وألوانها | `frontend/src/config/subject-profile.ts`            |
+| الصفوف الدراسية                       | `frontend/src/config/academic-levels.ts`            |
+| صور وثيمات التاريخ                    | `frontend/src/themes/presets/history.ts`            |
+| اختيار ثيم المادة                     | `frontend/src/themes/registry.ts`                   |
+| هوية الخادم                           | `backend/src/config/platform-identity.ts`           |
+| قواعد المتجر والعربة والطلبات         | `frontend/src/features/store/store-model.ts`        |
+| خدمات إدارة المحتوى                   | `backend/src/admin/content`                         |
+| معالجة الفيديو                        | `workers/src/media` و`workers/src/process-video.ts` |
+
+## التحقق قبل التسليم
+
+```powershell
+npm run check
+npm run format:check
+npm run audit:source
+npm --workspace tests/e2e test -- specs/store-demo.spec.ts --project=desktop-chrome --project=mobile-360
+```
+
+`audit:source` يكشف الملفات التي لا تصل إليها نقاط تشغيل المصدر؛ نتيجته تحتاج مراجعة قبل الحذف، خصوصًا الملفات التي يقرأها النظام بالاسم أثناء التشغيل. لا يشمل الملفات المولّدة من Prisma أو Next.js.

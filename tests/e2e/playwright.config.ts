@@ -48,9 +48,7 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
 
-  reporter: process.env.CI
-    ? [['list'], ['html', { open: 'never' }]]
-    : [['list']],
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
 
   use: {
     baseURL: BASE_URL,

@@ -27,17 +27,13 @@ export function CheckoutReturn() {
     // Webhooks usually land within a second or two, but retries can take
     // longer; poll briefly rather than claiming failure too early.
     refetchInterval: (query) =>
-      query.state.data?.status === 'PAID' || query.state.data?.status === 'FAILED'
-        ? false
-        : 2000,
+      query.state.data?.status === 'PAID' || query.state.data?.status === 'FAILED' ? false : 2000,
   });
 
   if (!reference) {
     return (
       <Shell>
-        <p className="font-display text-lg font-bold text-midnight-800">
-          مفيش رقم طلب
-        </p>
+        <p className="font-display text-lg font-bold text-midnight-800">مفيش رقم طلب</p>
       </Shell>
     );
   }
@@ -124,9 +120,7 @@ export function CheckoutReturn() {
             <path d="M11 11l12 12M23 11L11 23" strokeWidth="3" strokeLinecap="round" />
           </svg>
         </span>
-        <h1 className="mt-6 font-display text-2xl font-black text-midnight-900">
-          الدفع ما تمّش
-        </h1>
+        <h1 className="mt-6 font-display text-2xl font-black text-midnight-900">الدفع ما تمّش</h1>
         <p className="mt-2 max-w-sm text-sm leading-relaxed text-midnight-500">
           معملناش أي خصم. تقدر تجرب تاني، ولو المشكلة اتكررت كلّم الدعم.
         </p>
@@ -147,9 +141,7 @@ export function CheckoutReturn() {
   return (
     <Shell>
       <span className="h-12 w-12 animate-spin rounded-full border-[3px] border-gold-500 border-t-transparent" />
-      <h1 className="mt-6 font-display text-xl font-black text-midnight-900">
-        بنأكد عملية الدفع
-      </h1>
+      <h1 className="mt-6 font-display text-xl font-black text-midnight-900">بنأكد عملية الدفع</h1>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-midnight-500">
         استنى ثواني، بنستنى تأكيد من بوابة الدفع. متقفلش الصفحة.
       </p>
@@ -200,8 +192,7 @@ function OrderSummary({ order }: { order: Order }) {
 
       {order.payment.isSandbox && (
         <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-          {order.payment.notice ??
-            'وضع تجريبي: لم تتم أي عملية دفع حقيقية.'}
+          {order.payment.notice ?? 'وضع تجريبي: لم تتم أي عملية دفع حقيقية.'}
         </p>
       )}
     </div>

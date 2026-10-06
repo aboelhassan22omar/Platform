@@ -9,9 +9,7 @@ import { PresenceReporter } from './presence-reporter';
 import { ScrollToTop } from './scroll-to-top';
 import { StoreProvider } from '@/features/store/store-provider';
 
-export function AppProviders({ children }: {
-  children: React.ReactNode;
-}) {
+export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({

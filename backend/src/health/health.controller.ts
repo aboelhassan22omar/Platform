@@ -32,7 +32,10 @@ export class HealthController {
   async ready() {
     const [database, redis, storage] = await Promise.all([
       this.prisma.$queryRaw`SELECT 1`.then(() => true).catch(() => false),
-      this.redis.client.ping().then(() => true).catch(() => false),
+      this.redis.client
+        .ping()
+        .then(() => true)
+        .catch(() => false),
       this.storage.healthCheck(),
     ]);
 

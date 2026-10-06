@@ -31,15 +31,15 @@ nginx  ──┬── Next.js (frontend)
                             └── Object storage (S3-compatible)
 ```
 
-| Service | Role | Why separate |
-|---|---|---|
-| **proxy** | One public origin | Auth cookies stay first-party; TLS terminates once |
-| **frontend** | Next.js App Router | Server components render the catalogue with the session cookie |
-| **backend** | NestJS REST API | Every authorisation decision lives here |
-| **worker** | ffmpeg transcoding | CPU-bound; must scale independently of the API |
-| **postgres** | System of record | Orders, entitlements, progress |
-| **redis** | Presence + job queue | Ephemeral state that should not touch the database |
-| **minio** | Object storage | Video never touches the application filesystem |
+| Service      | Role                 | Why separate                                                   |
+| ------------ | -------------------- | -------------------------------------------------------------- |
+| **proxy**    | One public origin    | Auth cookies stay first-party; TLS terminates once             |
+| **frontend** | Next.js App Router   | Server components render the catalogue with the session cookie |
+| **backend**  | NestJS REST API      | Every authorisation decision lives here                        |
+| **worker**   | ffmpeg transcoding   | CPU-bound; must scale independently of the API                 |
+| **postgres** | System of record     | Orders, entitlements, progress                                 |
+| **redis**    | Presence + job queue | Ephemeral state that should not touch the database             |
+| **minio**    | Object storage       | Video never touches the application filesystem                 |
 
 ### Why one origin
 
@@ -64,7 +64,7 @@ the normal path.
 ```
 
 Every route requires authentication unless it carries `@Public()`. A developer
-who adds an endpoint and forgets a guard ships something *protected*, not
+who adds an endpoint and forgets a guard ships something _protected_, not
 something exposed. The failure mode of forgetfulness points the safe way.
 
 `RolesGuard` implements a rank hierarchy, so `@Roles(Role.ADMIN)` is satisfied
@@ -235,13 +235,13 @@ Adding a sixth identity is a registry entry and a CSS block. Nothing forks.
 
 ## Trade-offs taken deliberately
 
-| Decision | Cost | Why anyway |
-|---|---|---|
-| Segments stream through the API | API bandwidth | Storage stays fully private and revocation is immediate. Documented as the first thing to move to a CDN |
-| Re-read the user on every request | One indexed lookup | Suspension and forced logout take effect immediately, not at token expiry |
-| Presence in Redis with a durable mirror | Slight complexity | Survives a Redis flush without writing to Postgres on every heartbeat |
-| Curriculum in a seed file, admin-editable | Placeholder content ships | The teacher owns the curriculum; hardcoding it in components would make every correction a deploy |
-| Entitlements never hard-deleted | Table grows | A refund dispute must be reconstructable |
+| Decision                                  | Cost                      | Why anyway                                                                                              |
+| ----------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Segments stream through the API           | API bandwidth             | Storage stays fully private and revocation is immediate. Documented as the first thing to move to a CDN |
+| Re-read the user on every request         | One indexed lookup        | Suspension and forced logout take effect immediately, not at token expiry                               |
+| Presence in Redis with a durable mirror   | Slight complexity         | Survives a Redis flush without writing to Postgres on every heartbeat                                   |
+| Curriculum in a seed file, admin-editable | Placeholder content ships | The teacher owns the curriculum; hardcoding it in components would make every correction a deploy       |
+| Entitlements never hard-deleted           | Table grows               | A refund dispute must be reconstructable                                                                |
 
 ---
 

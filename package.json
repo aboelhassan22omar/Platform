@@ -18,28 +18,42 @@
     "reset": "docker compose down -v && docker compose up -d --build",
     "logs": "docker compose logs -f",
     "ps": "docker compose ps",
-
     "//seed": "--- One-shot tasks ---",
     "seed": "docker compose --profile seed run --rm seed",
     "bootstrap:admin": "docker compose --profile bootstrap run --rm -e BOOTSTRAP_ADMIN_USERNAME -e BOOTSTRAP_ADMIN_PASSWORD -e BOOTSTRAP_ADMIN_FULLNAME -e BOOTSTRAP_ADMIN_PHONE bootstrap-admin",
     "migrate": "docker compose exec backend npx prisma migrate deploy",
-
     "//prod": "--- Production overlay ---",
     "prod:up": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build",
     "prod:down": "docker compose -f docker-compose.yml -f docker-compose.prod.yml down",
     "prod:config": "docker compose -f docker-compose.yml -f docker-compose.prod.yml config --quiet",
-
     "//test": "--- Tests ---",
-    "test": "npm run test:unit && npm run test:e2e",
+    "test": "npm run test:unit && npm run test:models && npm run test:e2e",
     "test:unit": "npm --workspace backend test",
     "test:e2e": "npm --workspace tests/e2e test",
     "test:e2e:mobile": "npm --workspace tests/e2e run test:mobile",
-
     "//check": "--- Static checks ---",
     "typecheck": "npm --workspace backend run typecheck && npm --workspace frontend run typecheck && npm --workspace workers run typecheck",
-    "build": "npm --workspace backend run build && npm --workspace frontend run build && npm --workspace workers run build"
+    "build": "npm --workspace backend run build && npm --workspace frontend run build && npm --workspace workers run build",
+    "lint": "eslint --config eslint.config.mjs frontend/src backend/src workers/src scripts",
+    "format": "prettier --write frontend/src backend/src backend/prisma workers/src scripts tests docs *.json *.mjs",
+    "format:check": "prettier --check frontend/src backend/src backend/prisma workers/src scripts tests docs *.json *.mjs",
+    "audit:source": "node scripts/audit-source.mjs",
+    "platform:configure": "node scripts/configure-platform.cjs",
+    "test:models": "playwright test --config tests/unit/playwright.config.ts",
+    "test:media": "node scripts/test-worker-media.cjs",
+    "check": "npm run lint && npm run typecheck && npm run test:unit && npm run test:models"
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
+    "prettier": "3.6.2",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.1"
   }
 }

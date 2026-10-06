@@ -87,16 +87,10 @@ export function ConfirmDialog({
             aria-describedby="confirm-body"
             className="relative w-full max-w-md rounded-2xl border border-ivory-300 bg-white p-6 shadow-2xl"
           >
-            <h2
-              id="confirm-title"
-              className="font-display text-lg font-black text-midnight-900"
-            >
+            <h2 id="confirm-title" className="font-display text-lg font-black text-midnight-900">
               {title}
             </h2>
-            <p
-              id="confirm-body"
-              className="mt-2 text-sm leading-relaxed text-midnight-600"
-            >
+            <p id="confirm-body" className="mt-2 text-sm leading-relaxed text-midnight-600">
               {body}
             </p>
 

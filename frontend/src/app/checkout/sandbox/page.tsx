@@ -13,7 +13,13 @@ export const metadata: Metadata = { title: 'محاكاة الدفع (وضع ال
  */
 export default function SandboxCheckoutPage() {
   return (
-    <Suspense fallback={<div className="container-page py-20"><div className="skeleton mx-auto h-80 max-w-md rounded-2xl" /></div>}>
+    <Suspense
+      fallback={
+        <div className="container-page py-20">
+          <div className="skeleton mx-auto h-80 max-w-md rounded-2xl" />
+        </div>
+      }
+    >
       <SandboxCheckout />
     </Suspense>
   );

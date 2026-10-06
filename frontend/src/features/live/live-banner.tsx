@@ -76,7 +76,9 @@ function PrimaryLive({ session }: { session: LiveSessionSummary }) {
             </div>
           ) : (
             <div>
-              <p className="mb-2 text-xs font-bold text-midnight-500 dark:text-ivory-300/70">باقي على اللايف</p>
+              <p className="mb-2 text-xs font-bold text-midnight-500 dark:text-ivory-300/70">
+                باقي على اللايف
+              </p>
               <CountdownDisplay parts={countdown} />
             </div>
           )}
@@ -113,9 +115,13 @@ export function LiveBanner() {
                 className="flex items-center justify-between gap-3 rounded-xl border border-gold-500/20 bg-white px-4 py-3 text-sm transition-colors hover:border-gold-500/40 dark:bg-midnight-950/80"
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-bold text-midnight-900 dark:text-ivory-100">{session.title}</span>
+                  <span className="block truncate font-bold text-midnight-900 dark:text-ivory-100">
+                    {session.title}
+                  </span>
                   <span className="block text-xs text-midnight-500 dark:text-ivory-300/70">
-                    {session.status === 'LIVE' ? 'مباشر دلوقتي' : formatLiveDate(session.scheduledAt)}
+                    {session.status === 'LIVE'
+                      ? 'مباشر دلوقتي'
+                      : formatLiveDate(session.scheduledAt)}
                   </span>
                 </span>
                 {session.status === 'LIVE' && <LiveDot />}

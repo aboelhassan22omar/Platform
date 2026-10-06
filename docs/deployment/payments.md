@@ -12,10 +12,10 @@ Everything downstream of checkout depends on
 never on a specific processor. Swapping Paymob for another Egyptian gateway is
 a new adapter class plus a config value — not a rewrite of the order pipeline.
 
-| `PAYMENT_PROVIDER` | Adapter | Real money? |
-|---|---|---|
-| `dev` *(default)* | `DevSandboxProvider` | **No** |
-| `paymob` | `PaymobProvider` | Yes |
+| `PAYMENT_PROVIDER` | Adapter              | Real money? |
+| ------------------ | -------------------- | ----------- |
+| `dev` _(default)_  | `DevSandboxProvider` | **No**      |
+| `paymob`           | `PaymobProvider`     | Yes         |
 
 ---
 
@@ -52,13 +52,13 @@ Safeguards:
 
 From the Paymob dashboard (<https://accept.paymob.com>):
 
-| Variable | Where to find it |
-|---|---|
-| `PAYMOB_API_KEY` | Settings → Account Info → API Key |
-| `PAYMOB_HMAC_SECRET` | Settings → Account Info → HMAC Secret |
-| `PAYMOB_INTEGRATION_ID_CARD` | Developers → Payment Integrations → card |
+| Variable                       | Where to find it                           |
+| ------------------------------ | ------------------------------------------ |
+| `PAYMOB_API_KEY`               | Settings → Account Info → API Key          |
+| `PAYMOB_HMAC_SECRET`           | Settings → Account Info → HMAC Secret      |
+| `PAYMOB_INTEGRATION_ID_CARD`   | Developers → Payment Integrations → card   |
 | `PAYMOB_INTEGRATION_ID_WALLET` | Developers → Payment Integrations → wallet |
-| `PAYMOB_IFRAME_ID` | Developers → iframes |
+| `PAYMOB_IFRAME_ID`             | Developers → iframes                       |
 
 ```bash
 PAYMENT_PROVIDER=paymob
@@ -80,10 +80,10 @@ unverified webhook is an open door to free access.
 
 In Paymob → Developers → Payment Integrations, set both callbacks:
 
-| Callback | URL |
-|---|---|
+| Callback              | URL                                            |
+| --------------------- | ---------------------------------------------- |
 | Transaction processed | `https://yourdomain.com/api/webhooks/payments` |
-| Transaction response | `https://yourdomain.com/checkout/return` |
+| Transaction response  | `https://yourdomain.com/checkout/return`       |
 
 The **processed** callback is the one that matters. It is the only thing that
 grants access.
@@ -141,7 +141,7 @@ to a URL. It can be typed, bookmarked or shared. Access is granted solely by a
 signed, server-to-server webhook.
 
 `/checkout/return` polls the order and shows one of three states: paid, failed,
-or *still confirming* — never a success screen the backend has not agreed with.
+or _still confirming_ — never a success screen the backend has not agreed with.
 
 ### Idempotency, at three levels
 

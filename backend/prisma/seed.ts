@@ -19,6 +19,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { hash } from '@node-rs/argon2';
+import { resolvePlatformIdentity } from '../src/config/platform-identity';
 import { CURRICULUM, GRADES, PLAN_TEMPLATES, type GradeKey } from './curriculum-data';
 
 const connectionString = process.env.DATABASE_URL;
@@ -303,10 +304,10 @@ async function seedSiteSettings() {
     {
       key: 'brand',
       value: {
-        teacherName: 'مستر عمرو محروس',
-        teacherTitle: 'مدرس التاريخ',
-        platformName: 'منصة مستر عمرو محروس التعليمية',
-        tagline: 'ابدأ رحلة التاريخ',
+        teacherName: resolvePlatformIdentity().teacherName,
+        teacherTitle: `مدرس ${resolvePlatformIdentity().subjectName}`,
+        platformName: resolvePlatformIdentity().name,
+        tagline: `ابدأ رحلة ${resolvePlatformIdentity().subjectName}`,
         // Populated once the teacher supplies authorised assets.
         logoUrl: null,
         portraitUrl: null,
@@ -366,11 +367,41 @@ async function seedDemoData(grades: Map<GradeKey, string>, academicYearId: strin
     grade: GradeKey;
     system: 'GENERAL' | 'BACC';
   }> = [
-    { username: 'demo.ahmed', fullName: 'أحمد محمد علي', phone: '01000000001', grade: 'SEC_1', system: 'GENERAL' },
-    { username: 'demo.mariam', fullName: 'مريم حسن إبراهيم', phone: '01000000002', grade: 'SEC_2', system: 'GENERAL' },
-    { username: 'demo.youssef', fullName: 'يوسف طارق سعيد', phone: '01000000003', grade: 'SEC_3', system: 'GENERAL' },
-    { username: 'demo.nour', fullName: 'نور الدين عماد', phone: '01000000004', grade: 'BACC_1', system: 'BACC' },
-    { username: 'demo.salma', fullName: 'سلمى أشرف فؤاد', phone: '01000000005', grade: 'BACC_2', system: 'BACC' },
+    {
+      username: 'demo.ahmed',
+      fullName: 'أحمد محمد علي',
+      phone: '01000000001',
+      grade: 'SEC_1',
+      system: 'GENERAL',
+    },
+    {
+      username: 'demo.mariam',
+      fullName: 'مريم حسن إبراهيم',
+      phone: '01000000002',
+      grade: 'SEC_2',
+      system: 'GENERAL',
+    },
+    {
+      username: 'demo.youssef',
+      fullName: 'يوسف طارق سعيد',
+      phone: '01000000003',
+      grade: 'SEC_3',
+      system: 'GENERAL',
+    },
+    {
+      username: 'demo.nour',
+      fullName: 'نور الدين عماد',
+      phone: '01000000004',
+      grade: 'BACC_1',
+      system: 'BACC',
+    },
+    {
+      username: 'demo.salma',
+      fullName: 'سلمى أشرف فؤاد',
+      phone: '01000000005',
+      grade: 'BACC_2',
+      system: 'BACC',
+    },
   ];
 
   for (const demo of demos) {

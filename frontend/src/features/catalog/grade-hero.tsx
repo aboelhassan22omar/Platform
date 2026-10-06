@@ -34,7 +34,7 @@ export function GradeHero({ grade }: { grade: GradeDetail }) {
   return (
     <section
       ref={ref}
-      data-theme={grade.themeKey}
+      data-theme={theme.key}
       className={`relative isolate overflow-hidden bg-gradient-to-b ${theme.heroSurface}`}
     >
       <motion.div
@@ -62,7 +62,10 @@ export function GradeHero({ grade }: { grade: GradeDetail }) {
         aria-hidden
         className="pointer-events-none absolute inset-0 hidden md:block bg-[linear-gradient(90deg,rgba(5,19,31,0.12)_0%,rgba(5,19,31,0.5)_42%,rgba(5,19,31,0.94)_100%)]"
       />
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-midnight-950/65" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-midnight-950/65"
+      />
 
       <div className="texture-parchment pointer-events-none absolute inset-0" aria-hidden />
 
@@ -147,7 +150,7 @@ export function GradeHero({ grade }: { grade: GradeDetail }) {
               </span>
             </div>
             <p className="mt-0.5 text-xs text-ivory-200/70 truncate">
-              خبير مادة التاريخ — {theme.eraLabel}
+              خبير مادة {platformConfig.subject.name} — {theme.eraLabel}
             </p>
           </div>
         </div>

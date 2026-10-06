@@ -14,8 +14,7 @@ const SERVER_BASE = process.env.INTERNAL_API_URL ?? 'http://backend:4000/api';
 
 let browserRefresh: Promise<boolean> | null = null;
 
-export const apiBase = (): string =>
-  typeof window === 'undefined' ? SERVER_BASE : BROWSER_BASE;
+export const apiBase = (): string => (typeof window === 'undefined' ? SERVER_BASE : BROWSER_BASE);
 
 export class ApiError extends Error {
   constructor(
@@ -57,21 +56,22 @@ const readError = async (response: Response): Promise<ApiError> => {
   const message =
     list?.[0] ??
     (typeof raw === 'string' ? raw : undefined) ??
-    (response.status >= 500
-      ? 'في مشكلة في السيرفر، حاول تاني بعد شوية'
-      : 'حصل خطأ، حاول تاني');
+    (response.status >= 500 ? 'في مشكلة في السيرفر، حاول تاني بعد شوية' : 'حصل خطأ، حاول تاني');
 
   const headerRetry = Number.parseInt(response.headers.get('Retry-After') ?? '', 10);
   const retryAfterSeconds = Number.isFinite(payload.retryAfterSeconds)
     ? payload.retryAfterSeconds
-    : Number.isFinite(headerRetry) ? headerRetry : undefined;
+    : Number.isFinite(headerRetry)
+      ? headerRetry
+      : undefined;
   return new ApiError(response.status, message, payload.code, list, retryAfterSeconds);
 };
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { body, cookie, headers, ...rest } = options;
 
-  const execute = () => fetch(`${apiBase()}${path}`, {
+  const execute = () =>
+    fetch(`${apiBase()}${path}`, {
       ...rest,
       credentials: 'include',
       headers: {
@@ -90,11 +90,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   // assessment. Renew the httpOnly session and replay the original request once
   // so publishing never loses their work. A shared promise prevents several
   // simultaneous queries from rotating the same refresh token more than once.
-  if (
-    response.status === 401 &&
-    typeof window !== 'undefined' &&
-    !path.startsWith('/auth/')
-  ) {
+  if (response.status === 401 && typeof window !== 'undefined' && !path.startsWith('/auth/')) {
     browserRefresh ??= fetch(`${BROWSER_BASE}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
@@ -102,11 +98,13 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     })
       .then(async (refreshResponse) => {
         if (!refreshResponse.ok) return false;
-        const payload = await refreshResponse.json().catch(() => null) as { ok?: boolean } | null;
+        const payload = (await refreshResponse.json().catch(() => null)) as { ok?: boolean } | null;
         return payload?.ok === true;
       })
       .catch(() => false)
-      .finally(() => { browserRefresh = null; });
+      .finally(() => {
+        browserRefresh = null;
+      });
 
     if (await browserRefresh) response = await execute();
   }
@@ -136,10 +134,7 @@ export const api = {
  * signed-in student. Returns null instead of throwing on 401/404, because a
  * signed-out visitor viewing a public page is a normal case, not an error.
  */
-export async function apiFetchServer<T>(
-  path: string,
-  cookieHeader: string,
-): Promise<T | null> {
+export async function apiFetchServer<T>(path: string, cookieHeader: string): Promise<T | null> {
   try {
     return await apiFetch<T>(path, { cookie: cookieHeader });
   } catch (error) {

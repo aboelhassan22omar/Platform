@@ -1,0 +1,15 @@
+node_modules/
+**/node_modules/
+**/generated/
+**/.next/
+**/dist/
+**/.prisma-build/
+**/coverage/
+**/test-results/
+**/playwright-report/
+tmp/
+temp/
+.legacy-vite-template/
+package-lock.json
+*.tsbuildinfo
+*.env*

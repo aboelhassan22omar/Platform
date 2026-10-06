@@ -9,7 +9,9 @@ The store is an interactive, browser-only preview requested for a client present
 - `/store/orders/[reference]`: simulated order confirmation and transfer submission.
 - `/admin/store`: staff UI for demo product editing, COD availability, shipping prices, transfer review, and fulfillment states. This uses the existing staff route guard; browser demo data is not a production authorization boundary.
 
-Products, cart, and shipping rates use localStorage (`amr-store-demo-v1`). Demo orders and submitted delivery details use sessionStorage (`amr-store-demo-orders-v1`) and remain in the current browser tab session. Clear these keys to reset the presentation. Changes do not sync to other devices or browsers. Use fictional customer information during presentations.
+Products, cart, and shipping rates use localStorage (`platform-store-v2:<subject>:<teacher>`). Orders and submitted delivery details use sessionStorage (`platform-store-orders-v2:<subject>:<teacher>`) and remain in the current browser tab session. Clear these keys to reset the presentation. Changes do not sync to other devices or browsers. Existing `amr-store-demo-v1` and `amr-store-demo-orders-v1` data is migrated only for the original history/Amr Mahrous identity. Malformed snapshots fall back safely to initial data. Use fictional customer information during presentations.
+
+Store logic is independent of React: `store-model.ts` owns cart, stock and order transitions; `cart-totals.ts` computes totals; `delivery-details.ts` validates delivery fields; `store-schemas.ts` checks persisted snapshots; `store-persistence.ts` handles storage; `store-provider.tsx` connects this model to the interface. Repeated cancellation cannot restore stock twice. Landmark and alternate phone remain optional.
 
 Shipping defaults: Greater Cairo 60 EGP; Delta 80 EGP; Upper Egypt and border governorates 100 EGP. All 27 governorates are available. Staff can change each region's demo price. An online-only item disables COD for the whole cart. Prices and order snapshots are computed in integer piastres; changing a product or shipping rate does not alter an existing order.
 

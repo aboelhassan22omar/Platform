@@ -1,3 +1,5 @@
+import { resolvePlatformIdentity } from './platform-identity';
+
 /**
  * Central, typed configuration. Every environment variable the backend reads
  * is parsed exactly once here so the rest of the code never touches
@@ -53,13 +55,7 @@ export const configuration = () => ({
   port: int(process.env.PORT, 4000),
   logLevel: process.env.LOG_LEVEL ?? 'info',
 
-  platform: {
-    name: process.env.PLATFORM_NAME?.trim() || 'منصة مستر عمرو محروس التعليمية',
-    teacherName: process.env.TEACHER_NAME?.trim() || 'مستر عمرو محروس',
-    subjectKey: process.env.SUBJECT_KEY?.trim() || 'history',
-    subjectName: process.env.SUBJECT_NAME?.trim() || 'التاريخ',
-    locale: 'ar' as const,
-  },
+  platform: resolvePlatformIdentity(),
 
   publicSiteUrl: process.env.PUBLIC_SITE_URL ?? 'http://localhost:7080',
   corsOrigins: list(process.env.CORS_ORIGINS),
@@ -193,7 +189,8 @@ export const validateEnv = (config: AppConfig): void => {
   const errors: string[] = [];
 
   if (!config.database.url) errors.push('DATABASE_URL is required.');
-  if (!/^v\d+\.\d+$/.test(config.whatsapp.graphVersion)) errors.push('WHATSAPP_GRAPH_VERSION must be a pinned API version.');
+  if (!/^v\d+\.\d+$/.test(config.whatsapp.graphVersion))
+    errors.push('WHATSAPP_GRAPH_VERSION must be a pinned API version.');
 
   if (!config.platform.name) errors.push('PLATFORM_NAME is required.');
   if (!config.platform.teacherName) errors.push('TEACHER_NAME is required.');

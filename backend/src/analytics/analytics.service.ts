@@ -154,9 +154,7 @@ export class AnalyticsService {
 
   /** Paid orders and revenue per day. */
   async salesOverTime(range: DateRange) {
-    const rows = await this.prisma.$queryRaw<
-      Array<{ day: Date; orders: bigint; revenue: bigint }>
-    >`
+    const rows = await this.prisma.$queryRaw<Array<{ day: Date; orders: bigint; revenue: bigint }>>`
       SELECT date_trunc('day', "paidAt") AS day,
              COUNT(*)::bigint AS orders,
              COALESCE(SUM("totalMinor"), 0)::bigint AS revenue

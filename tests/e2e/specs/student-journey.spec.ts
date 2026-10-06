@@ -34,9 +34,7 @@ async function firstCourse(request: APIRequestContext) {
   const detail = await (await request.get(`${API}/academic/grades/${grade.slug}`)).json();
   const course = detail.courses[0];
   const full = await (
-    await request.get(
-      `${API}/grades/${grade.slug}/courses/${encodeURIComponent(course.slug)}`,
-    )
+    await request.get(`${API}/grades/${grade.slug}/courses/${encodeURIComponent(course.slug)}`)
   ).json();
   return { grade, course: full };
 }
@@ -45,7 +43,7 @@ test.describe('student journey', () => {
   test('lock → purchase → unlock → watch → resume', async ({ page, request }) => {
     const student = newStudent();
     let verificationCode = '';
-    await page.route('**/api/auth/register', async route => {
+    await page.route('**/api/auth/register', async (route) => {
       const fixture = registrationChallenge(route.request().postDataJSON());
       verificationCode = fixture.code;
       const { code: _code, ...challenge } = fixture;
@@ -122,10 +120,9 @@ test.describe('student journey', () => {
     await expect(page.getByRole('heading', { name: 'حصصي' })).toBeVisible();
 
     // --- 6. Progress persists across a reload ----------------------------
-    const progressResponse = await page.request.put(
-      `${API}/lessons/${paid.id}/progress`,
-      { data: { positionSeconds: 240, durationSeconds: 600 } },
-    );
+    const progressResponse = await page.request.put(`${API}/lessons/${paid.id}/progress`, {
+      data: { positionSeconds: 240, durationSeconds: 600 },
+    });
     expect(progressResponse.ok()).toBe(true);
 
     await page.goto('/dashboard');
@@ -144,16 +141,14 @@ test.describe('student journey', () => {
     await page.getByRole('button', { name: 'دخول' }).click();
     await page.waitForURL('**/dashboard', { timeout: 20_000 });
 
-    const resumed = await (
-      await page.request.get(`${API}/lessons/${paid.id}/progress`)
-    ).json();
+    const resumed = await (await page.request.get(`${API}/lessons/${paid.id}/progress`)).json();
     expect(resumed.positionSeconds).toBe(240);
     expect(resumed.percent).toBe(40);
   });
 });
 
 test.describe('pathway selection', () => {
-  test('only the chosen pathway\'s grades are offered', async ({ page }) => {
+  test("only the chosen pathway's grades are offered", async ({ page }) => {
     await page.goto('/register');
 
     await page.getByRole('button', { name: 'الثانوية العامة' }).click();

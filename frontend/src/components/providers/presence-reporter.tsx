@@ -5,9 +5,7 @@ import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from './auth-provider';
 
-const HEARTBEAT_SECONDS = Number(
-  process.env.NEXT_PUBLIC_PRESENCE_HEARTBEAT_SECONDS ?? 45,
-);
+const HEARTBEAT_SECONDS = Number(process.env.NEXT_PUBLIC_PRESENCE_HEARTBEAT_SECONDS ?? 45);
 
 /**
  * Sends an authenticated heartbeat so the admin dashboard can report who is

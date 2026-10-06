@@ -1,24 +1,16 @@
 import { test, expect } from '@playwright/test';
 
-test('guest cart, shipping and simulated payment work without an account', async ({
-  page,
-}) => {
+test('guest cart, shipping and simulated payment work without an account', async ({ page }) => {
   await page.goto('/store');
-  await expect(
-    page.getByRole('heading', { name: 'اختار صفّك الدراسي' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'اختار صفّك الدراسي' })).toBeVisible();
   const cartLink = page.getByRole('link', { name: /عربة التسوق \(/ }).first();
   await expect(cartLink).toBeInViewport();
   if (page.viewportSize()!.width < 768) {
     const menu = page.getByRole('button', { name: 'افتح القائمة الرئيسية' });
     const bounds = await menu.boundingBox();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
-    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(
-      page.viewportSize()!.width,
-    );
-    await expect(
-      page.getByRole('button', { name: 'افتح القائمة الرئيسية' }),
-    ).toBeInViewport();
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await expect(page.getByRole('button', { name: 'افتح القائمة الرئيسية' })).toBeInViewport();
   }
   await expect(page.locator('.store-product')).toHaveCount(0);
   await expect(page.locator('.store-grade-card')).toHaveCount(5);
@@ -39,13 +31,9 @@ test('guest cart, shipping and simulated payment work without an account', async
   await expect(page.getByTestId('shipping-total')).toHaveText('١٠٠ ج.م');
   await expect(page.getByTestId('order-total')).toHaveText('٥٤٠ ج.م');
   await expect(
-    page
-      .getByLabel('المحافظة', { exact: true })
-      .locator('option[value="ASSIUT"]'),
+    page.getByLabel('المحافظة', { exact: true }).locator('option[value="ASSIUT"]'),
   ).toHaveText('أسيوط');
-  await expect(
-    page.locator('.store-summary').getByText('وجه بحري'),
-  ).toHaveCount(0);
+  await expect(page.locator('.store-summary').getByText('وجه بحري')).toHaveCount(0);
   await page.getByLabel('المحافظة', { exact: true }).selectOption('CAIRO');
   await expect(page.getByTestId('order-total')).toHaveText('٥٠٠ ج.م');
   for (const [label, value] of [
@@ -66,20 +54,12 @@ test('guest cart, shipping and simulated payment work without an account', async
   await page.getByRole('button', { name: 'تأكيد الطلب' }).click();
   await expect(page).toHaveURL(/\/store\/orders\/DEMO-/);
   await page.getByLabel('مرجع التحويل').fill('DEMO-TEST-123');
-  await page
-    .getByRole('button', { name: 'إرسال بيانات التحويل للمراجعة' })
-    .click();
-  await expect(
-    page.getByText('الدفع قيد المراجعة', { exact: true }),
-  ).toBeVisible();
+  await page.getByRole('button', { name: 'إرسال بيانات التحويل للمراجعة' }).click();
+  await expect(page.getByText('الدفع قيد المراجعة', { exact: true })).toBeVisible();
   await page.reload();
-  await expect(
-    page.getByText('الدفع قيد المراجعة', { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText('الدفع قيد المراجعة', { exact: true })).toBeVisible();
   expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBeTruthy();
 });
 
@@ -87,17 +67,10 @@ test('cart only appears in store routes and grade page shows mixed product types
   page,
 }) => {
   await page.goto('/about');
-  await expect(page.getByRole('link', { name: /عربة التسوق \(/ })).toHaveCount(
-    0,
-  );
+  await expect(page.getByRole('link', { name: /عربة التسوق \(/ })).toHaveCount(0);
   await page.goto('/store');
-  await expect(
-    page.getByRole('link', { name: /عربة التسوق \(/ }),
-  ).toBeVisible();
-  await page
-    .locator('.store-grade-card')
-    .filter({ hasText: 'أولى ثانوي' })
-    .click();
+  await expect(page.getByRole('link', { name: /عربة التسوق \(/ })).toBeVisible();
+  await page.locator('.store-grade-card').filter({ hasText: 'أولى ثانوي' }).click();
   await expect(page.locator('.store-grade-products')).toHaveCount(1);
   await expect(page.locator('.store-product')).toHaveCount(3);
   await expect(page.locator('.store-product h3')).toHaveText([
@@ -109,9 +82,7 @@ test('cart only appears in store routes and grade page shows mixed product types
   await page.getByRole('textbox', { name: 'ابحث في مكتبة الصف' }).fill('بكدج');
   await expect(page.locator('.store-product')).toHaveCount(1);
   expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBeTruthy();
 });
 
@@ -130,10 +101,7 @@ test('teacher edits product, COD availability, shipping and reviews sample payme
     }),
   );
   await page.goto('/admin/store');
-  await page
-    .getByRole('button', { name: 'تعديل', exact: true })
-    .first()
-    .click();
+  await page.getByRole('button', { name: 'تعديل', exact: true }).first().click();
   await page.getByLabel('السعر بالجنيه', { exact: true }).fill('250');
   await page.getByLabel('السماح بالدفع عند الاستلام').uncheck();
   await page.getByRole('button', { name: 'حفظ المنتج', exact: true }).click();
@@ -150,9 +118,7 @@ test('teacher edits product, COD availability, shipping and reviews sample payme
   await page.getByRole('button', { name: 'أضف للعربة' }).click();
   await page.goto('/store/cart');
   await expect(
-    page
-      .getByLabel('المحافظة', { exact: true })
-      .locator('option[value="CAIRO"]'),
+    page.getByLabel('المحافظة', { exact: true }).locator('option[value="CAIRO"]'),
   ).toHaveText('القاهرة');
   await page.getByLabel('المحافظة', { exact: true }).selectOption('CAIRO');
   for (const [label, value] of [
@@ -168,14 +134,10 @@ test('teacher edits product, COD availability, shipping and reviews sample payme
   ])
     await page.getByLabel(label, { exact: true }).fill(value);
   await page.getByRole('button', { name: 'متابعة للدفع' }).click();
-  await expect(
-    page.getByRole('radio', { name: /الدفع عند الاستلام/ }),
-  ).toBeDisabled();
+  await expect(page.getByRole('radio', { name: /الدفع عند الاستلام/ })).toBeDisabled();
   await expect(page.getByRole('radio', { name: /فودافون كاش/ })).toBeChecked();
   expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
   ).toBeTruthy();
 });
 
@@ -207,13 +169,9 @@ test('COD demo confirms immediately, validates alternate phone and clears cart',
   await page.getByRole('button', { name: 'متابعة للدفع' }).click();
   await page.getByRole('button', { name: 'مراجعة الطلب' }).click();
   await page.getByRole('button', { name: 'تأكيد الطلب' }).click();
-  await expect(
-    page.getByRole('heading', { name: 'تم تأكيد الطلب', exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'تم تأكيد الطلب', exact: true })).toBeVisible();
   await expect(page.getByText('٢٦٠ ج.م', { exact: true })).toBeVisible();
   await expect(page.getByLabel('مرجع التحويل')).toHaveCount(0);
   await page.goto('/store/cart');
-  await expect(
-    page.getByRole('heading', { name: 'عربتك مستنية اختيارك' }),
-  ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'عربتك مستنية اختيارك' })).toBeVisible();
 });

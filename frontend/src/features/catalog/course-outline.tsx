@@ -6,7 +6,10 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
-import { PaymentMethodDialog, type CheckoutPaymentMethod } from '@/features/checkout/payment-method-dialog';
+import {
+  PaymentMethodDialog,
+  type CheckoutPaymentMethod,
+} from '@/features/checkout/payment-method-dialog';
 import { api, ApiError } from '@/lib/api';
 import { cn, formatDuration, formatEgp, pluralizeAr } from '@/lib/utils';
 import { EASE_ENTRANCE, staggerContainer } from '@/lib/motion';
@@ -73,7 +76,7 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
   };
 
   return (
-    <div data-theme={course.grade.themeKey} className="bg-ivory-100">
+    <div data-theme={theme.key} className="bg-ivory-100">
       {/* ------------------------------------------------------------------
           Course header
           ------------------------------------------------------------------ */}
@@ -168,7 +171,10 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
             تصفّح المحتوى مجانًا، وادفع فقط للوحدة اللي محتاجها أو اشترك لفتح الصف كاملًا.
           </p>
           {checkoutError && (
-            <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p
+              role="alert"
+              className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700"
+            >
               {checkoutError}
             </p>
           )}
@@ -182,7 +188,8 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
           {course.units.map((unit, unitIndex) => {
             const isOpen = openUnits.has(unit.id);
             const unitLessons = unit.chapters.flatMap((chapter) => chapter.lessons);
-            const isFullyAccessible = unitLessons.length > 0 && unitLessons.every((lesson) => lesson.isAccessible);
+            const isFullyAccessible =
+              unitLessons.length > 0 && unitLessons.every((lesson) => lesson.isAccessible);
             const offer = getUnitOffer(unit);
 
             return (
@@ -207,38 +214,38 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
                       aria-controls={`unit-panel-${unit.id}`}
                       className="flex min-h-11 flex-1 items-center gap-4 text-start"
                     >
-                    <span
-                      aria-hidden
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)] font-display text-sm font-black text-[var(--accent)]"
-                    >
-                      {unitIndex + 1}
-                    </span>
-
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-display text-base font-extrabold text-midnight-900">
-                        {unit.title}
+                      <span
+                        aria-hidden
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--accent-soft)] font-display text-sm font-black text-[var(--accent)]"
+                      >
+                        {unitIndex + 1}
                       </span>
-                      <span className="mt-0.5 block text-xs text-midnight-400">
-                        {pluralizeAr(unitLessons.length, ['حصة واحدة', 'حصتان', 'حصة'])}
-                      </span>
-                    </span>
 
-                    <motion.span
-                      aria-hidden
-                      animate={{ rotate: isOpen ? 180 : 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="shrink-0 text-midnight-400"
-                    >
-                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                        <path
-                          d="M4.5 6.75L9 11.25l4.5-4.5"
-                          stroke="currentColor"
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </motion.span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-display text-base font-extrabold text-midnight-900">
+                          {unit.title}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-midnight-400">
+                          {pluralizeAr(unitLessons.length, ['حصة واحدة', 'حصتان', 'حصة'])}
+                        </span>
+                      </span>
+
+                      <motion.span
+                        aria-hidden
+                        animate={{ rotate: isOpen ? 180 : 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="shrink-0 text-midnight-400"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                          <path
+                            d="M4.5 6.75L9 11.25l4.5-4.5"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </motion.span>
                     </button>
 
                     {isFullyAccessible ? (
@@ -252,7 +259,9 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
                         isLoading={pendingOfferId === offer.id}
                         onClick={() => {
                           if (!user) {
-                            router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+                            router.push(
+                              `/login?next=${encodeURIComponent(window.location.pathname)}`,
+                            );
                             return;
                           }
                           setCheckoutError(null);
@@ -262,7 +271,9 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
                         اشترِ الوحدة — {formatEgp(offer.amountMinor)}
                       </Button>
                     ) : (
-                      <span className="text-xs font-semibold text-midnight-400">السعر غير مفعّل</span>
+                      <span className="text-xs font-semibold text-midnight-400">
+                        السعر غير مفعّل
+                      </span>
                     )}
                   </div>
                 </h2>
@@ -293,7 +304,7 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
 
                             <ul className="divide-y divide-ivory-200">
                               {chapter.lessons.map((lesson) => (
-                                <LessonRow key={lesson.id} lesson={lesson} courseId={course.id} />
+                                <LessonRow key={lesson.id} lesson={lesson} />
                               ))}
                             </ul>
                           </div>
@@ -343,15 +354,7 @@ function getUnitOffer(unit: Unit): UnitOffer | null {
   };
 }
 
-function Stat({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
+function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div
       className={cn(
@@ -369,7 +372,7 @@ function Stat({
   );
 }
 
-function LessonRow({ lesson, courseId }: { lesson: LessonSummary; courseId: string }) {
+function LessonRow({ lesson }: { lesson: LessonSummary }) {
   const canOpen = lesson.isAccessible;
 
   const content = (

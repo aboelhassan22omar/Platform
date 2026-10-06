@@ -8,8 +8,7 @@ export function StoreOrderView({ reference }: { reference: string }) {
   const store = useStore();
   const [transfer, setTransfer] = useState('');
   const order = store.orders.find((o) => o.reference === reference);
-  if (!store.ready)
-    return <div className="container-page store-page">جاري تحميل الطلب…</div>;
+  if (!store.ready) return <div className="container-page store-page">جاري تحميل الطلب…</div>;
   if (!order)
     return (
       <div className="container-page store-empty">
@@ -49,12 +48,11 @@ export function StoreOrderView({ reference }: { reference: string }) {
             </p>
             <p>رقم بديل: {delivery.alternatePhone}</p>
             <p>
-              {store.rates.find((r) => r.code === delivery.governorate)?.name}،{' '}
-              {delivery.city}، {delivery.address}
+              {store.rates.find((r) => r.code === delivery.governorate)?.name}، {delivery.city}،{' '}
+              {delivery.address}
             </p>
             <p>
-              مبنى {delivery.building}، الدور {delivery.floor}، شقة{' '}
-              {delivery.apartment}
+              مبنى {delivery.building}، الدور {delivery.floor}، شقة {delivery.apartment}
             </p>
             <p>علامة مميزة: {delivery.landmark}</p>
             {delivery.notes && <p>{delivery.notes}</p>}
@@ -98,16 +96,11 @@ export function StoreOrderView({ reference }: { reference: string }) {
                     onChange={(e) => setTransfer(e.target.value)}
                   />
                 </label>
-                <button className="store-button">
-                  إرسال بيانات التحويل للمراجعة
-                </button>
+                <button className="store-button">إرسال بيانات التحويل للمراجعة</button>
               </form>
             )}
           {order.paymentStatus === 'SUBMITTED' && (
-            <p>
-              بيانات التحويل تحت المراجعة. المستر يقدر يؤكده من شاشة المتجر في
-              لوحة التحكم.
-            </p>
+            <p>بيانات التحويل تحت المراجعة. المستر يقدر يؤكده من شاشة المتجر في لوحة التحكم.</p>
           )}
           {order.note && <p>{order.note}</p>}
           <Link href="/store" className="store-text-link">

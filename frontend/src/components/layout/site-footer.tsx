@@ -43,16 +43,16 @@ export function SiteFooter() {
   const sections = user?.isStaff
     ? NAV_SECTIONS.map((section, index) =>
         index === 1
-            ? {
-                ...section,
-                title: 'الإدارة الملكية',
-                links: [
-                  { href: '/admin', label: 'لوحة التحكم' },
-                  { href: '/admin/content', label: 'المحتوى والحصص' },
-                  { href: '/admin/students', label: 'شؤون الطلاب' },
-                ],
-              }
-            : section,
+          ? {
+              ...section,
+              title: 'الإدارة الملكية',
+              links: [
+                { href: '/admin', label: 'لوحة التحكم' },
+                { href: '/admin/content', label: 'المحتوى والحصص' },
+                { href: '/admin/students', label: 'شؤون الطلاب' },
+              ],
+            }
+          : section,
       )
     : NAV_SECTIONS;
 
@@ -81,7 +81,8 @@ export function SiteFooter() {
               <PlatformLogo variant="full" />
             </Link>
             <p className="mt-2 text-xs leading-5 text-midnight-700/90 dark:text-ivory-200/75 max-w-xs">
-              منصة التاريخ الأولى للثانوية العامة والبكالوريا المصرية مع {platformConfig.teacher.displayName}
+              منصة التاريخ الأولى للثانوية العامة والبكالوريا المصرية مع{' '}
+              {platformConfig.teacher.displayName}
             </p>
             <div className="mt-2.5 flex items-center justify-center gap-2">
               <span className="inline-flex items-center rounded-md border border-gold-500/30 bg-gold-500/10 px-2 py-0.5 text-[11px] font-bold text-gold-700 dark:text-gold-300">
@@ -149,22 +150,40 @@ export function SiteFooter() {
           {/* روابط التنقل السريعة في شبكة ثنائية أنيقة */}
           <div className="rounded-2xl border border-gold-500/20 bg-white/40 dark:bg-midnight-950/40 p-3.5 backdrop-blur-xs">
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-center text-xs">
-              <Link href="/" className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium">
+              <Link
+                href="/"
+                className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium"
+              >
                 الرئيسية
               </Link>
-              <Link href="/grades" className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium">
+              <Link
+                href="/grades"
+                className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium"
+              >
                 المناهج والصفوف
               </Link>
-              <Link href="/about" className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium">
+              <Link
+                href="/about"
+                className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium"
+              >
                 عن الأستاذ
               </Link>
-              <Link href="/contact" className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium">
+              <Link
+                href="/contact"
+                className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium"
+              >
                 تواصل معنا
               </Link>
-              <Link href="/dashboard" className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium">
+              <Link
+                href="/dashboard"
+                className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium"
+              >
                 حسابي التعليمي
               </Link>
-              <Link href="/terms" className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium">
+              <Link
+                href="/terms"
+                className="py-1 text-midnight-800/90 dark:text-ivory-200/80 hover:text-gold-600 dark:hover:text-gold-400 font-medium"
+              >
                 الشروط والخصوصية
               </Link>
             </div>
@@ -256,7 +275,9 @@ export function SiteFooter() {
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-emerald-500/30 bg-emerald-600/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                     W
                   </span>
-                  <span className="nums-tabular">واتساب: {platformConfig.contact.supportWhatsAppLabel}</span>
+                  <span className="nums-tabular">
+                    واتساب: {platformConfig.contact.supportWhatsAppLabel}
+                  </span>
                 </a>
               </li>
 
@@ -271,7 +292,9 @@ export function SiteFooter() {
                   <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-emerald-500/30 bg-emerald-600/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                     W
                   </span>
-                  <span className="nums-tabular">واتساب: {platformConfig.contact.followUpWhatsAppLabel}</span>
+                  <span className="nums-tabular">
+                    واتساب: {platformConfig.contact.followUpWhatsAppLabel}
+                  </span>
                 </a>
               </li>
 
@@ -301,7 +324,9 @@ export function SiteFooter() {
 
         {/* --- الشريط السفلي: الحقوق وتطوير Aurexis --- */}
         <div className="mt-7 flex flex-col items-center justify-between gap-3 border-t border-gold-500/20 pt-4 text-center text-xs leading-5 text-midnight-700/85 dark:text-ivory-300/70 sm:flex-row sm:text-start">
-          <p>© {year} {platformConfig.brand.platformName}. جميع الحقوق محفوظة.</p>
+          <p>
+            © {year} {platformConfig.brand.platformName}. جميع الحقوق محفوظة.
+          </p>
           <div>
             <a
               href="https://aurexis.cc/"

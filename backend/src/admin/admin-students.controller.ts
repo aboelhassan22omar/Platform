@@ -273,7 +273,10 @@ export class AdminStudentsController {
       }),
     ]);
 
-    const accessibleIds = await this.entitlements.filterAccessibleLessonIds(id, lessons.map((lesson) => lesson.id));
+    const accessibleIds = await this.entitlements.filterAccessibleLessonIds(
+      id,
+      lessons.map((lesson) => lesson.id),
+    );
     return lessons.map((lesson) => {
       const course = lesson.chapter.unit.course;
       const coveringGrant = grants.find(
@@ -303,11 +306,7 @@ export class AdminStudentsController {
         courseTitle: course.title,
         gradeName: course.grade.nameAr,
         isAccessible: accessibleIds.has(lesson.id),
-        accessKind: directAdminGrant
-          ? 'ADMIN_GRANT'
-          : coveringGrant
-            ? 'OTHER'
-            : 'NONE',
+        accessKind: directAdminGrant ? 'ADMIN_GRANT' : coveringGrant ? 'OTHER' : 'NONE',
         adminGrantEntitlementId: directAdminGrant?.id ?? null,
       };
     });
@@ -338,9 +337,7 @@ export class AdminStudentsController {
           status: dto.status,
           // Suspending must take effect immediately, not when the access
           // token happens to expire.
-          ...(dto.status === UserStatus.SUSPENDED
-            ? { tokenVersion: { increment: 1 } }
-            : {}),
+          ...(dto.status === UserStatus.SUSPENDED ? { tokenVersion: { increment: 1 } } : {}),
         },
         select: { id: true, status: true },
       });
@@ -470,8 +467,11 @@ export class AdminStudentsController {
     if (!student.educationSystem || !student.gradeLevel) {
       throw new BadRequestException('لازم تحدد الصف الدراسي للطالب الأول');
     }
-    if (!lesson || lesson.status !== PublishStatus.PUBLISHED ||
-        lesson.chapter.unit.course.status !== PublishStatus.PUBLISHED) {
+    if (
+      !lesson ||
+      lesson.status !== PublishStatus.PUBLISHED ||
+      lesson.chapter.unit.course.status !== PublishStatus.PUBLISHED
+    ) {
       throw new NotFoundException('الحصة غير موجودة أو غير منشورة');
     }
     if (

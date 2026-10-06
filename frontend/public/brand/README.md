@@ -1,34 +1,7 @@
 # Brand assets
 
-Drop the teacher's **authorised** official assets here:
+The history identity uses the Horus logo and its light variant. Other subject presets use the neutral education-logo.svg and subject-education.svg illustration.
 
-| File | Purpose |
-|---|---|
-| `logo.svg` | Primary logo — header, footer, auth pages |
-| `logo-mark.svg` | Square mark — mobile header, favicon source |
-| `portrait.webp` | Teacher portrait — About page |
-| `favicon.ico` | Browser tab |
+Place a new teacher's logo and portrait here, then pass their public paths to the platform:configure command using --logo /brand/my-logo.svg and --image /brand/my-portrait.webp.
 
-Then point the `brand` site setting at them:
-
-```sql
-UPDATE site_settings
-SET value = jsonb_set(
-  jsonb_set(value, '{logoUrl}', '"/brand/logo.svg"'),
-  '{portraitUrl}', '"/brand/portrait.webp"')
-WHERE key = 'brand';
-```
-
-Rebuild the frontend image afterwards.
-
----
-
-**Before uploading anything, confirm the teacher holds the rights to it.**
-A photograph usually belongs to the photographer, and a graphic to the
-designer, unless a contract says otherwise.
-
-This directory ships empty on purpose. The Facebook page supplied for brand
-research is behind a login wall, so no logo, photography or brand colours could
-be examined — and nothing was invented, generated or scraped in their place.
-
-See `docs/operations/brand-assets.md` for the full account.
+Run this command from the repository root and rebuild the frontend. See [customization](../../../docs/customization/teacher-platform.md) for details. These assets are selected from public environment settings, not the database brand setting.

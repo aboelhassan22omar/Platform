@@ -11,7 +11,10 @@ class AnswerDto {
   @IsString() optionId!: string;
 }
 class SubmitAssessmentDto {
-  @IsArray() @ArrayMaxSize(200) @ValidateNested({ each: true }) @Type(() => AnswerDto)
+  @IsArray()
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => AnswerDto)
   answers!: AnswerDto[];
 }
 
@@ -20,9 +23,27 @@ class SubmitAssessmentDto {
 export class AssessmentsController {
   constructor(private readonly assessments: AssessmentsService) {}
 
-  @Get() list(@CurrentUser() user: AuthenticatedUser) { return this.assessments.listForStudent(user); }
-  @Get(':id') get(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) { return this.assessments.getForStudent(id, user); }
-  @Post(':id/start') start(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) { return this.assessments.start(id, user); }
-  @Post(':id/save') save(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: SubmitAssessmentDto) { return this.assessments.save(id, user, dto.answers); }
-  @Post(':id/submit') submit(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: SubmitAssessmentDto) { return this.assessments.submit(id, user, dto.answers); }
+  @Get() list(@CurrentUser() user: AuthenticatedUser) {
+    return this.assessments.listForStudent(user);
+  }
+  @Get(':id') get(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.assessments.getForStudent(id, user);
+  }
+  @Post(':id/start') start(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.assessments.start(id, user);
+  }
+  @Post(':id/save') save(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: SubmitAssessmentDto,
+  ) {
+    return this.assessments.save(id, user, dto.answers);
+  }
+  @Post(':id/submit') submit(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: SubmitAssessmentDto,
+  ) {
+    return this.assessments.submit(id, user, dto.answers);
+  }
 }

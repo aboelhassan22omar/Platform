@@ -13,7 +13,6 @@ Good public-domain sources:
 - Library of Congress Prints & Photographs
 - Works whose copyright has expired under Egyptian law
 
-The five grade heroes currently use **original inline SVG motifs** (see
-`frontend/src/components/decor/motifs.tsx`) rather than images: no extra
-network request, they take the grade's accent colour, and they scale to any
-viewport. Anything added here supplements them rather than replacing them.
+History grade artwork is configured in `frontend/src/themes/presets/history.ts`.
+Other subjects use independent defaults from the theme registry and platform
+identity. Decorative SVG components live in `frontend/src/components/decor`.

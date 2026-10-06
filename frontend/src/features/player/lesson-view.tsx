@@ -6,13 +6,15 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { VideoPlayer } from './video-player';
 import { LockedLesson } from './locked-lesson';
-import { Button } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/components/providers/auth-provider';
 import { formatDate, formatDurationLabel } from '@/lib/utils';
 import { EASE_ENTRANCE } from '@/lib/motion';
 import type { LessonDetail, Order } from '@/types/api';
-import { PaymentMethodDialog, type CheckoutPaymentMethod } from '@/features/checkout/payment-method-dialog';
+import {
+  PaymentMethodDialog,
+  type CheckoutPaymentMethod,
+} from '@/features/checkout/payment-method-dialog';
 
 export function LessonView({ lesson }: { lesson: LessonDetail }) {
   const { user } = useAuth();
@@ -138,9 +140,7 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
               </div>
 
               {lesson.description && (
-                <p className="mt-4 leading-relaxed text-midnight-600">
-                  {lesson.description}
-                </p>
+                <p className="mt-4 leading-relaxed text-midnight-600">{lesson.description}</p>
               )}
 
               {/* --- Attachments --- */}
@@ -162,7 +162,13 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
                           aria-hidden
                           className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]"
                         >
-                          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            stroke="currentColor"
+                          >
                             <path d="M5 2.5h6l4 4v11H5z" strokeWidth="1.5" />
                             <path d="M11 2.5v4h4" strokeWidth="1.5" />
                           </svg>
@@ -172,7 +178,9 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
                           href={`/api/lessons/${lesson.id}/attachments/${file.id}`}
                           target="_blank"
                           rel="noreferrer"
-                        >{file.title}</a>
+                        >
+                          {file.title}
+                        </a>
                       </li>
                     ))}
                   </ul>
@@ -236,9 +244,7 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
             {/* Subscription expiry warning — real data from the entitlement. */}
             {lesson.access.allowed && lesson.access.expiresAt && (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                <p className="text-xs font-bold text-amber-800">
-                  وصولك للحصة دي من خلال اشتراك
-                </p>
+                <p className="text-xs font-bold text-amber-800">وصولك للحصة دي من خلال اشتراك</p>
                 <p className="mt-1 text-xs text-amber-700">
                   ينتهي في {formatDate(lesson.access.expiresAt)}
                 </p>

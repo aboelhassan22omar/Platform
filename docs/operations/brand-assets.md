@@ -23,7 +23,7 @@ people with similar names, none of them a history teacher.
 
 - No logo was invented and presented as his.
 - No AI-generated portrait was created and passed off as a photograph of him.
-- No image was scraped from Facebook and embedded. Being publicly *visible* is
+- No image was scraped from Facebook and embedded. Being publicly _visible_ is
   not the same as being licensed for commercial reuse, and the platform must not
   ship with imagery whose rights are unclear.
 - No brand colours were claimed to be "his".
@@ -39,14 +39,14 @@ This is a limitation, and it is recorded in the README rather than glossed over.
 
 ## What the teacher needs to supply
 
-| Asset | Format | Size | Used on |
-|---|---|---|---|
-| Primary logo | SVG preferred, else PNG with transparency | ≥ 512px | Header, footer, auth pages |
-| Logo mark | SVG / PNG | ≥ 256px square | Mobile header, favicon |
-| Portrait | JPG / WebP | ≥ 1200 × 1600 | About page, homepage hero |
-| Teaching photos | JPG / WebP | ≥ 1600px wide | About page, course covers |
-| Course thumbnails | JPG / WebP, 16:9 | 1280 × 720 | Course and lesson cards |
-| Favicon | ICO / PNG | 32×32, 180×180 | Browser tab, iOS home screen |
+| Asset             | Format                                    | Size           | Used on                      |
+| ----------------- | ----------------------------------------- | -------------- | ---------------------------- |
+| Primary logo      | SVG preferred, else PNG with transparency | ≥ 512px        | Header, footer, auth pages   |
+| Logo mark         | SVG / PNG                                 | ≥ 256px square | Mobile header, favicon       |
+| Portrait          | JPG / WebP                                | ≥ 1200 × 1600  | About page, homepage hero    |
+| Teaching photos   | JPG / WebP                                | ≥ 1600px wide  | About page, course covers    |
+| Course thumbnails | JPG / WebP, 16:9                          | 1280 × 720     | Course and lesson cards      |
+| Favicon           | ICO / PNG                                 | 32×32, 180×180 | Browser tab, iOS home screen |
 
 **Before uploading anything, confirm the teacher holds the rights to it.** A
 photograph taken by a hired photographer usually belongs to the photographer
@@ -116,14 +116,14 @@ key to a URL.
 
 Each one is deliberate and visibly a placeholder, not a fake:
 
-| Where | Current state |
-|---|---|
-| Header / footer logo | The letter **ع** in a gold-bordered tile |
-| About page portrait | A framed slot reading *"مكان صورة الأستاذ الرسمية"* |
-| About page biography | A note saying the profile copy is still being prepared |
-| Contact details | A note saying they will be added from the dashboard |
-| Course covers | The grade's themed gradient |
-| Homepage statistics | **None.** No student counts, ratings or testimonials appear anywhere, because none were supplied. Inventing them would be a marketing claim the teacher cannot stand behind. |
+| Where                | Current state                                                                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Header / footer logo | The letter **ع** in a gold-bordered tile                                                                                                                                     |
+| About page portrait  | A framed slot reading _"مكان صورة الأستاذ الرسمية"_                                                                                                                          |
+| About page biography | A note saying the profile copy is still being prepared                                                                                                                       |
+| Contact details      | A note saying they will be added from the dashboard                                                                                                                          |
+| Course covers        | The grade's themed gradient                                                                                                                                                  |
+| Homepage statistics  | **None.** No student counts, ratings or testimonials appear anywhere, because none were supplied. Inventing them would be a marketing claim the teacher cannot stand behind. |
 
 The **ع** monogram is a reasonable long-term mark if the teacher likes it — it
 is original, works at any size, and reads clearly in both scripts. But it is a

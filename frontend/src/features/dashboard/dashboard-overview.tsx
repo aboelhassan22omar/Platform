@@ -8,12 +8,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { LessonCard } from './lesson-card';
 import { ButtonLink } from '@/components/ui/button';
 import { AnimatedCounter } from '@/components/motion/counter';
-import {
-  formatDurationLabel,
-  greetingFor,
-  initialsOf,
-  toArabicDigits,
-} from '@/lib/utils';
+import { formatDurationLabel, greetingFor, initialsOf, toArabicDigits } from '@/lib/utils';
 import { EASE_ENTRANCE, staggerContainer } from '@/lib/motion';
 import type { ContinueWatchingItem, Subscription } from '@/types/api';
 import { platformConfig } from '@/config/platform.config';
@@ -93,7 +88,10 @@ export function DashboardOverview() {
               'radial-gradient(ellipse 60% 70% at 85% 10%, rgb(200 149 42 / 0.22), transparent 65%)',
           }}
         />
-        <div className="texture-parchment pointer-events-none absolute inset-0 opacity-20" aria-hidden />
+        <div
+          className="texture-parchment pointer-events-none absolute inset-0 opacity-20"
+          aria-hidden
+        />
 
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -108,9 +106,7 @@ export function DashboardOverview() {
             </motion.span>
 
             <div>
-              <p className="text-xs text-ivory-200/60">
-                {greetingFor(new Date().getHours())}
-              </p>
+              <p className="text-xs text-ivory-200/60">{greetingFor(new Date().getHours())}</p>
               <h1 className="font-display text-xl font-black sm:text-2xl">
                 أهلاً يا {firstName} 👋
               </h1>
@@ -135,15 +131,17 @@ export function DashboardOverview() {
           {activeSub ? (
             <>
               <div>
-                <p className="text-sm font-bold text-ivory-50">
-                  {activeSub.plan.title}
-                </p>
+                <p className="text-sm font-bold text-ivory-50">{activeSub.plan.title}</p>
                 <p className="mt-0.5 text-xs text-ivory-200/65">
-                  باقي على انتهاء الاشتراك{' '}
-                  {toArabicDigits(String(activeSub.daysRemaining))} يوم
+                  باقي على انتهاء الاشتراك {toArabicDigits(String(activeSub.daysRemaining))} يوم
                 </p>
               </div>
-              <ButtonLink href="/dashboard/subscriptions" variant="outline" size="sm" className="border-gold-400/40 text-gold-300 hover:bg-gold-500/10">
+              <ButtonLink
+                href="/dashboard/subscriptions"
+                variant="outline"
+                size="sm"
+                className="border-gold-400/40 text-gold-300 hover:bg-gold-500/10"
+              >
                 تفاصيل الاشتراك
               </ButtonLink>
             </>
@@ -182,7 +180,9 @@ export function DashboardOverview() {
             }}
             className="rounded-2xl border border-gold-500/25 bg-white dark:bg-midnight-950/80 p-5 shadow-card transition-colors"
           >
-            <p className="text-xs font-bold text-midnight-600 dark:text-ivory-300/80">{stat.label}</p>
+            <p className="text-xs font-bold text-midnight-600 dark:text-ivory-300/80">
+              {stat.label}
+            </p>
             {summaryLoading ? (
               <div className="skeleton mt-2 h-9 w-16" />
             ) : (

@@ -1,4 +1,12 @@
-import { IsBoolean, IsDateString, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 /** The only reactions a student can send. Kept short so the bar fits a phone. */
 export const LIVE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🔥'] as const;

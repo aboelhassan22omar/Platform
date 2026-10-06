@@ -14,31 +14,29 @@ import type { LessonDetail } from '@/types/api';
  * purchase. No video URL exists at this point — the paywall is not a curtain
  * over a loaded stream.
  */
-const REASON_COPY: Record<
-  string,
-  { title: string; body: string; cta: 'buy' | 'renew' | 'none' }
-> = {
-  NO_ENTITLEMENT: {
-    title: 'الحصة دي مقفولة',
-    body: 'اشترِ الحصة لوحدها، أو اشترك في باقة الصف وافتح كل الحصص مرة واحدة.',
-    cta: 'buy',
-  },
-  EXPIRED: {
-    title: 'انتهت صلاحية اشتراكك',
-    body: 'جدّد اشتراكك عشان ترجع تتفرج على الحصة دي وباقي حصص الصف.',
-    cta: 'renew',
-  },
-  NOT_PUBLISHED: {
-    title: 'الحصة لسه مش منشورة',
-    body: 'الحصة دي لسه بتتجهز، هتكون متاحة قريب.',
-    cta: 'none',
-  },
-  WRONG_GRADE: {
-    title: 'الحصة دي مش تابعة لصفك',
-    body: 'تقدر تشاهد حصص الصف الدراسي المسجل في حسابك فقط، بما فيها الحصص المجانية.',
-    cta: 'none',
-  },
-};
+const REASON_COPY: Record<string, { title: string; body: string; cta: 'buy' | 'renew' | 'none' }> =
+  {
+    NO_ENTITLEMENT: {
+      title: 'الحصة دي مقفولة',
+      body: 'اشترِ الحصة لوحدها، أو اشترك في باقة الصف وافتح كل الحصص مرة واحدة.',
+      cta: 'buy',
+    },
+    EXPIRED: {
+      title: 'انتهت صلاحية اشتراكك',
+      body: 'جدّد اشتراكك عشان ترجع تتفرج على الحصة دي وباقي حصص الصف.',
+      cta: 'renew',
+    },
+    NOT_PUBLISHED: {
+      title: 'الحصة لسه مش منشورة',
+      body: 'الحصة دي لسه بتتجهز، هتكون متاحة قريب.',
+      cta: 'none',
+    },
+    WRONG_GRADE: {
+      title: 'الحصة دي مش تابعة لصفك',
+      body: 'تقدر تشاهد حصص الصف الدراسي المسجل في حسابك فقط، بما فيها الحصص المجانية.',
+      cta: 'none',
+    },
+  };
 
 export function LockedLesson({
   lesson,
@@ -56,12 +54,9 @@ export function LockedLesson({
     return (
       <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-2xl bg-midnight-950 p-8 text-center">
         <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-gold-400 border-t-transparent" />
-        <p className="font-display text-base font-bold text-ivory-50">
-          الفيديو لسه بيتجهز
-        </p>
+        <p className="font-display text-base font-bold text-ivory-50">الفيديو لسه بيتجهز</p>
         <p className="max-w-xs text-sm text-ivory-200/65">
-          بنحضّر جودات مختلفة عشان تشتغل كويس على أي نت. جرّب تحدّث الصفحة بعد
-          شوية.
+          بنحضّر جودات مختلفة عشان تشتغل كويس على أي نت. جرّب تحدّث الصفحة بعد شوية.
         </p>
       </div>
     );

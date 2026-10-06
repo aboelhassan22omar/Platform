@@ -63,10 +63,7 @@ export class PaymentsController {
 
   @Get('orders/:reference')
   @ApiOperation({ summary: 'تفاصيل طلب' })
-  getOrder(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('reference') reference: string,
-  ) {
+  getOrder(@CurrentUser() user: AuthenticatedUser, @Param('reference') reference: string) {
     return this.orders.findByReference(reference, user.id);
   }
 
@@ -132,10 +129,7 @@ export class PaymentsController {
         },
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         this.logger.log(`Duplicate webhook ${event.eventId} ignored`);
         return { received: true, duplicate: true };
       }

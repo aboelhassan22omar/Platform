@@ -20,7 +20,13 @@ interface FormState {
   recordingEnabled: boolean;
 }
 
-const blankForm = (): FormState => ({ title: '', description: '', gradeId: '', scheduledAt: '', recordingEnabled: false });
+const blankForm = (): FormState => ({
+  title: '',
+  description: '',
+  gradeId: '',
+  scheduledAt: '',
+  recordingEnabled: false,
+});
 
 /** ISO → value for <input type="datetime-local"> in the browser's zone. */
 const toLocalInput = (iso: string) => {
@@ -38,7 +44,8 @@ const STATUS: Record<LiveSessionStatus, { label: string; className: string }> = 
 function TimeLeft({ iso }: { iso: string }) {
   const parts = useCountdown(iso);
   if (!parts) return null;
-  if (parts.done) return <span className="font-bold text-red-600 dark:text-red-400">ميعاده جه</span>;
+  if (parts.done)
+    return <span className="font-bold text-red-600 dark:text-red-400">ميعاده جه</span>;
   const chunks = [
     parts.days && `${parts.days} يوم`,
     parts.hours && `${parts.hours} ساعة`,
@@ -59,7 +66,9 @@ export function AdminLive() {
     queryFn: () => api.get<{ streamingReady: boolean; items: AdminLiveSession[] }>('/admin/live'),
     // Poll faster while a recording is still being finalised.
     refetchInterval: (query) =>
-      query.state.data?.items.some((s) => s.recordings.some((r) => r.status === 'RECORDING' || r.status === 'PROCESSING'))
+      query.state.data?.items.some((s) =>
+        s.recordings.some((r) => r.status === 'RECORDING' || r.status === 'PROCESSING'),
+      )
         ? 8_000
         : 30_000,
   });
@@ -79,14 +88,21 @@ export function AdminLive() {
         scheduledAt: new Date(state.scheduledAt).toISOString(),
         recordingEnabled: state.recordingEnabled,
       };
-      return state.id ? api.patch(`/admin/live/${state.id}`, payload) : api.post('/admin/live', payload);
+      return state.id
+        ? api.patch(`/admin/live/${state.id}`, payload)
+        : api.post('/admin/live', payload);
     },
     onSuccess: async (_data, state) => {
-      setNotice(state.id ? 'اتعدّل اللايف.' : 'اتجدول اللايف، وطلبة الصف وصلهم إشعار وهيشوفوا العداد في صفحتهم.');
+      setNotice(
+        state.id
+          ? 'اتعدّل اللايف.'
+          : 'اتجدول اللايف، وطلبة الصف وصلهم إشعار وهيشوفوا العداد في صفحتهم.',
+      );
       setForm(blankForm());
       await refresh();
     },
-    onError: (error) => setFormError(error instanceof ApiError ? error.message : 'مقدرناش نحفظ اللايف'),
+    onError: (error) =>
+      setFormError(error instanceof ApiError ? error.message : 'مقدرناش نحفظ اللايف'),
   });
 
   const cancel = useMutation({
@@ -122,25 +138,39 @@ export function AdminLive() {
     };
   }, [list.data]);
 
-  const card = 'rounded-2xl border border-gold-500/25 bg-white p-5 shadow-card dark:bg-midnight-950/80';
+  const card =
+    'rounded-2xl border border-gold-500/25 bg-white p-5 shadow-card dark:bg-midnight-950/80';
 
   const renderSession = (session: AdminLiveSession) => (
     <li key={session.id} className={card}>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={cn('rounded-md px-2 py-0.5 text-[11px] font-black', STATUS[session.status].className)}>
+            <span
+              className={cn(
+                'rounded-md px-2 py-0.5 text-[11px] font-black',
+                STATUS[session.status].className,
+              )}
+            >
               {STATUS[session.status].label}
             </span>
-            <span className="text-xs font-bold text-midnight-500 dark:text-ivory-300/70">{session.grade.shortNameAr}</span>
+            <span className="text-xs font-bold text-midnight-500 dark:text-ivory-300/70">
+              {session.grade.shortNameAr}
+            </span>
             {session.recordingEnabled && session.status !== 'CANCELLED' && (
               <span className="inline-flex items-center gap-1 rounded-md border border-red-500/30 px-1.5 py-0.5 text-[11px] font-black text-red-600 dark:text-red-400">
                 <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                {session.status === 'SCHEDULED' ? 'هيتسجّل' : session.status === 'LIVE' ? 'بيتسجّل' : 'اتسجّل'}
+                {session.status === 'SCHEDULED'
+                  ? 'هيتسجّل'
+                  : session.status === 'LIVE'
+                    ? 'بيتسجّل'
+                    : 'اتسجّل'}
               </span>
             )}
           </div>
-          <h3 className="mt-1.5 truncate font-display text-base font-black text-midnight-950 dark:text-ivory-50">{session.title}</h3>
+          <h3 className="mt-1.5 truncate font-display text-base font-black text-midnight-950 dark:text-ivory-50">
+            {session.title}
+          </h3>
           <p className="mt-0.5 text-sm text-midnight-600 dark:text-ivory-300/75">
             {formatLiveDate(session.scheduledAt)}
             {session.status === 'SCHEDULED' && (
@@ -150,11 +180,14 @@ export function AdminLive() {
             )}
           </p>
           {session.endReason === 'HOST_LEFT' && (
-            <p className="mt-1 text-xs font-bold text-amber-700 dark:text-amber-300">اتقفل لوحده لأن المستر خرج ومرجعش</p>
+            <p className="mt-1 text-xs font-bold text-amber-700 dark:text-amber-300">
+              اتقفل لوحده لأن المستر خرج ومرجعش
+            </p>
           )}
           {session.status === 'ENDED' && (
             <p className="mt-1 text-xs text-midnight-500 dark:text-ivory-300/70">
-              {toArabicDigits(String(session.counts.messages))} رسالة · {toArabicDigits(String(session.counts.reactions))} رياكت
+              {toArabicDigits(String(session.counts.messages))} رسالة ·{' '}
+              {toArabicDigits(String(session.counts.reactions))} رياكت
             </p>
           )}
         </div>
@@ -162,10 +195,12 @@ export function AdminLive() {
         <div className="flex shrink-0 flex-wrap gap-2">
           {session.status === 'LIVE' && (
             <>
-            <ButtonLink href={`/live/${session.id}`} variant="danger" size="sm">
-              ارجع للبث
-            </ButtonLink>
-            <ButtonLink href={`/admin/live/${session.id}/participants`} size="sm">الحاضرين</ButtonLink>
+              <ButtonLink href={`/live/${session.id}`} variant="danger" size="sm">
+                ارجع للبث
+              </ButtonLink>
+              <ButtonLink href={`/admin/live/${session.id}/participants`} size="sm">
+                الحاضرين
+              </ButtonLink>
             </>
           )}
           {session.status === 'SCHEDULED' && (
@@ -192,16 +227,25 @@ export function AdminLive() {
               >
                 تعديل
               </Button>
-              <Button variant="ghost" size="sm" className="text-red-600 dark:text-red-400" onClick={() => setCancelTarget(session)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 dark:text-red-400"
+                onClick={() => setCancelTarget(session)}
+              >
                 إلغاء
               </Button>
             </>
           )}
         </div>
-       </div>
+      </div>
 
       {session.recordings.length > 0 && (
-        <LiveRecordings title={session.title} recordings={session.recordings} onChanged={() => void refresh()} />
+        <LiveRecordings
+          title={session.title}
+          recordings={session.recordings}
+          onChanged={() => void refresh()}
+        />
       )}
     </li>
   );
@@ -209,7 +253,9 @@ export function AdminLive() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">اللايف</h1>
+        <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">
+          اللايف
+        </h1>
         <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/75">
           حدد ميعاد اللايف والصف، والطلبة هيشوفوا عداد تنازلي في صفحتهم لحد ما تبدأ.
         </p>
@@ -229,7 +275,9 @@ export function AdminLive() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <label htmlFor="live-title" className="editor-label field-required">عنوان اللايف</label>
+            <label htmlFor="live-title" className="editor-label field-required">
+              عنوان اللايف
+            </label>
             <input
               id="live-title"
               className="editor-input"
@@ -240,7 +288,9 @@ export function AdminLive() {
             />
           </div>
           <div>
-            <label htmlFor="live-grade" className="editor-label field-required">الصف</label>
+            <label htmlFor="live-grade" className="editor-label field-required">
+              الصف
+            </label>
             <select
               id="live-grade"
               className="editor-input"
@@ -260,7 +310,9 @@ export function AdminLive() {
             </select>
           </div>
           <div>
-            <label htmlFor="live-when" className="editor-label field-required">اليوم والساعة</label>
+            <label htmlFor="live-when" className="editor-label field-required">
+              اليوم والساعة
+            </label>
             <DateTimePicker
               id="live-when"
               disablePast
@@ -269,7 +321,9 @@ export function AdminLive() {
             />
           </div>
           <div className="md:col-span-2">
-            <label htmlFor="live-desc" className="editor-label">وصف قصير (اختياري)</label>
+            <label htmlFor="live-desc" className="editor-label">
+              وصف قصير (اختياري)
+            </label>
             <textarea
               id="live-desc"
               className="editor-input min-h-24 py-3"
@@ -291,17 +345,28 @@ export function AdminLive() {
               className="mt-1 h-5 w-5 shrink-0 accent-[var(--accent)]"
             />
             <span>
-              <span className="block text-sm font-black text-midnight-900 dark:text-ivory-100">سجّل اللايف</span>
+              <span className="block text-sm font-black text-midnight-900 dark:text-ivory-100">
+                سجّل اللايف
+              </span>
               <span className="mt-0.5 block text-xs leading-relaxed text-midnight-600 dark:text-ivory-300/75">
-                الكاميرا والشاشة والصوت هيتسجلوا ويتحفظوا مع باقي الفيديوهات، وهتلاقي التسجيل هنا بعد ما اللايف يخلص.
-                لو خرجت من غير ما تنهي اللايف، التسجيل بيقف عند اللحظة اللي خرجت فيها.
+                الكاميرا والشاشة والصوت هيتسجلوا ويتحفظوا مع باقي الفيديوهات، وهتلاقي التسجيل هنا
+                بعد ما اللايف يخلص. لو خرجت من غير ما تنهي اللايف، التسجيل بيقف عند اللحظة اللي خرجت
+                فيها.
               </span>
             </span>
           </label>
         </div>
 
-        {formError && <p role="alert" className="text-sm font-bold text-red-600 dark:text-red-400">{formError}</p>}
-        {notice && <p role="status" className="text-sm font-bold text-emerald-700 dark:text-emerald-400">{notice}</p>}
+        {formError && (
+          <p role="alert" className="text-sm font-bold text-red-600 dark:text-red-400">
+            {formError}
+          </p>
+        )}
+        {notice && (
+          <p role="status" className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
+            {notice}
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button type="submit" variant="accent" isLoading={save.isPending}>
@@ -324,13 +389,17 @@ export function AdminLive() {
         <>
           {groups.live.length > 0 && (
             <section className="space-y-3">
-              <h2 className="font-display text-lg font-black text-red-600 dark:text-red-400">على الهوا دلوقتي</h2>
+              <h2 className="font-display text-lg font-black text-red-600 dark:text-red-400">
+                على الهوا دلوقتي
+              </h2>
               <ul className="space-y-3">{groups.live.map(renderSession)}</ul>
             </section>
           )}
 
           <section className="space-y-3">
-            <h2 className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">اللايفات الجاية</h2>
+            <h2 className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
+              اللايفات الجاية
+            </h2>
             {groups.upcoming.length ? (
               <ul className="space-y-3">{groups.upcoming.map(renderSession)}</ul>
             ) : (
@@ -342,8 +411,12 @@ export function AdminLive() {
 
           {groups.past.length > 0 && (
             <section className="space-y-3">
-              <h2 className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">اللي فاتت</h2>
-              <ul className="space-y-3 opacity-90">{groups.past.slice(0, 20).map(renderSession)}</ul>
+              <h2 className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
+                اللي فاتت
+              </h2>
+              <ul className="space-y-3 opacity-90">
+                {groups.past.slice(0, 20).map(renderSession)}
+              </ul>
             </section>
           )}
         </>
@@ -360,7 +433,6 @@ export function AdminLive() {
         onConfirm={() => cancelTarget && cancel.mutate(cancelTarget.id)}
         onCancel={() => setCancelTarget(null)}
       />
-
     </div>
   );
 }

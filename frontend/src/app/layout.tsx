@@ -11,8 +11,7 @@ export const metadata: Metadata = {
     default: platformConfig.brand.platformName,
     template: `%s | ${platformConfig.brand.shortPlatformName}`,
   },
-  description:
-    platformConfig.brand.description,
+  description: platformConfig.brand.description,
   keywords: [...platformConfig.seo.keywords],
   authors: [{ name: 'Aurexis', url: 'https://aurexis.cc/' }],
   openGraph: {

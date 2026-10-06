@@ -26,12 +26,14 @@ function switchHlsQuality(hls: Hls, requestedHeight: number): number | null {
   const levelIndex =
     exactIndex >= 0
       ? exactIndex
-      : hls.levels.reduce((closestIndex, level, index, allLevels) =>
-          Math.abs((level.height ?? 0) - requestedHeight) <
-          Math.abs((allLevels[closestIndex]?.height ?? 0) - requestedHeight)
-            ? index
-            : closestIndex,
-        0);
+      : hls.levels.reduce(
+          (closestIndex, level, index, allLevels) =>
+            Math.abs((level.height ?? 0) - requestedHeight) <
+            Math.abs((allLevels[closestIndex]?.height ?? 0) - requestedHeight)
+              ? index
+              : closestIndex,
+          0,
+        );
 
   // currentLevel is hls.js's immediate manual switch. It disables ABR and
   // flushes the incompatible forward buffer before loading this rendition.
@@ -110,10 +112,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
           { keepalive },
         )
         .catch(() => {
-          watchedSinceSyncRef.current = Math.min(
-            120,
-            watchedSinceSyncRef.current + watchedSeconds,
-          );
+          watchedSinceSyncRef.current = Math.min(120, watchedSinceSyncRef.current + watchedSeconds);
           // A dropped sync is not worth interrupting playback for; the next
           // tick will carry the position forward.
         });
@@ -153,9 +152,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
         setTicket(issued);
       } catch (err) {
         if (!cancelled) {
-          setError(
-            (err as { message?: string }).message ?? 'مش قادرين نشغّل الفيديو دلوقتي',
-          );
+          setError((err as { message?: string }).message ?? 'مش قادرين نشغّل الفيديو دلوقتي');
         }
       }
     };
@@ -206,9 +203,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       hls.attachMedia(video);
 
       hls.on(HlsCtor.Events.MANIFEST_PARSED, (_event, data) => {
-        setLevels(
-          data.levels.map((level, index) => ({ index, height: level.height ?? 0 })),
-        );
+        setLevels(data.levels.map((level, index) => ({ index, height: level.height ?? 0 })));
 
         // A student can open the menu before hls.js has finished parsing the
         // master playlist. Honour that click as soon as the levels exist.
@@ -231,9 +226,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
           }
           return;
         }
-        setSelectedQualityHeight(
-          hls.autoLevelEnabled ? null : switchedHeight,
-        );
+        setSelectedQualityHeight(hls.autoLevelEnabled ? null : switchedHeight);
       });
 
       hls.on(HlsCtor.Events.ERROR, (_event, data) => {
@@ -380,8 +373,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   }, []);
 
   useEffect(() => {
-    const onFullscreenChange = () =>
-      setIsFullscreen(Boolean(document.fullscreenElement));
+    const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener('fullscreenchange', onFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
@@ -548,7 +540,10 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   if (error) {
     return (
       <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-2xl bg-midnight-950 p-8 text-center">
-        <span aria-hidden className="grid h-14 w-14 place-items-center rounded-full bg-red-500/15 text-red-300">
+        <span
+          aria-hidden
+          className="grid h-14 w-14 place-items-center rounded-full bg-red-500/15 text-red-300"
+        >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <circle cx="12" cy="12" r="9" strokeWidth="1.6" />
             <path d="M12 7.5v5M12 16h.01" strokeWidth="1.8" strokeLinecap="round" />
@@ -696,7 +691,12 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                     className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-ivory-100 transition-colors hover:bg-ivory-50/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
                   >
                     <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden>
-                      <path d="M3 5.5h14M3 10h14M3 14.5h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                      <path
+                        d="M3 5.5h14M3 10h14M3 14.5h14"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
                       <circle cx="7" cy="5.5" r="1.5" fill="currentColor" />
                       <circle cx="13" cy="10" r="1.5" fill="currentColor" />
                       <circle cx="9" cy="14.5" r="1.5" fill="currentColor" />

@@ -8,8 +8,12 @@ import { AdminDashboardController } from './admin-dashboard.controller';
 import { AdminPricingController } from './admin-pricing.controller';
 import { AdminStudentsController } from './admin-students.controller';
 import { AdminAssessmentsController } from './admin-assessments.controller';
+import { ContentCatalogService } from './content/content-catalog.service';
+import { ContentLessonsService } from './content/content-lessons.service';
+import { ContentDeletionService } from './content/content-deletion.service';
 
 @Module({
+  providers: [ContentCatalogService, ContentLessonsService, ContentDeletionService],
   imports: [AnalyticsModule, EntitlementsModule, PresenceModule, VideosModule],
   controllers: [
     AdminDashboardController,

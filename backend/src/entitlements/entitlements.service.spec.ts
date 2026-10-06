@@ -48,7 +48,9 @@ describe('EntitlementsService', () => {
     prisma = {
       lesson: { findUnique: jest.fn(), findMany: jest.fn() },
       user: {
-        findUnique: jest.fn().mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1' }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1' }),
       },
       entitlement: {
         findFirst: jest.fn(),
@@ -72,16 +74,37 @@ describe('EntitlementsService', () => {
   describe('checkLessonAccess', () => {
     it('opens a center-free lesson only for a center student', async () => {
       prisma.lesson.findUnique.mockResolvedValue(publishedLesson({ centerPriceMinor: 0 }));
-      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'CENTER' });
-      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({ allowed: true, reason: 'FREE_PREVIEW' });
-      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'ONLINE' });
-      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({ allowed: false, reason: 'NO_ENTITLEMENT' });
+      prisma.user.findUnique.mockResolvedValue({
+        educationSystem: 'GENERAL',
+        gradeLevel: 'SEC_1',
+        studentType: 'CENTER',
+      });
+      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({
+        allowed: true,
+        reason: 'FREE_PREVIEW',
+      });
+      prisma.user.findUnique.mockResolvedValue({
+        educationSystem: 'GENERAL',
+        gradeLevel: 'SEC_1',
+        studentType: 'ONLINE',
+      });
+      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({
+        allowed: false,
+        reason: 'NO_ENTITLEMENT',
+      });
     });
 
     it('does not open a paid center lesson without an entitlement', async () => {
       prisma.lesson.findUnique.mockResolvedValue(publishedLesson({ centerPriceMinor: 2500 }));
-      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'CENTER' });
-      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({ allowed: false, reason: 'NO_ENTITLEMENT' });
+      prisma.user.findUnique.mockResolvedValue({
+        educationSystem: 'GENERAL',
+        gradeLevel: 'SEC_1',
+        studentType: 'CENTER',
+      });
+      await expect(service.checkLessonAccess('user-1', 'lesson-1')).resolves.toEqual({
+        allowed: false,
+        reason: 'NO_ENTITLEMENT',
+      });
     });
     it('denies access to a lesson that does not exist', async () => {
       prisma.lesson.findUnique.mockResolvedValue(null);
@@ -92,9 +115,7 @@ describe('EntitlementsService', () => {
     });
 
     it('allows a free preview without any entitlement', async () => {
-      prisma.lesson.findUnique.mockResolvedValue(
-        publishedLesson({ isFreePreview: true }),
-      );
+      prisma.lesson.findUnique.mockResolvedValue(publishedLesson({ isFreePreview: true }));
 
       const decision = await service.checkLessonAccess('user-1', 'lesson-1');
 
@@ -105,9 +126,7 @@ describe('EntitlementsService', () => {
     });
 
     it('denies even a free preview when it belongs to another grade', async () => {
-      prisma.lesson.findUnique.mockResolvedValue(
-        publishedLesson({ isFreePreview: true }),
-      );
+      prisma.lesson.findUnique.mockResolvedValue(publishedLesson({ isFreePreview: true }));
       prisma.user.findUnique.mockResolvedValue({
         educationSystem: 'GENERAL',
         gradeLevel: 'SEC_2',
@@ -238,9 +257,19 @@ describe('EntitlementsService', () => {
     it('includes center-free lessons in bulk access without granting them to online students', async () => {
       prisma.lesson.findMany.mockResolvedValue([publishedLesson({ centerPriceMinor: 0 })]);
       prisma.entitlement.findMany.mockResolvedValue([]);
-      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'CENTER' });
-      expect(await service.filterAccessibleLessonIds('user-1', ['lesson-1'])).toEqual(new Set(['lesson-1']));
-      prisma.user.findUnique.mockResolvedValue({ educationSystem: 'GENERAL', gradeLevel: 'SEC_1', studentType: 'ONLINE' });
+      prisma.user.findUnique.mockResolvedValue({
+        educationSystem: 'GENERAL',
+        gradeLevel: 'SEC_1',
+        studentType: 'CENTER',
+      });
+      expect(await service.filterAccessibleLessonIds('user-1', ['lesson-1'])).toEqual(
+        new Set(['lesson-1']),
+      );
+      prisma.user.findUnique.mockResolvedValue({
+        educationSystem: 'GENERAL',
+        gradeLevel: 'SEC_1',
+        studentType: 'ONLINE',
+      });
       expect(await service.filterAccessibleLessonIds('user-1', ['lesson-1'])).toEqual(new Set());
     });
     const lessons = [
@@ -249,21 +278,48 @@ describe('EntitlementsService', () => {
         isFreePreview: true,
         status: 'PUBLISHED',
         chapterId: 'c-1',
-        chapter: { unit: { course: { id: 'co-1', gradeId: 'g-1', academicYearId: 'y-1', grade: { educationSystem: 'GENERAL', level: 'SEC_1' } } } },
+        chapter: {
+          unit: {
+            course: {
+              id: 'co-1',
+              gradeId: 'g-1',
+              academicYearId: 'y-1',
+              grade: { educationSystem: 'GENERAL', level: 'SEC_1' },
+            },
+          },
+        },
       },
       {
         id: 'l-owned',
         isFreePreview: false,
         status: 'PUBLISHED',
         chapterId: 'c-1',
-        chapter: { unit: { course: { id: 'co-1', gradeId: 'g-1', academicYearId: 'y-1', grade: { educationSystem: 'GENERAL', level: 'SEC_1' } } } },
+        chapter: {
+          unit: {
+            course: {
+              id: 'co-1',
+              gradeId: 'g-1',
+              academicYearId: 'y-1',
+              grade: { educationSystem: 'GENERAL', level: 'SEC_1' },
+            },
+          },
+        },
       },
       {
         id: 'l-locked',
         isFreePreview: false,
         status: 'PUBLISHED',
         chapterId: 'c-9',
-        chapter: { unit: { course: { id: 'co-9', gradeId: 'g-9', academicYearId: 'y-1', grade: { educationSystem: 'GENERAL', level: 'SEC_2' } } } },
+        chapter: {
+          unit: {
+            course: {
+              id: 'co-9',
+              gradeId: 'g-9',
+              academicYearId: 'y-1',
+              grade: { educationSystem: 'GENERAL', level: 'SEC_2' },
+            },
+          },
+        },
       },
     ];
 
@@ -438,9 +494,7 @@ describe('EntitlementsService', () => {
 
       const created = prisma.entitlement.create.mock.calls[0][0].data;
       expect(created.scope).toBe('GRADE_MONTHLY');
-      const days = Math.round(
-        (created.expiresAt.getTime() - Date.now()) / 86_400_000,
-      );
+      const days = Math.round((created.expiresAt.getTime() - Date.now()) / 86_400_000);
       expect(days).toBe(30);
     });
 
@@ -475,9 +529,7 @@ describe('EntitlementsService', () => {
 
       expect(result.created).toBe(false);
       const updated = prisma.entitlement.update.mock.calls[0][0].data;
-      const daysFromNow = Math.round(
-        (updated.expiresAt.getTime() - Date.now()) / 86_400_000,
-      );
+      const daysFromNow = Math.round((updated.expiresAt.getTime() - Date.now()) / 86_400_000);
       // 10 remaining + 30 purchased.
       expect(daysFromNow).toBe(40);
     });

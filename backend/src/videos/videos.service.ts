@@ -67,9 +67,7 @@ export class VideosService {
     input: { fileName: string; contentType: string; sizeBytes: number },
   ) {
     if (!ALLOWED_VIDEO_TYPES.has(input.contentType)) {
-      throw new BadRequestException(
-        'نوع الملف غير مدعوم. استخدم MP4 أو MOV أو MKV أو WEBM.',
-      );
+      throw new BadRequestException('نوع الملف غير مدعوم. استخدم MP4 أو MOV أو MKV أو WEBM.');
     }
 
     const maxBytes = this.config.get<number>('storage.maxUploadBytes')!;
@@ -106,11 +104,7 @@ export class VideosService {
       },
     });
 
-    const upload = await this.storage.presignUpload(
-      this.storage.videoBucket,
-      sourceKey,
-      3600,
-    );
+    const upload = await this.storage.presignUpload(this.storage.videoBucket, sourceKey, 3600);
 
     return {
       assetId: asset.id,
@@ -318,9 +312,7 @@ export class VideosService {
 
     return {
       stream,
-      contentType: safe.endsWith('.m3u8')
-        ? 'application/vnd.apple.mpegurl'
-        : 'video/mp2t',
+      contentType: safe.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp2t',
     };
   }
 
@@ -342,11 +334,15 @@ export class VideosService {
     });
     for (const asset of assets) {
       if (asset.sourceKey) {
-        await this.storage.removeObject(this.storage.videoBucket, asset.sourceKey).catch(() => undefined);
+        await this.storage
+          .removeObject(this.storage.videoBucket, asset.sourceKey)
+          .catch(() => undefined);
       }
     }
     if (assets.length) {
-      await this.prisma.videoAsset.deleteMany({ where: { id: { in: assets.map((asset) => asset.id) } } });
+      await this.prisma.videoAsset.deleteMany({
+        where: { id: { in: assets.map((asset) => asset.id) } },
+      });
     }
     return assets.length;
   }

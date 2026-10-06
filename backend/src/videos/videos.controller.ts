@@ -1,13 +1,4 @@
-import {
-  Controller,
-  ForbiddenException,
-  Get,
-  Param,
-  Post,
-  Query,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { Role } from '../generated/prisma/enums';
@@ -51,10 +42,7 @@ export class VideosController {
     if (!ticket) throw new ForbiddenException('رابط المشاهدة غير صالح');
     await this.videos.resolveTicket(lessonId, ticket);
 
-    const { stream, contentType } = await this.videos.streamObject(
-      lessonId,
-      'master.m3u8',
-    );
+    const { stream, contentType } = await this.videos.streamObject(lessonId, 'master.m3u8');
 
     // Rewrite the playlist so every child URL carries the same ticket.
     const chunks: Buffer[] = [];
