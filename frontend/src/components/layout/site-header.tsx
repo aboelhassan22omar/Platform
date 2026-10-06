@@ -11,8 +11,10 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { PlatformLogo } from '@/components/decor/egyptian-motifs';
 import { ThemeToggle } from '@/components/providers/theme-provider';
 import { primaryNavigation } from '@/config/navigation';
+import { useStore } from '@/features/store/store-provider';
 
 export function SiteHeader() {
+  const { cartCount } = useStore();
   const pathname = usePathname();
   const { user, isLoading, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -53,7 +55,7 @@ export function SiteHeader() {
           <div className="flex h-16 items-center justify-between gap-3 sm:gap-4">
             {/* Brand Logo */}
             <Link href="/" className="group flex shrink-0 items-center">
-              <PlatformLogo variant="full" />
+              <PlatformLogo variant="full" className="max-sm:gap-2 max-sm:[&>span:first-child]:w-9 max-sm:[&>div:last-child>div>span:last-child]:hidden max-sm:[&>div:last-child>span]:text-[8px] max-sm:[&>div:last-child>div>span:first-child]:text-xs" />
             </Link>
 
             {/* Desktop Navigation */}
@@ -83,6 +85,10 @@ export function SiteHeader() {
 
             {/* Actions (ديسكتوب وتابلت >= sm / lg) */}
             <div className="flex items-center gap-2">
+              {(pathname === '/store' || pathname.startsWith('/store/')) && <Link href="/store/cart" aria-label={`عربة التسوق (${cartCount})`} className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gold-500/25 text-gold-700 dark:text-gold-300">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M3 3h2l3 12h11l3-9H6M9 20h.01M18 20h.01" strokeLinecap="round"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>
+                {cartCount > 0 && <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-gold-500 px-1 text-center text-[10px] font-bold text-midnight-950">{cartCount}</span>}
+              </Link>}
               <ThemeToggle className="hidden sm:inline-flex" />
 
               {isLoading ? (
