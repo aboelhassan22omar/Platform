@@ -76,7 +76,7 @@ export function createPlatformIdentity(input: PlatformIdentityInput = {}) {
     assets: {
       teacher: publicValue(
         input.teacherImage,
-        isHistory ? '/images/teacher-hero.png' : '/brand/subject-education.svg',
+        isHistory ? '/images/teacher-about-portrait.jpg' : '/brand/subject-education.svg',
       ),
       authBackground: publicValue(
         input.authBackground,

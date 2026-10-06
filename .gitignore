@@ -54,7 +54,3 @@ Thumbs.db
 tmp/
 temp/
 *.local
-
-# ---- Archived scaffolding ----
-# The Vite starter this repository was initialised from, kept for reference.
-.legacy-vite-template/

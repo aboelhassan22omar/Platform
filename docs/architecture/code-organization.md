@@ -28,6 +28,8 @@ Seed types, grade metadata, subscription plans and the history curriculum are se
 
 `npm run audit:source` follows static imports from runtime, seed and test entry points to identify unreachable TypeScript modules. Verify dynamic usage before deleting anything it reports. Generated Prisma clients, build artifacts, secrets, database migrations and runtime volumes are outside source cleanup.
 
+`npm run audit:assets` checks public and root images against frontend source and local environment overrides. It reports unused images for review and fails on missing local image references. Runtime uploads are outside this audit; review dynamically assembled paths before removing a reported file.
+
 With the Docker worker running, `npm run test:media` generates a two-second video, probes it, transcodes two HLS renditions without upscaling, extracts its poster and removes the temporary files. It creates no queue jobs or database records.
 
 To verify an independently built chemistry frontend, set `E2E_SUBJECT=chemistry`, `E2E_TEACHER` and `E2E_BASE_URL`, then run `subject-preset.spec.ts` through the E2E workspace. These checks visit public pages, registration, grade products and cart on desktop and phone widths. They are skipped during ordinary history deployments.
