@@ -6,7 +6,6 @@
 **/.turbo
 .git
 .gitignore
-.legacy-vite-template
 **/*.log
 **/.env
 **/.env.*

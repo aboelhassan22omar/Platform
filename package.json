@@ -38,10 +38,11 @@
     "format": "prettier --write frontend/src backend/src backend/prisma workers/src scripts tests docs *.json *.mjs",
     "format:check": "prettier --check frontend/src backend/src backend/prisma workers/src scripts tests docs *.json *.mjs",
     "audit:source": "node scripts/audit-source.mjs",
+    "audit:assets": "node scripts/audit-assets.mjs",
     "platform:configure": "node scripts/configure-platform.cjs",
     "test:models": "playwright test --config tests/unit/playwright.config.ts",
     "test:media": "node scripts/test-worker-media.cjs",
-    "check": "npm run lint && npm run typecheck && npm run test:unit && npm run test:models"
+    "check": "npm run lint && npm run typecheck && npm run test:unit && npm run test:models && npm run audit:assets"
   },
   "engines": {
     "node": ">=22.0.0"
