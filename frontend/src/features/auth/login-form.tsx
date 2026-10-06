@@ -76,7 +76,13 @@ export function LoginForm() {
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} noValidate className="auth-form" aria-busy={isSubmitting}>
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      noValidate
+      className="auth-form"
+      aria-busy={isSubmitting}
+    >
       {serverError && (
         <div className="auth-alert" role="alert" tabIndex={-1}>
           <svg viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -95,7 +101,12 @@ export function LoginForm() {
         <label htmlFor="login-identifier">اسم المستخدم أو رقم الموبايل</label>
         <div className="auth-input-wrap">
           <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <path
+              d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+            />
           </svg>
           <input
             id="login-identifier"
@@ -117,7 +128,11 @@ export function LoginForm() {
             autoFocus
           />
         </div>
-        {errors.identifier && <p id="login-identifier-error" className="auth-field__error">{errors.identifier}</p>}
+        {errors.identifier && (
+          <p id="login-identifier-error" className="auth-field__error">
+            {errors.identifier}
+          </p>
+        )}
       </div>
 
       <div className="auth-field">
@@ -127,7 +142,15 @@ export function LoginForm() {
         </div>
         <div className="auth-input-wrap auth-input-wrap--password">
           <svg className="auth-input-icon" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <rect x="4" y="10" width="16" height="11" rx="3" stroke="currentColor" strokeWidth="1.8" />
+            <rect
+              x="4"
+              y="10"
+              width="16"
+              height="11"
+              rx="3"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            />
             <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.8" />
           </svg>
           <input
@@ -157,17 +180,31 @@ export function LoginForm() {
           >
             {showPassword ? (
               <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M3 3l18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.2A10 10 0 0 1 12 4c6.3 0 9.5 8 9.5 8a16 16 0 0 1-2.1 3.2M6.2 6.2C3.7 8.1 2.5 12 2.5 12S5.7 20 12 20a9.8 9.8 0 0 0 4.1-.9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M3 3l18 18M10.6 10.7a2 2 0 0 0 2.7 2.7M9.9 4.2A10 10 0 0 1 12 4c6.3 0 9.5 8 9.5 8a16 16 0 0 1-2.1 3.2M6.2 6.2C3.7 8.1 2.5 12 2.5 12S5.7 20 12 20a9.8 9.8 0 0 0 4.1-.9"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             ) : (
               <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M2.5 12S5.7 4 12 4s9.5 8 9.5 8-3.2 8-9.5 8-9.5-8-9.5-8Z" stroke="currentColor" strokeWidth="1.8" />
+                <path
+                  d="M2.5 12S5.7 4 12 4s9.5 8 9.5 8-3.2 8-9.5 8-9.5-8-9.5-8Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
                 <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
               </svg>
             )}
           </button>
         </div>
-        {errors.password && <p id="login-password-error" className="auth-field__error">{errors.password}</p>}
+        {errors.password && (
+          <p id="login-password-error" className="auth-field__error">
+            {errors.password}
+          </p>
+        )}
       </div>
 
       <button type="submit" className="auth-submit" disabled={isSubmitting || lockRemaining > 0}>
@@ -182,7 +219,13 @@ export function LoginForm() {
           <>
             <span>دخول</span>
             <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M5 12h14m-6-6 6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </>
         )}

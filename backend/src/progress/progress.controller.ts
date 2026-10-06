@@ -56,9 +56,10 @@ export class ProgressController {
   @Get('leaderboard')
   @ApiOperation({ summary: 'أفضل الطلاب بالنقاط لكل صف دراسي' })
   leaderboard(@CurrentUser() user: AuthenticatedUser, @Query('gradeLevel') gradeLevel?: string) {
-    const requestedGrade = gradeLevel && Object.values(GradeLevel).includes(gradeLevel as GradeLevel)
-      ? gradeLevel as GradeLevel
-      : undefined;
+    const requestedGrade =
+      gradeLevel && Object.values(GradeLevel).includes(gradeLevel as GradeLevel)
+        ? (gradeLevel as GradeLevel)
+        : undefined;
     // Students only see their own cohort. Staff may inspect another grade.
     return this.progress.leaderboard(
       user.id,

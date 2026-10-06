@@ -41,7 +41,13 @@ export const isoToLocalInput = (iso: string | null | undefined): string => {
   if (!iso) return '';
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  return serialize({ y: date.getFullYear(), m: date.getMonth(), d: date.getDate(), h: date.getHours(), min: date.getMinutes() });
+  return serialize({
+    y: date.getFullYear(),
+    m: date.getMonth(),
+    d: date.getDate(),
+    h: date.getHours(),
+    min: date.getMinutes(),
+  });
 };
 
 const sameDay = (a: { y: number; m: number; d: number }, b: { y: number; m: number; d: number }) =>
@@ -129,10 +135,11 @@ export function DateTimePicker({
     const now = new Date();
     return { y: now.getFullYear(), m: now.getMonth(), d: now.getDate() };
     // Recomputed whenever the panel opens so a long-lived page stays correct.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const [view, setView] = useState(() => (parts ? { y: parts.y, m: parts.m } : { y: today.y, m: today.m }));
+  const [view, setView] = useState(() =>
+    parts ? { y: parts.y, m: parts.m } : { y: today.y, m: today.m },
+  );
   const [focusDay, setFocusDay] = useState<{ y: number; m: number; d: number }>(parts ?? today);
 
   const openPanel = () => {
@@ -209,10 +216,11 @@ export function DateTimePicker({
   // Move keyboard focus into the day grid once the panel is placed.
   useEffect(() => {
     if (open && position) {
-      gridRef.current?.querySelector<HTMLButtonElement>('[data-focus="true"]')?.focus({ preventScroll: true });
+      gridRef.current
+        ?.querySelector<HTMLButtonElement>('[data-focus="true"]')
+        ?.focus({ preventScroll: true });
     }
     // Only on first placement, not on every reposition.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, position === null]);
 
   // --- Calendar cells: always 6 weeks so the panel height never jumps.
@@ -221,12 +229,18 @@ export function DateTimePicker({
     const offset = (first.getDay() + 1) % 7; // Saturday = column 0
     return Array.from({ length: 42 }, (_, i) => {
       const date = new Date(view.y, view.m, 1 - offset + i);
-      return { y: date.getFullYear(), m: date.getMonth(), d: date.getDate(), inMonth: date.getMonth() === view.m };
+      return {
+        y: date.getFullYear(),
+        m: date.getMonth(),
+        d: date.getDate(),
+        inMonth: date.getMonth() === view.m,
+      };
     });
   }, [view]);
 
   const todayKey = dayKey(today.y, today.m, today.d);
-  const isPast = (c: { y: number; m: number; d: number }) => disablePast && dayKey(c.y, c.m, c.d) < todayKey;
+  const isPast = (c: { y: number; m: number; d: number }) =>
+    disablePast && dayKey(c.y, c.m, c.d) < todayKey;
 
   const shiftMonth = (delta: number) => {
     const date = new Date(view.y, view.m + delta, 1);
@@ -247,7 +261,12 @@ export function DateTimePicker({
 
   const onGridKey = (event: React.KeyboardEvent) => {
     // RTL: the visual "next day" is to the left.
-    const moves: Record<string, number> = { ArrowLeft: 1, ArrowRight: -1, ArrowDown: 7, ArrowUp: -7 };
+    const moves: Record<string, number> = {
+      ArrowLeft: 1,
+      ArrowRight: -1,
+      ArrowDown: 7,
+      ArrowUp: -7,
+    };
     if (event.key in moves) {
       event.preventDefault();
       const date = new Date(focusDay.y, focusDay.m, focusDay.d + moves[event.key]);
@@ -255,7 +274,9 @@ export function DateTimePicker({
       setFocusDay(next);
       if (next.m !== view.m || next.y !== view.y) setView({ y: next.y, m: next.m });
       requestAnimationFrame(() =>
-        gridRef.current?.querySelector<HTMLButtonElement>('[data-focus="true"]')?.focus({ preventScroll: true }),
+        gridRef.current
+          ?.querySelector<HTMLButtonElement>('[data-focus="true"]')
+          ?.focus({ preventScroll: true }),
       );
     }
   };
@@ -316,17 +337,39 @@ export function DateTimePicker({
         >
           {/* Header */}
           <div className="flex items-center justify-between gap-2 px-3 pt-3">
-            <button type="button" onClick={() => shiftMonth(-1)} aria-label="الشهر اللي فات" className={iconButton}>
+            <button
+              type="button"
+              onClick={() => shiftMonth(-1)}
+              aria-label="الشهر اللي فات"
+              className={iconButton}
+            >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M6 3l5 5-5 5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
             <p aria-live="polite" className="font-display text-base font-black">
               {monthTitle(view.y, view.m)}
             </p>
-            <button type="button" onClick={() => shiftMonth(1)} aria-label="الشهر الجاي" className={iconButton}>
+            <button
+              type="button"
+              onClick={() => shiftMonth(1)}
+              aria-label="الشهر الجاي"
+              className={iconButton}
+            >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M10 3L5 8l5 5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
           </div>
@@ -335,12 +378,20 @@ export function DateTimePicker({
           <div className="px-3 pb-3 pt-2">
             <div className="grid grid-cols-7 pb-1" aria-hidden>
               {WEEKDAYS.map((day) => (
-                <span key={day} className="py-1.5 text-center text-[10.5px] font-bold text-[color:var(--text-muted)]">
+                <span
+                  key={day}
+                  className="py-1.5 text-center text-[10.5px] font-bold text-[color:var(--text-muted)]"
+                >
                   {day}
                 </span>
               ))}
             </div>
-            <div ref={gridRef} role="grid" onKeyDown={onGridKey} className="grid grid-cols-7 gap-0.5">
+            <div
+              ref={gridRef}
+              role="grid"
+              onKeyDown={onGridKey}
+              className="grid grid-cols-7 gap-0.5"
+            >
               {cells.map((c) => {
                 const selected = parts ? sameDay(parts, c) : false;
                 const isToday = dayKey(c.y, c.m, c.d) === todayKey;
@@ -356,7 +407,12 @@ export function DateTimePicker({
                     disabled={past}
                     aria-selected={selected}
                     aria-current={isToday ? 'date' : undefined}
-                    aria-label={new Date(c.y, c.m, c.d).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    aria-label={new Date(c.y, c.m, c.d).toLocaleDateString('ar-EG', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                     onClick={() => pickDay(c)}
                     className={cn(
                       'relative grid aspect-square place-items-center rounded-xl text-sm font-bold tabular-nums transition-colors',
@@ -365,7 +421,9 @@ export function DateTimePicker({
                         ? 'bg-[var(--accent)] text-[color:var(--accent-contrast)] shadow-[0_6px_16px_-8px_var(--accent)]'
                         : 'hover:bg-[color-mix(in_srgb,var(--accent)_14%,transparent)]',
                       !selected && !c.inMonth && 'text-[color:var(--text-muted)] opacity-45',
-                      !selected && isToday && 'text-[color:var(--accent)] ring-1 ring-inset ring-[color:var(--accent)]',
+                      !selected &&
+                        isToday &&
+                        'text-[color:var(--accent)] ring-1 ring-inset ring-[color:var(--accent)]',
                       past && 'cursor-not-allowed opacity-30 hover:bg-transparent',
                     )}
                   >
@@ -394,7 +452,11 @@ export function DateTimePicker({
                   onUp={() => stepMinute(5)}
                   onDown={() => stepMinute(-5)}
                 />
-                <div role="radiogroup" aria-label="صباحًا أو مساءً" className="ms-1.5 grid overflow-hidden rounded-lg border border-[color:var(--border-subtle)]">
+                <div
+                  role="radiogroup"
+                  aria-label="صباحًا أو مساءً"
+                  className="ms-1.5 grid overflow-hidden rounded-lg border border-[color:var(--border-subtle)]"
+                >
                   {[
                     { pm: false, label: 'ص', title: 'صباحًا' },
                     { pm: true, label: 'م', title: 'مساءً' },
@@ -498,15 +560,41 @@ export function DateTimePicker({
           className,
           'flex items-center gap-2.5 text-start disabled:cursor-not-allowed disabled:opacity-50',
           parts && 'pe-10',
-          open && 'border-[color:var(--accent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_18%,transparent)]',
+          open &&
+            'border-[color:var(--accent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_18%,transparent)]',
         )}
       >
-        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden className="shrink-0 text-[color:var(--accent)]">
-          <rect x="3" y="4.5" width="14" height="12.5" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M3 8.5h14M7 2.75v3.5M13 2.75v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 20 20"
+          fill="none"
+          aria-hidden
+          className="shrink-0 text-[color:var(--accent)]"
+        >
+          <rect
+            x="3"
+            y="4.5"
+            width="14"
+            height="12.5"
+            rx="2.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+          <path
+            d="M3 8.5h14M7 2.75v3.5M13 2.75v3.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
           <circle cx="13.5" cy="13" r="1.25" fill="currentColor" />
         </svg>
-        <span className={cn('min-w-0 flex-1 truncate', !parts && 'text-[color:var(--text-muted)] opacity-80')}>
+        <span
+          className={cn(
+            'min-w-0 flex-1 truncate',
+            !parts && 'text-[color:var(--text-muted)] opacity-80',
+          )}
+        >
           {parts ? formatDisplay(parts) : placeholder}
         </span>
       </button>
@@ -518,7 +606,12 @@ export function DateTimePicker({
           className="absolute inset-y-0 end-1.5 my-auto grid h-8 w-8 place-items-center rounded-lg text-[color:var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-            <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <path
+              d="M3 3l8 8M11 3l-8 8"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
           </svg>
         </button>
       )}
@@ -527,7 +620,17 @@ export function DateTimePicker({
   );
 }
 
-function TimeStepper({ label, value, onUp, onDown }: { label: string; value: string; onUp: () => void; onDown: () => void }) {
+function TimeStepper({
+  label,
+  value,
+  onUp,
+  onDown,
+}: {
+  label: string;
+  value: string;
+  onUp: () => void;
+  onDown: () => void;
+}) {
   const arrow =
     'grid h-[1.15rem] w-full place-items-center text-[color:var(--text-muted)] transition-colors hover:text-[color:var(--accent)]';
   return (
@@ -547,15 +650,39 @@ function TimeStepper({ label, value, onUp, onDown }: { label: string; value: str
       }}
       className="flex w-12 flex-col items-center overflow-hidden rounded-lg border border-[color:var(--border-subtle)] bg-[var(--surface-raised)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
     >
-      <button type="button" tabIndex={-1} onClick={onUp} aria-label={`زوّد ${label}`} className={arrow}>
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={onUp}
+        aria-label={`زوّد ${label}`}
+        className={arrow}
+      >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-          <path d="M2 6.5L5 3.5l3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M2 6.5L5 3.5l3 3"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
       <span className="font-display text-base font-black leading-6 tabular-nums">{value}</span>
-      <button type="button" tabIndex={-1} onClick={onDown} aria-label={`قلّل ${label}`} className={arrow}>
+      <button
+        type="button"
+        tabIndex={-1}
+        onClick={onDown}
+        aria-label={`قلّل ${label}`}
+        className={arrow}
+      >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
-          <path d="M2 3.5L5 6.5l3-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M2 3.5L5 6.5l3-3"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
     </div>

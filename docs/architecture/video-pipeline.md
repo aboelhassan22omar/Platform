@@ -49,7 +49,7 @@ API process would occupy a Node worker for the whole transfer, consume memory
 buffering it, and risk timing out at every proxy hop. Direct upload makes the
 size of the file irrelevant to API capacity.
 
-### Presigned URLs must be signed for the *public* host
+### Presigned URLs must be signed for the _public_ host
 
 A presigned URL embeds the endpoint host in both the URL **and the signature**.
 Signing against the internal Docker hostname `minio` produces a URL no browser
@@ -58,10 +58,10 @@ signature.
 
 So `StorageService` keeps two clients:
 
-| Client | Endpoint | Used for |
-|---|---|---|
-| `client` | `S3_ENDPOINT` (internal) | Server-side reads/writes, bucket setup |
-| `signingClient` | `S3_PUBLIC_ENDPOINT` | Presigned URLs handed to a browser |
+| Client          | Endpoint                 | Used for                               |
+| --------------- | ------------------------ | -------------------------------------- |
+| `client`        | `S3_ENDPOINT` (internal) | Server-side reads/writes, bucket setup |
+| `signingClient` | `S3_PUBLIC_ENDPOINT`     | Presigned URLs handed to a browser     |
 
 In development these differ (`minio:9000` vs `localhost:7900`). With a real S3
 bucket they are the same and the two clients collapse into one.
@@ -195,13 +195,13 @@ access does. That boundary was drawn deliberately.
 
 ## Configuration
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `HLS_RENDITIONS` | `360p:800:96,480p:1400:128,720p:2800:128` | `heightP:videoKbps:audioKbps` |
-| `HLS_SEGMENT_SECONDS` | `6` | Segment length |
-| `VIDEO_WORKER_CONCURRENCY` | `1` | Simultaneous transcodes per container |
-| `MAX_UPLOAD_BYTES` | `5368709120` | 5 GB upload ceiling |
-| `PLAYBACK_TOKEN_TTL` | `300` | Ticket lifetime, seconds |
+| Variable                   | Default                                   | Meaning                               |
+| -------------------------- | ----------------------------------------- | ------------------------------------- |
+| `HLS_RENDITIONS`           | `360p:800:96,480p:1400:128,720p:2800:128` | `heightP:videoKbps:audioKbps`         |
+| `HLS_SEGMENT_SECONDS`      | `6`                                       | Segment length                        |
+| `VIDEO_WORKER_CONCURRENCY` | `1`                                       | Simultaneous transcodes per container |
+| `MAX_UPLOAD_BYTES`         | `5368709120`                              | 5 GB upload ceiling                   |
+| `PLAYBACK_TOKEN_TTL`       | `300`                                     | Ticket lifetime, seconds              |
 
 Raise `VIDEO_WORKER_CONCURRENCY` only with CPU headroom to spare; scaling the
 number of worker containers is usually the better lever.

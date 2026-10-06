@@ -53,10 +53,7 @@ export class SandboxController {
 
   @Post('confirm')
   @HttpCode(HttpStatus.OK)
-  async confirm(
-    @CurrentUser() user: AuthenticatedUser,
-    @Body() dto: SandboxConfirmDto,
-  ) {
+  async confirm(@CurrentUser() user: AuthenticatedUser, @Body() dto: SandboxConfirmDto) {
     if (this.config.get<string>('payments.provider') !== 'dev') {
       throw new ForbiddenException('Sandbox confirmation is disabled.');
     }
@@ -110,9 +107,7 @@ export class SandboxController {
       data: { processedAt: new Date(), attempts: { increment: 1 } },
     });
 
-    this.logger.warn(
-      `[SANDBOX] Settled order ${dto.reference} — no real payment was taken.`,
-    );
+    this.logger.warn(`[SANDBOX] Settled order ${dto.reference} — no real payment was taken.`);
 
     return {
       ok: true,

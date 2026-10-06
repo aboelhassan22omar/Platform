@@ -47,9 +47,7 @@ const REFRESH_COOKIE = 'refresh_token';
 const AUTH_WINDOW_MS = 600_000;
 const authLimit = (fallback: number): number => {
   const configured = Number.parseInt(process.env.AUTH_RATE_LIMIT_MAX ?? '', 10);
-  return Number.isFinite(configured) && configured > 0
-    ? Math.max(configured, fallback)
-    : fallback;
+  return Number.isFinite(configured) && configured > 0 ? Math.max(configured, fallback) : fallback;
 };
 
 const REGISTER_LIMIT = authLimit(5);
@@ -128,7 +126,11 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, tokens } = await this.auth.verifyRegistration(dto.challengeId, dto.code, this.sessionContext(req));
+    const { user, tokens } = await this.auth.verifyRegistration(
+      dto.challengeId,
+      dto.code,
+      this.sessionContext(req),
+    );
     this.setAuthCookies(res, tokens);
     return { user, accessToken: tokens.accessToken };
   }
@@ -189,10 +191,7 @@ export class AuthController {
 
   @Patch('me')
   @ApiOperation({ summary: 'تعديل البيانات الشخصية' })
-  async updateProfile(
-    @CurrentUser() actor: AuthenticatedUser,
-    @Body() dto: UpdateProfileDto,
-  ) {
+  async updateProfile(@CurrentUser() actor: AuthenticatedUser, @Body() dto: UpdateProfileDto) {
     // Deliberately narrow: a student may change their display name and their
     // guardian's phone. Academic grade is NOT editable here — moving grade
     // would change which paid content is in scope, so it goes through support.

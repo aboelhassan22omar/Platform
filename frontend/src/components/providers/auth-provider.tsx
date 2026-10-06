@@ -119,7 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyRegistration = useCallback(
     async (challengeId: string, code: string) => {
-      const { user: next } = await api.post<{ user: AuthUser }>('/auth/register/verify', { challengeId, code });
+      const { user: next } = await api.post<{ user: AuthUser }>('/auth/register/verify', {
+        challengeId,
+        code,
+      });
       setUser(next);
       router.refresh();
       return next;
@@ -145,7 +148,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [isSigningOut, user]);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isLoading, isSigningOut, login, register, verifyRegistration, logout, refresh: loadSession }),
+    () => ({
+      user,
+      isLoading,
+      isSigningOut,
+      login,
+      register,
+      verifyRegistration,
+      logout,
+      refresh: loadSession,
+    }),
     [user, isLoading, isSigningOut, login, register, verifyRegistration, logout, loadSession],
   );
 

@@ -92,13 +92,17 @@ export function HistoryTimeline() {
       ref={ref}
       className="relative overflow-hidden bg-gradient-to-b from-[#eee2c6] via-[#f7f2e4] to-[#fbf8f0] dark:from-[#081726] dark:via-[#05131f] dark:to-[#030912] py-20 sm:py-28 text-midnight-950 dark:text-ivory-50 transition-colors duration-300"
     >
-      <div className="texture-parchment pointer-events-none absolute inset-0 opacity-25" aria-hidden />
+      <div
+        className="texture-parchment pointer-events-none absolute inset-0 opacity-25"
+        aria-hidden
+      />
 
       <div
         aria-hidden
         className="pointer-events-none absolute bottom-0 inset-x-0 h-96 opacity-20"
         style={{
-          background: 'radial-gradient(ellipse 90% 60% at 50% 100%, rgb(245 158 11 / 0.35), transparent 75%)',
+          background:
+            'radial-gradient(ellipse 90% 60% at 50% 100%, rgb(245 158 11 / 0.35), transparent 75%)',
         }}
       />
 
@@ -118,7 +122,8 @@ export function HistoryTimeline() {
             شريان التاريخ: <span className="text-gradient-gold">رحلة ٥٠ قرناً</span>
           </h2>
           <p className="mt-3.5 text-base sm:text-lg leading-relaxed text-midnight-800/80 dark:text-ivory-200/80">
-            كل محطة تاريخية شكلت عقل الأمة ومصيرها. مرر عبر العصور وشاهد كيف يترابط منهجك خطوة بخطوة.
+            كل محطة تاريخية شكلت عقل الأمة ومصيرها. مرر عبر العصور وشاهد كيف يترابط منهجك خطوة
+            بخطوة.
           </p>
 
           <div className="mt-6">
@@ -218,7 +223,8 @@ export function HistoryTimeline() {
                     المحطة المختارة: {HISTORICAL_STATIONS[activeStation].year}
                   </span>
                   <span className="font-display text-base sm:text-lg font-black text-midnight-950 dark:text-ivory-50 block">
-                    {HISTORICAL_STATIONS[activeStation].title} — {HISTORICAL_STATIONS[activeStation].epoch}
+                    {HISTORICAL_STATIONS[activeStation].title} —{' '}
+                    {HISTORICAL_STATIONS[activeStation].epoch}
                   </span>
                 </div>
               </div>
@@ -248,9 +254,7 @@ export function HistoryTimeline() {
               className="mt-10 rounded-2xl border border-gold-400/30 bg-white/95 dark:bg-midnight-950/80 p-5 sm:p-6 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm"
             >
               <div className="flex items-center gap-4">
-                <span className="text-3xl font-serif text-amber-600 dark:text-gold-400">
-                  𓋹
-                </span>
+                <span className="text-3xl font-serif text-amber-600 dark:text-gold-400">𓋹</span>
                 <div>
                   <span className="text-xs text-amber-700 dark:text-gold-400 font-bold block">
                     شريان التاريخ المصري عبر ٥٠ قرناً

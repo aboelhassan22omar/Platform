@@ -3,57 +3,30 @@ import Link from 'next/link';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from './store-provider';
+import { cartTotals, METHOD_LABELS, type DeliveryDetails, type StoreMethod } from './store-data';
 import {
-  cartTotals,
-  METHOD_LABELS,
-  type DeliveryDetails,
-  type StoreMethod,
-} from './store-data';
-import { BookCover } from './storefront';
+  DELIVERY_FIELDS,
+  EMPTY_DELIVERY,
+  OPTIONAL_DELIVERY_FIELDS,
+  validateDeliveryDetails,
+} from './delivery-details';
+import { selectCartItems } from './store-model';
+import { BookCover } from './book-cover';
 import { formatEgp } from '@/lib/utils';
 
-const fields: [keyof DeliveryDetails, string, string?][] = [
-  ['customerName', 'الاسم بالكامل'],
-  ['phone', 'رقم الموبايل', 'tel'],
-  ['alternatePhone', 'رقم موبايل بديل', 'tel'],
-  ['city', 'المدينة / المنطقة'],
-  ['address', 'العنوان بالتفصيل'],
-  ['landmark', 'علامة مميزة عند العنوان'],
-  ['building', 'رقم المبنى'],
-  ['floor', 'الدور'],
-  ['apartment', 'رقم الشقة'],
-  ['notes', 'ملاحظات التوصيل (اختياري)'],
-];
 export function StoreCart() {
   const store = useStore();
   const router = useRouter();
   const lock = useRef(false);
-  const [delivery, setDelivery] = useState<DeliveryDetails>({
-    customerName: '',
-    phone: '',
-    alternatePhone: '',
-    governorate: '',
-    city: '',
-    address: '',
-    landmark: '',
-    building: '',
-    floor: '',
-    apartment: '',
-    notes: '',
-  });
+  const [delivery, setDelivery] = useState<DeliveryDetails>(EMPTY_DELIVERY);
   const [method, setMethod] = useState<StoreMethod>('COD');
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
-  const items = store.cart.flatMap((c) => {
-    const product = store.products.find((p) => p.id === c.productId);
-    return product ? [{ product, quantity: c.quantity }] : [];
-  });
+  const items = selectCartItems(store);
   const rate = store.rates.find((r) => r.code === delivery.governorate);
   const totals = cartTotals(items, rate?.priceMinor || 0);
-  const actualMethod =
-    method === 'COD' && !totals.codAllowed ? 'VODAFONE_CASH' : method;
-  if (!store.ready)
-    return <div className="container-page store-page">جاري تحميل العربة…</div>;
+  const actualMethod = method === 'COD' && !totals.codAllowed ? 'VODAFONE_CASH' : method;
+  if (!store.ready) return <div className="container-page store-page">جاري تحميل العربة…</div>;
   if (!items.length)
     return (
       <div className="container-page store-empty">
@@ -91,9 +64,7 @@ export function StoreCart() {
                     <button
                       aria-label={`تقليل كمية ${product.title}`}
                       disabled={quantity <= 1}
-                      onClick={() =>
-                        store.setQuantity(product.id, quantity - 1)
-                      }
+                      onClick={() => store.setQuantity(product.id, quantity - 1)}
                     >
                       −
                     </button>
@@ -101,9 +72,7 @@ export function StoreCart() {
                     <button
                       aria-label={`زيادة كمية ${product.title}`}
                       disabled={quantity >= Math.min(10, product.stock)}
-                      onClick={() =>
-                        store.setQuantity(product.id, quantity + 1)
-                      }
+                      onClick={() => store.setQuantity(product.id, quantity + 1)}
                     >
                       ＋
                     </button>
@@ -115,9 +84,7 @@ export function StoreCart() {
                     </button>
                   </div>
                   {(!product.active || product.stock < quantity) && (
-                    <p className="store-error">
-                      غير متاح بالكمية المطلوبة؛ احذفه أو قلل الكمية.
-                    </p>
+                    <p className="store-error">غير متاح بالكمية المطلوبة؛ احذفه أو قلل الكمية.</p>
                   )}
                 </div>
                 <strong>{formatEgp(product.priceMinor * quantity)}</strong>
@@ -138,25 +105,12 @@ export function StoreCart() {
                 e.preventDefault();
                 setError('');
                 if (step === 1) {
-                  const normalize = (p: string) =>
-                    p
-                      .replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)))
-                      .replace(/\s/g, '')
-                      .replace(/^\+?20/, '0');
-                  const phone = normalize(delivery.phone);
-                  const alt = normalize(delivery.alternatePhone);
-                  if (
-                    !/^01[0125]\d{8}$/.test(phone) ||
-                    (alt !== '' && !/^01[0125]\d{8}$/.test(alt))
-                  ) {
-                    setError('اكتب رقم موبايل مصري صحيح من ١١ رقم، ولو أضفت رقم بديل لازم يكون صحيح.');
+                  const result = validateDeliveryDetails(delivery);
+                  if (result.delivery === undefined) {
+                    setError(result.error);
                     return;
                   }
-                  if (phone === alt) {
-                    setError('الرقم البديل لازم يكون مختلف عن رقم الموبايل.');
-                    return;
-                  }
-                  setDelivery({ ...delivery, phone, alternatePhone: alt });
+                  setDelivery(result.delivery);
                   setStep(2);
                 } else if (step === 2) {
                   setStep(3);
@@ -198,30 +152,25 @@ export function StoreCart() {
                         ))}
                       </select>
                     </label>
-                    {fields.map(([key, label, type]) => (
+                    {DELIVERY_FIELDS.map(([key, label, type]) => (
                       <label
                         className={`store-field ${key === 'address' || key === 'notes' ? 'store-field-wide' : ''}`}
                         key={key}
                       >
-                        <span>{label}{(key === 'alternatePhone' || key === 'landmark') && ' (اختياري)'}</span>
+                        <span>
+                          {label}
+                          {(key === 'alternatePhone' || key === 'landmark') && ' (اختياري)'}
+                        </span>
                         <input
-                          required={!['notes', 'alternatePhone', 'landmark'].includes(key)}
+                          required={!OPTIONAL_DELIVERY_FIELDS.includes(key)}
                           type={type || 'text'}
                           inputMode={type === 'tel' ? 'tel' : undefined}
                           minLength={
-                            key === 'customerName'
-                              ? 3
-                              : key === 'address'
-                                ? 10
-                                : undefined
+                            key === 'customerName' ? 3 : key === 'address' ? 10 : undefined
                           }
-                          maxLength={
-                            key === 'address' || key === 'notes' ? 300 : 100
-                          }
+                          maxLength={key === 'address' || key === 'notes' ? 300 : 100}
                           value={delivery[key]}
-                          onChange={(e) =>
-                            setDelivery({ ...delivery, [key]: e.target.value })
-                          }
+                          onChange={(e) => setDelivery({ ...delivery, [key]: e.target.value })}
                         />
                       </label>
                     ))}
@@ -237,11 +186,7 @@ export function StoreCart() {
                       <label
                         key={m}
                         data-selected={actualMethod === m}
-                        className={
-                          m === 'COD' && !totals.codAllowed
-                            ? 'store-disabled'
-                            : ''
-                        }
+                        className={m === 'COD' && !totals.codAllowed ? 'store-disabled' : ''}
                       >
                         <input
                           type="radio"
@@ -263,8 +208,7 @@ export function StoreCart() {
                   </div>
                   {!totals.codAllowed && (
                     <p className="store-error">
-                      الدفع عند الاستلام غير متاح لأن العربة فيها منتج بالدفع
-                      الإلكتروني فقط.
+                      الدفع عند الاستلام غير متاح لأن العربة فيها منتج بالدفع الإلكتروني فقط.
                     </p>
                   )}
                 </>
@@ -275,14 +219,14 @@ export function StoreCart() {
                   <div className="store-review">
                     <h3>{delivery.customerName}</h3>
                     <p>
-                      {delivery.phone}{delivery.alternatePhone && ` · ${delivery.alternatePhone}`}
+                      {delivery.phone}
+                      {delivery.alternatePhone && ` · ${delivery.alternatePhone}`}
                     </p>
                     <p>
                       {rate?.name}، {delivery.city}، {delivery.address}
                     </p>
                     <p>
-                      مبنى {delivery.building} · الدور {delivery.floor} · شقة{' '}
-                      {delivery.apartment}
+                      مبنى {delivery.building} · الدور {delivery.floor} · شقة {delivery.apartment}
                     </p>
                     {delivery.landmark && <p>علامة مميزة: {delivery.landmark}</p>}
                     <p>{METHOD_LABELS[actualMethod]}</p>
@@ -306,12 +250,7 @@ export function StoreCart() {
                   </button>
                 )}
                 <button className="store-button" type="submit">
-                  {step === 1
-                    ? 'متابعة للدفع'
-                    : step === 2
-                      ? 'مراجعة الطلب'
-                      : 'تأكيد الطلب'}{' '}
-                  ←
+                  {step === 1 ? 'متابعة للدفع' : step === 2 ? 'مراجعة الطلب' : 'تأكيد الطلب'} ←
                 </button>
               </div>
             </form>
@@ -331,9 +270,7 @@ export function StoreCart() {
           </div>
           <div className="store-grand-total">
             <span>الإجمالي</span>
-            <strong data-testid="order-total">
-              {formatEgp(totals.totalMinor)}
-            </strong>
+            <strong data-testid="order-total">{formatEgp(totals.totalMinor)}</strong>
           </div>
           <p>
             السعر شامل المنتجات والشحن

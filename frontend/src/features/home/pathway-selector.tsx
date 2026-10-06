@@ -25,7 +25,10 @@ export function PathwaySelector({ systems }: { systems: EducationSystemSummary[]
       className="relative overflow-hidden bg-gradient-to-b from-[#fbf8f0] via-[#f5edd8] to-[#eee2c6] dark:from-[#040e18] dark:via-[#05131f] dark:to-[#081726] py-20 sm:py-28 text-midnight-950 dark:text-ivory-50 transition-colors duration-300"
       aria-labelledby="pathway-heading"
     >
-      <div className="texture-parchment pointer-events-none absolute inset-0 opacity-25" aria-hidden />
+      <div
+        className="texture-parchment pointer-events-none absolute inset-0 opacity-25"
+        aria-hidden
+      />
 
       <div
         aria-hidden
@@ -51,7 +54,8 @@ export function PathwaySelector({ systems }: { systems: EducationSystemSummary[]
             اختر <span className="text-gradient-gold">مسارك التعليمي</span>
           </h2>
           <p className="mt-3.5 text-base sm:text-lg leading-relaxed text-midnight-800/80 dark:text-ivory-200/80">
-            سواء كنت في الثانوية العامة أو البكالوريا المصرية، فك ختم البردية الملكية واستعرض الصفوف والحصص المعتمدة الخاصة بنظامك.
+            سواء كنت في الثانوية العامة أو البكالوريا المصرية، فك ختم البردية الملكية واستعرض الصفوف
+            والحصص المعتمدة الخاصة بنظامك.
           </p>
 
           <div className="mt-6">
@@ -106,7 +110,11 @@ export function PathwaySelector({ systems }: { systems: EducationSystemSummary[]
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                       <div className="grid h-12 w-12 place-items-center rounded-2xl border border-gold-400/40 bg-gold-400/10 text-amber-800 dark:text-gold-300">
-                        {isGeneral ? <EyeOfHorus className="h-6 w-7" /> : <LotusBlossom className="h-6 w-7" />}
+                        {isGeneral ? (
+                          <EyeOfHorus className="h-6 w-7" />
+                        ) : (
+                          <LotusBlossom className="h-6 w-7" />
+                        )}
                       </div>
                       <div>
                         <span className="text-[11px] font-extrabold text-amber-700 dark:text-gold-400 uppercase tracking-wider block">
@@ -145,12 +153,19 @@ export function PathwaySelector({ systems }: { systems: EducationSystemSummary[]
 
                   <div className="mt-6 flex items-center justify-between border-t border-gold-500/20 pt-3">
                     <span className="text-xs font-bold text-amber-800 dark:text-gold-300">
-                      {system.grades.length === 2 ? 'صفّين دراسيين معتمدين' : 'ثلاثة صفوف دراسية كاملة'}
+                      {system.grades.length === 2
+                        ? 'صفّين دراسيين معتمدين'
+                        : 'ثلاثة صفوف دراسية كاملة'}
                     </span>
                     <span className="text-xs font-black text-midnight-700/60 dark:text-ivory-300/60 group-hover:text-amber-800 dark:group-hover:text-gold-200 transition-colors flex items-center gap-1">
                       {isActive ? 'البردية مفتوحة الآن (انقر للإغلاق)' : 'انقر لفك الختم'}
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-                        <path d="M9 3l-4 4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        <path
+                          d="M9 3l-4 4 4 4"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
                       </svg>
                     </span>
                   </div>
@@ -203,7 +218,7 @@ export function PathwaySelector({ systems }: { systems: EducationSystemSummary[]
                       >
                         <Link
                           href={`/grades/${grade.slug}`}
-                          data-theme={grade.themeKey}
+                          data-theme={theme.key}
                           className={cn(
                             'group relative flex h-full flex-col overflow-hidden rounded-2xl',
                             'border border-gold-500/30 bg-white/95 dark:bg-midnight-950/90 p-6 text-midnight-950 dark:text-ivory-50 transition-all duration-300',
@@ -221,7 +236,10 @@ export function PathwaySelector({ systems }: { systems: EducationSystemSummary[]
                             <span className="text-xs font-black text-amber-800 dark:text-gold-300">
                               {theme.eraLabel}
                             </span>
-                            <span className="h-2 w-2 rounded-full" style={{ background: theme.accentHex }} />
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ background: theme.accentHex }}
+                            />
                           </div>
 
                           <h5 className="mt-2.5 font-display text-xl font-black text-midnight-950 dark:text-ivory-50 group-hover:text-amber-700 dark:group-hover:text-gold-300 transition-colors">

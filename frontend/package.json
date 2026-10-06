@@ -10,7 +10,7 @@
     "dev": "next dev -p 7300",
     "build": "next build",
     "start": "next start -p 7300",
-    "lint": "next lint",
+    "lint": "eslint --config ../eslint.config.mjs src",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

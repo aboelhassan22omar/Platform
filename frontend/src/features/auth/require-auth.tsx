@@ -68,7 +68,8 @@ export function RequireAuth({
     !user ||
     (staffOnly && !STAFF_ROLES.includes(user.role)) ||
     (studentOnly && STAFF_ROLES.includes(user.role))
-  ) return null;
+  )
+    return null;
 
   return <>{children}</>;
 }

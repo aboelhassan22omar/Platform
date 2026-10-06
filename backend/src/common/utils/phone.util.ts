@@ -51,8 +51,7 @@ export const normalizeEgyptianPhone = (raw: string): string | null => {
   return value;
 };
 
-export const isValidEgyptianPhone = (raw: string): boolean =>
-  normalizeEgyptianPhone(raw) !== null;
+export const isValidEgyptianPhone = (raw: string): boolean => normalizeEgyptianPhone(raw) !== null;
 
 /** Renders a stored number for display: `0101 234 5678`. */
 export const formatEgyptianPhone = (phone: string): string => {

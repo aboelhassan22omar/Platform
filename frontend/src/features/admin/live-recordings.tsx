@@ -21,7 +21,9 @@ const duration = (seconds: number | null) => {
 const size = (bytes: number | null) => {
   if (!bytes) return '';
   const mb = bytes / (1024 * 1024);
-  return toArabicDigits(mb >= 1024 ? `${(mb / 1024).toFixed(1)} جيجا` : `${Math.max(1, Math.round(mb))} ميجا`);
+  return toArabicDigits(
+    mb >= 1024 ? `${(mb / 1024).toFixed(1)} جيجا` : `${Math.max(1, Math.round(mb))} ميجا`,
+  );
 };
 
 const STATUS: Record<LiveRecording['status'], { label: string; className: string }> = {
@@ -48,7 +50,8 @@ export function LiveRecordings({
   const open = useMutation({
     mutationFn: ({ id, download }: { id: string; download: boolean }) =>
       api.get<{ url: string }>(`/admin/live/recordings/${id}/url${download ? '?download=1' : ''}`),
-    onError: (caught) => setError(caught instanceof ApiError ? caught.message : 'مقدرناش نفتح التسجيل'),
+    onError: (caught) =>
+      setError(caught instanceof ApiError ? caught.message : 'مقدرناش نفتح التسجيل'),
   });
 
   const remove = useMutation({
@@ -57,7 +60,8 @@ export function LiveRecordings({
       setDeleting(null);
       onChanged();
     },
-    onError: (caught) => setError(caught instanceof ApiError ? caught.message : 'مقدرناش نمسح التسجيل'),
+    onError: (caught) =>
+      setError(caught instanceof ApiError ? caught.message : 'مقدرناش نمسح التسجيل'),
   });
 
   const multi = recordings.length > 1;
@@ -65,7 +69,8 @@ export function LiveRecordings({
   return (
     <div className="mt-4 border-t border-gold-500/15 pt-3">
       <p className="text-xs font-black text-midnight-700 dark:text-ivory-200">
-        التسجيل{multi ? ` (${toArabicDigits(String(recordings.length))} أجزاء — المستر خرج ورجع)` : ''}
+        التسجيل
+        {multi ? ` (${toArabicDigits(String(recordings.length))} أجزاء — المستر خرج ورجع)` : ''}
       </p>
       <ul className="mt-2 space-y-2">
         {recordings.map((recording, index) => {
@@ -82,11 +87,16 @@ export function LiveRecordings({
                 </span>
                 {recording.status === 'READY' && (
                   <span className="nums-tabular ms-2 text-xs text-midnight-500 dark:text-ivory-300/70">
-                    {[duration(recording.durationSeconds), size(recording.sizeBytes)].filter(Boolean).join(' · ')}
+                    {[duration(recording.durationSeconds), size(recording.sizeBytes)]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </span>
                 )}
                 {recording.status === 'FAILED' && recording.error && (
-                  <p className="mt-1 break-words text-xs text-midnight-500 dark:text-ivory-300/70" dir="auto">
+                  <p
+                    className="mt-1 break-words text-xs text-midnight-500 dark:text-ivory-300/70"
+                    dir="auto"
+                  >
                     {recording.error}
                   </p>
                 )}
@@ -97,12 +107,19 @@ export function LiveRecordings({
                     <Button
                       size="sm"
                       variant="accent"
-                      isLoading={open.isPending && open.variables?.id === recording.id && !open.variables.download}
+                      isLoading={
+                        open.isPending &&
+                        open.variables?.id === recording.id &&
+                        !open.variables.download
+                      }
                       onClick={() => {
                         setError(null);
                         open.mutate(
                           { id: recording.id, download: false },
-                          { onSuccess: ({ url }) => setPlaying({ url, label: `${title} — ${label}` }) },
+                          {
+                            onSuccess: ({ url }) =>
+                              setPlaying({ url, label: `${title} — ${label}` }),
+                          },
                         );
                       }}
                     >
@@ -124,7 +141,12 @@ export function LiveRecordings({
                   </>
                 )}
                 {(recording.status === 'READY' || recording.status === 'FAILED') && (
-                  <Button size="sm" variant="ghost" className="text-red-600 dark:text-red-400" onClick={() => setDeleting(recording)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-600 dark:text-red-400"
+                    onClick={() => setDeleting(recording)}
+                  >
                     امسح
                   </Button>
                 )}
@@ -133,7 +155,11 @@ export function LiveRecordings({
           );
         })}
       </ul>
-      {error && <p role="alert" className="mt-2 text-xs font-bold text-red-600 dark:text-red-400">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-2 text-xs font-bold text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
 
       <AnimatePresence>
         {playing && (
@@ -159,8 +185,13 @@ export function LiveRecordings({
                   قفل
                 </button>
               </div>
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video src={playing.url} controls autoPlay playsInline className="aspect-video w-full rounded-xl bg-black" />
+              <video
+                src={playing.url}
+                controls
+                autoPlay
+                playsInline
+                className="aspect-video w-full rounded-xl bg-black"
+              />
             </div>
           </motion.div>
         )}

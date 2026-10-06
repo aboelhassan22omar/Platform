@@ -97,7 +97,9 @@ export function CountdownDisplay({
           >
             {value === null ? '--' : pad(value)}
           </span>
-          <span className="mt-0.5 block text-[11px] font-bold text-midnight-500 dark:text-ivory-300/70">{label}</span>
+          <span className="mt-0.5 block text-[11px] font-bold text-midnight-500 dark:text-ivory-300/70">
+            {label}
+          </span>
         </div>
       ))}
     </div>

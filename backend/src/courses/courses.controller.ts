@@ -41,10 +41,7 @@ export class CoursesController {
 
   @Get('me/continue-watching')
   @ApiOperation({ summary: 'كمّل من مكان ما وقفت' })
-  continueWatching(
-    @CurrentUser() user: AuthenticatedUser,
-    @Query('limit') limit?: string,
-  ) {
+  continueWatching(@CurrentUser() user: AuthenticatedUser, @Query('limit') limit?: string) {
     return this.courses.listContinueWatching(user.id, Math.min(Number(limit) || 6, 20));
   }
 
@@ -56,7 +53,6 @@ export class CoursesController {
       isStaff: user.role !== Role.STUDENT,
     });
   }
-
 
   @Get('lessons/:id/attachments/:attachmentId')
   @ApiOperation({ summary: 'تنزيل ملف الحصة بعد التحقق من الصلاحية' })

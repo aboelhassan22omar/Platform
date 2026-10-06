@@ -10,7 +10,13 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'node:crypto';
 import { Prisma } from '../generated/prisma/client';
-import { EducationSystem, GradeLevel, Role, StudentType, UserStatus } from '../generated/prisma/enums';
+import {
+  EducationSystem,
+  GradeLevel,
+  Role,
+  StudentType,
+  UserStatus,
+} from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 import { generateToken, hashToken } from '../common/utils/reference.util';
@@ -80,8 +86,13 @@ export class AuthService {
     return this.otp.create('register', {
       phone,
       registration: {
-        fullName: dto.fullName, username: dto.username, passwordHash, parentPhone,
-        educationSystem: dto.educationSystem, gradeLevel: dto.gradeLevel, studentType: dto.studentType,
+        fullName: dto.fullName,
+        username: dto.username,
+        passwordHash,
+        parentPhone,
+        educationSystem: dto.educationSystem,
+        gradeLevel: dto.gradeLevel,
+        studentType: dto.studentType,
       },
     });
   }
@@ -114,13 +125,16 @@ export class AuthService {
       });
 
       this.logger.log(`Student registered: ${user.username} (${user.gradeLevel})`);
-      const tokens = await this.issueTokens(user.id, user.username, user.role, user.tokenVersion, ctx);
+      const tokens = await this.issueTokens(
+        user.id,
+        user.username,
+        user.role,
+        user.tokenVersion,
+        ctx,
+      );
       return { user: this.toProfile(user), tokens };
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('البيانات دي مسجلة عندنا قبل كده');
       }
       throw error;
@@ -342,9 +356,13 @@ export class AuthService {
 
   async requestPasswordReset(rawPhone: string) {
     const phone = normalizeEgyptianPhone(rawPhone)!;
-    const user = await this.prisma.user.findUnique({ where: { phone }, select: { id: true, status: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { phone },
+      select: { id: true, status: true },
+    });
     return this.otp.create('password-reset', {
-      phone, userId: user?.status === UserStatus.ACTIVE ? user.id : undefined,
+      phone,
+      userId: user?.status === UserStatus.ACTIVE ? user.id : undefined,
     });
   }
 
@@ -353,12 +371,18 @@ export class AuthService {
     if (!payload.userId) throw new BadRequestException('الكود غير صحيح أو انتهت صلاحيته.');
     const token = generateToken(32);
     await this.prisma.passwordReset.create({
-      data: { userId: payload.userId, tokenHash: hashToken(token), expiresAt: new Date(Date.now() + 5 * 60 * 1000) },
+      data: {
+        userId: payload.userId,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      },
     });
     return { token, expiresIn: 300 };
   }
 
-  resendOtp(challengeId: string) { return this.otp.resend(challengeId); }
+  resendOtp(challengeId: string) {
+    return this.otp.resend(challengeId);
+  }
 
   async confirmPasswordReset(dto: ConfirmPasswordResetDto): Promise<void> {
     const record = await this.prisma.passwordReset.findUnique({
@@ -376,13 +400,20 @@ export class AuthService {
         where: { id: record.id, usedAt: null, expiresAt: { gt: new Date() } },
         data: { usedAt: new Date() },
       });
-      if (claimed.count !== 1) throw new BadRequestException('انتهت جلسة إعادة التعيين، اطلب كود جديد.');
+      if (claimed.count !== 1)
+        throw new BadRequestException('انتهت جلسة إعادة التعيين، اطلب كود جديد.');
       await tx.user.update({
         where: { id: record.userId },
         data: { passwordHash, tokenVersion: { increment: 1 } },
       });
-      await tx.passwordReset.updateMany({ where: { userId: record.userId, usedAt: null }, data: { usedAt: new Date() } });
-      await tx.refreshToken.updateMany({ where: { userId: record.userId, revokedAt: null }, data: { revokedAt: new Date() } });
+      await tx.passwordReset.updateMany({
+        where: { userId: record.userId, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      await tx.refreshToken.updateMany({
+        where: { userId: record.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
     });
   }
 

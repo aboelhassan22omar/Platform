@@ -129,7 +129,8 @@ export class EntitlementsService {
     ) {
       return { allowed: false, reason: 'WRONG_GRADE' };
     }
-    if (isLessonFreeFor(lesson, student.studentType)) return { allowed: true, reason: 'FREE_PREVIEW' };
+    if (isLessonFreeFor(lesson, student.studentType))
+      return { allowed: true, reason: 'FREE_PREVIEW' };
 
     const now = new Date();
 
@@ -201,10 +202,7 @@ export class EntitlementsService {
             ],
           },
           {
-            OR: [
-              { status: EntitlementStatus.EXPIRED },
-              { expiresAt: { lte: now } },
-            ],
+            OR: [{ status: EntitlementStatus.EXPIRED }, { expiresAt: { lte: now } }],
           },
         ],
       },
@@ -380,13 +378,19 @@ export class EntitlementsService {
     }
 
     if (product.kind === ProductKind.ASSESSMENT && product.assessmentId) {
-      return this.upsertPerpetual(tx, { userId, scope: EntitlementScope.ASSESSMENT, where: { assessmentId: product.assessmentId }, orderId, source, grantedById: params.grantedById });
+      return this.upsertPerpetual(tx, {
+        userId,
+        scope: EntitlementScope.ASSESSMENT,
+        where: { assessmentId: product.assessmentId },
+        orderId,
+        source,
+        grantedById: params.grantedById,
+      });
     }
 
     // --- Time-boxed, grade-wide grants (subscriptions) ----------------------
     if (
-      (product.kind === ProductKind.MONTHLY_PLAN ||
-        product.kind === ProductKind.YEARLY_PLAN) &&
+      (product.kind === ProductKind.MONTHLY_PLAN || product.kind === ProductKind.YEARLY_PLAN) &&
       product.planId
     ) {
       const plan = await tx.plan.findUniqueOrThrow({
@@ -420,9 +424,7 @@ export class EntitlementsService {
       // Renewing extends from the current expiry, not from now, so a student
       // who renews early does not lose the days they already paid for.
       const base =
-        existing?.expiresAt && existing.expiresAt > new Date()
-          ? existing.expiresAt
-          : new Date();
+        existing?.expiresAt && existing.expiresAt > new Date() ? existing.expiresAt : new Date();
 
       const expiresAt = plan.accessUntil
         ? plan.accessUntil
@@ -452,9 +454,7 @@ export class EntitlementsService {
       return { entitlementId: created.id, created: true };
     }
 
-    throw new Error(
-      `Product ${product.kind} has no target to grant an entitlement for.`,
-    );
+    throw new Error(`Product ${product.kind} has no target to grant an entitlement for.`);
   }
 
   /** Shared path for the three perpetual scopes. */
@@ -502,11 +502,7 @@ export class EntitlementsService {
   // Administration & maintenance
   // --------------------------------------------------------------------------
 
-  async revoke(
-    entitlementId: string,
-    revokedById: string,
-    reason: string,
-  ): Promise<void> {
+  async revoke(entitlementId: string, revokedById: string, reason: string): Promise<void> {
     await this.prisma.entitlement.update({
       where: { id: entitlementId },
       data: {

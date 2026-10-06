@@ -63,26 +63,26 @@ npm run report                        # last HTML report
 
 ## The suites
 
-| File | Covers |
-|---|---|
+| File                      | Covers                                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `student-journey.spec.ts` | register → locked → purchase → settle → unlock → progress → sign out → sign in → **resume**. Plus pathway selection, the five themed identities, and the Aurexis footer credit |
-| `api-contract.spec.ts` | Entitlement enforcement, cross-student isolation, price integrity, checkout/webhook idempotency, progress clamping, RBAC on every admin route |
-| `password-reset.spec.ts` | The full reset flow, and that the request endpoint cannot be used to discover which phone numbers have accounts |
-| `responsive.spec.ts` | 14 pages × 9 widths (320→1440) asserting no horizontal overflow, plus RTL, Arabic fonts, 44px touch targets, drawer behaviour, reduced motion |
+| `api-contract.spec.ts`    | Entitlement enforcement, cross-student isolation, price integrity, checkout/webhook idempotency, progress clamping, RBAC on every admin route                                  |
+| `password-reset.spec.ts`  | The full reset flow, and that the request endpoint cannot be used to discover which phone numbers have accounts                                                                |
+| `responsive.spec.ts`      | 14 pages × 9 widths (320→1440) asserting no horizontal overflow, plus RTL, Arabic fonts, 44px touch targets, drawer behaviour, reduced motion                                  |
 
 ---
 
 ## Projects
 
-| Project | Viewport | Engine |
-|---|---|---|
-| `desktop-chrome` | 1440 × 900 | Chromium |
-| `mobile-360` | 360 × 800 | Chromium, touch |
-| `mobile-390` | 390 × 844 | Chromium, touch |
-| `tablet` | 768 × 1024 | Chromium, touch |
+| Project          | Viewport   | Engine          |
+| ---------------- | ---------- | --------------- |
+| `desktop-chrome` | 1440 × 900 | Chromium        |
+| `mobile-360`     | 360 × 800  | Chromium, touch |
+| `mobile-390`     | 390 × 844  | Chromium, touch |
+| `tablet`         | 768 × 1024 | Chromium, touch |
 
 > **The mobile projects run the Chromium engine at iPhone geometry.** That
-> validates *layout* at those dimensions, not WebKit behaviour. **Native HLS
+> validates _layout_ at those dimensions, not WebKit behaviour. **Native HLS
 > playback on iOS still needs a check on a real device** — see
 > [`docs/operations/testing.md`](../../docs/operations/testing.md).
 

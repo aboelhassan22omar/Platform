@@ -40,9 +40,15 @@ const MUSEUM_ERAS: MuseumEra[] = [
     coverImage: '/images/eras/pharaonic-cover.jpg',
     icon: 'ankh',
     accent: '#d97706',
-    quote: 'التاريخ مش مجرد حفظ أسرار ومعارك، التاريخ فهم حقيقي لإزاي أجدادك بنوا أول دولة منظمة في العالم.',
-    description: 'أسرار الحضارة المصرية القديمة؛ نشأة الإدارة والجيش ونظم الحكم والفتوحات التي شكلت أول إمبراطورية في التاريخ.',
-    keyInsights: ['توحيد القطرين وتأسيس أول دولة مركزية', 'عمارة الأهرامات والخلود الحضاري', 'معركة قادش والريادة العسكرية المصرية'],
+    quote:
+      'التاريخ مش مجرد حفظ أسرار ومعارك، التاريخ فهم حقيقي لإزاي أجدادك بنوا أول دولة منظمة في العالم.',
+    description:
+      'أسرار الحضارة المصرية القديمة؛ نشأة الإدارة والجيش ونظم الحكم والفتوحات التي شكلت أول إمبراطورية في التاريخ.',
+    keyInsights: [
+      'توحيد القطرين وتأسيس أول دولة مركزية',
+      'عمارة الأهرامات والخلود الحضاري',
+      'معركة قادش والريادة العسكرية المصرية',
+    ],
   },
   {
     id: 'renaissance',
@@ -54,9 +60,15 @@ const MUSEUM_ERAS: MuseumEra[] = [
     coverImage: '/images/eras/renaissance-cover.jpg',
     icon: 'lotus',
     accent: '#0d9488',
-    quote: 'تحول طرق التجارة واكتشاف البوصلة والخرائط غيّر موازين القوى وأعاد رسم مصير الشرق الأوسط.',
-    description: 'تحولات موازين القوى العالمية بعد الكشوف الجغرافية، والنهضة الأوروبية، وأثر مسارات التجارة البحرية على مصر.',
-    keyInsights: ['طريق رأس الرجاء الصالح وتحديات المماليك', 'أثر النهضة الفكرية الأوروبية', 'موقع مصر في قلب التجارة البحرية'],
+    quote:
+      'تحول طرق التجارة واكتشاف البوصلة والخرائط غيّر موازين القوى وأعاد رسم مصير الشرق الأوسط.',
+    description:
+      'تحولات موازين القوى العالمية بعد الكشوف الجغرافية، والنهضة الأوروبية، وأثر مسارات التجارة البحرية على مصر.',
+    keyInsights: [
+      'طريق رأس الرجاء الصالح وتحديات المماليك',
+      'أثر النهضة الفكرية الأوروبية',
+      'موقع مصر في قلب التجارة البحرية',
+    ],
   },
   {
     id: 'modern',
@@ -68,9 +80,15 @@ const MUSEUM_ERAS: MuseumEra[] = [
     coverImage: '/images/eras/modern-cover.jpg',
     icon: 'eye',
     accent: '#b91c1c',
-    quote: 'منهج التاريخ الحديث هو حجر الأساس لفهم الحاضر، والربط بين الأسباب والنتائج هو طريقك للدرجة النهائية.',
-    description: 'بناء الدولة الحديثة والجيش والتعليم، ومواجهة الاحتلال، ونشأة الحركة الوطنية لتحقيق الاستقلال.',
-    keyInsights: ['مشروع محمد علي وبناء الجيش الحديث', 'الثورة العرابية والمقاومة الوطنية', 'ثورة ١٩١٩ وترسيخ الشخصية المصرية'],
+    quote:
+      'منهج التاريخ الحديث هو حجر الأساس لفهم الحاضر، والربط بين الأسباب والنتائج هو طريقك للدرجة النهائية.',
+    description:
+      'بناء الدولة الحديثة والجيش والتعليم، ومواجهة الاحتلال، ونشأة الحركة الوطنية لتحقيق الاستقلال.',
+    keyInsights: [
+      'مشروع محمد علي وبناء الجيش الحديث',
+      'الثورة العرابية والمقاومة الوطنية',
+      'ثورة ١٩١٩ وترسيخ الشخصية المصرية',
+    ],
   },
   {
     id: 'bacc',
@@ -82,9 +100,15 @@ const MUSEUM_ERAS: MuseumEra[] = [
     coverImage: '/images/eras/bacc-cover.jpg',
     icon: 'djed',
     accent: '#4f46e5',
-    quote: 'المؤرخ الحقيقي لا يقرأ السطور فقط، بل يحلل ما وراءها ويفهم دوافع كل قرار سياسي وتاريخي.',
-    description: 'تدريب الطالب على قراءة النصوص الأصلية، تحليل النوايا والظروف، وربط القرارات بسياقاتها الحضارية.',
-    keyInsights: ['تحليل ونقد المصادر التاريخية الأولية', 'المقارنة الفلسفية بين الحضارات', 'التفكير الاستنباطي وربط الأسباب'],
+    quote:
+      'المؤرخ الحقيقي لا يقرأ السطور فقط، بل يحلل ما وراءها ويفهم دوافع كل قرار سياسي وتاريخي.',
+    description:
+      'تدريب الطالب على قراءة النصوص الأصلية، تحليل النوايا والظروف، وربط القرارات بسياقاتها الحضارية.',
+    keyInsights: [
+      'تحليل ونقد المصادر التاريخية الأولية',
+      'المقارنة الفلسفية بين الحضارات',
+      'التفكير الاستنباطي وربط الأسباب',
+    ],
   },
   {
     id: 'revolution',
@@ -96,9 +120,15 @@ const MUSEUM_ERAS: MuseumEra[] = [
     coverImage: '/images/eras/revolution-cover.jpg',
     icon: 'lotus',
     accent: '#ea580c',
-    quote: 'صمود الشعب المصري وتأميم القناة وملحمة العبور شواهد حية على أن إرادة هذه الأمة لا تنكسر.',
-    description: 'قراءة حية للقرارات المصيرية: الإصلاح الزراعي، جلاء القوات البريطانية، السد العالي، وملحمة نصر أكتوبر.',
-    keyInsights: ['مبادئ ثورة يوليو والتحول الاجتماعي', 'معركة تأميم السويس والعدوان الثلاثي', 'ملحمة العبور واستعادة سيناء ١٩٧٣'],
+    quote:
+      'صمود الشعب المصري وتأميم القناة وملحمة العبور شواهد حية على أن إرادة هذه الأمة لا تنكسر.',
+    description:
+      'قراءة حية للقرارات المصيرية: الإصلاح الزراعي، جلاء القوات البريطانية، السد العالي، وملحمة نصر أكتوبر.',
+    keyInsights: [
+      'مبادئ ثورة يوليو والتحول الاجتماعي',
+      'معركة تأميم السويس والعدوان الثلاثي',
+      'ملحمة العبور واستعادة سيناء ١٩٧٣',
+    ],
   },
 ];
 
@@ -110,7 +140,10 @@ export function LivingMuseum() {
       id="living-museum"
       className="relative overflow-hidden bg-gradient-to-b from-[#eee2c6] via-[#f8f2e2] to-[#fbf8f0] dark:from-[#091b29] dark:via-[#05131f] dark:to-[#040e18] py-16 sm:py-24 text-midnight-950 dark:text-ivory-50 transition-colors duration-300"
     >
-      <div className="texture-parchment pointer-events-none absolute inset-0 opacity-25" aria-hidden />
+      <div
+        className="texture-parchment pointer-events-none absolute inset-0 opacity-25"
+        aria-hidden
+      />
 
       <div className="container-page relative z-10">
         {/* --- عنوان القسم والخرطوشة الملكية --- */}
@@ -129,7 +162,8 @@ export function LivingMuseum() {
             رحلة المستر عبر <span className="text-gradient-gold">٥٠٠٠ سنة تاريخ</span>
           </h2>
           <p className="mt-3 text-sm sm:text-base leading-relaxed text-midnight-800/80 dark:text-ivory-200/80">
-            في كل عصر من عصور مصر، يرتدي المستر روح الزمن ومصادره الأصلية ليشرح لك التاريخ كما حدث بالفعل. استعرض الشخصيات والوثائق التاريخية أدناه.
+            في كل عصر من عصور مصر، يرتدي المستر روح الزمن ومصادره الأصلية ليشرح لك التاريخ كما حدث
+            بالفعل. استعرض الشخصيات والوثائق التاريخية أدناه.
           </p>
 
           <div className="mt-5">
@@ -171,7 +205,7 @@ export function LivingMuseum() {
                     style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                     className={cn(
                       'absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl border-2 transition-all duration-300 shadow-xs',
-                      'border-gold-500/25 bg-white/95 dark:bg-midnight-950/85 hover:border-gold-400/60 hover:shadow-md'
+                      'border-gold-500/25 bg-white/95 dark:bg-midnight-950/85 hover:border-gold-400/60 hover:shadow-md',
                     )}
                   >
                     {/* 1. صورة الغلاف التاريخية البانورامية */}
@@ -242,7 +276,10 @@ export function LivingMuseum() {
                         {/* محاور ونواتج التعلم - مكتوبة بالكامل بدون أي اختصار أو قص */}
                         <div className="mt-2 space-y-1">
                           {era.keyInsights.slice(0, 2).map((insight, idx) => (
-                            <div key={idx} className="flex items-start gap-1.5 text-[9.5px] leading-snug text-midnight-700/85 dark:text-ivory-200/75">
+                            <div
+                              key={idx}
+                              className="flex items-start gap-1.5 text-[9.5px] leading-snug text-midnight-700/85 dark:text-ivory-200/75"
+                            >
                               <span className="mt-1 h-1 w-1 rounded-full bg-gold-500 shrink-0" />
                               <span>{insight}</span>
                             </div>
@@ -273,22 +310,34 @@ export function LivingMuseum() {
                     }}
                     className={cn(
                       'absolute inset-0 flex flex-col justify-between overflow-hidden rounded-2xl border-2 p-3 text-start shadow-xl',
-                      'border-gold-400/80 bg-gradient-to-b from-[#fbf8f0] via-[#f5ecd5] to-[#eedeb8] dark:from-[#0d1e2e] dark:via-[#081522] dark:to-[#040b12]'
+                      'border-gold-400/80 bg-gradient-to-b from-[#fbf8f0] via-[#f5ecd5] to-[#eedeb8] dark:from-[#0d1e2e] dark:via-[#081522] dark:to-[#040b12]',
                     )}
                   >
                     {/* ملمس البردي الأثري */}
-                    <div className="texture-parchment pointer-events-none absolute inset-0 opacity-20" aria-hidden />
+                    <div
+                      className="texture-parchment pointer-events-none absolute inset-0 opacity-20"
+                      aria-hidden
+                    />
 
                     {/* إطار داخلي زخرفي ملكي */}
-                    <div className="pointer-events-none absolute inset-1.5 rounded-xl border border-dashed border-gold-400/25 dark:border-gold-400/20" aria-hidden />
+                    <div
+                      className="pointer-events-none absolute inset-1.5 rounded-xl border border-dashed border-gold-400/25 dark:border-gold-400/20"
+                      aria-hidden
+                    />
 
                     {/* علامة مائية فرعونية ناعمة في الخلفية تمنع الفراغ وتضفي عمقاً ملكياً */}
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.05] dark:opacity-[0.07] select-none" aria-hidden>
+                    <div
+                      className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.05] dark:opacity-[0.07] select-none"
+                      aria-hidden
+                    >
                       <EyeOfHorus className="h-44 w-44 text-gold-500" />
                     </div>
 
                     {/* شريط علوي ذهبي ملكي */}
-                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-gold-300 via-gold-500 to-gold-600" aria-hidden />
+                    <div
+                      className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-gold-300 via-gold-500 to-gold-600"
+                      aria-hidden
+                    />
 
                     {/* محتوى الوثيقة التاريخية - بدون أي شريط تمرير أو سلايدر إطلاقاً (overflow-hidden) */}
                     <div className="relative z-10 flex flex-col flex-1 justify-between overflow-hidden select-none">
@@ -296,7 +345,17 @@ export function LivingMuseum() {
                         {/* رأس الوثيقة المعتمدة (تم حذف زر الاكس بناءً على طلب المستخدم) */}
                         <div className="flex items-center gap-2 border-b border-gold-500/20 pb-1.5">
                           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-gold-400/40 bg-gradient-to-br from-gold-400/25 to-amber-600/25 text-amber-800 dark:text-gold-300 shadow-xs">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <svg
+                              width="14"
+                              height="14"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden
+                            >
                               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                               <polyline points="14 2 14 8 20 8" />
                               <line x1="16" y1="13" x2="8" y2="13" />
@@ -318,7 +377,9 @@ export function LivingMuseum() {
 
                         {/* الإطار التاريخي للعصر */}
                         <div className="mt-1.5 flex items-center justify-between text-[9.5px] font-bold text-amber-900 dark:text-gold-300/90 bg-gold-500/10 dark:bg-gold-500/10 px-2 py-1 rounded-lg border border-gold-500/20">
-                          <span className="text-[8.5px] font-medium text-midnight-600 dark:text-ivory-300/70">الإطار التاريخي:</span>
+                          <span className="text-[8.5px] font-medium text-midnight-600 dark:text-ivory-300/70">
+                            الإطار التاريخي:
+                          </span>
                           <span className="font-black nums-tabular">{era.dynasty}</span>
                         </div>
 
@@ -337,12 +398,19 @@ export function LivingMuseum() {
                         <div className="mt-1.5 border-t border-gold-500/20 pt-1">
                           <div className="flex items-center justify-between text-[9px] font-black text-amber-800 dark:text-gold-400 mb-0.5">
                             <span>أبرز نواتج التعلم ومحاور الفهم:</span>
-                            <span className="text-[8px] text-midnight-600 dark:text-ivory-300/60 font-medium">٣ محاور مركزية</span>
+                            <span className="text-[8px] text-midnight-600 dark:text-ivory-300/60 font-medium">
+                              ٣ محاور مركزية
+                            </span>
                           </div>
                           <ul className="space-y-1">
                             {era.keyInsights.map((insight) => (
-                              <li key={insight} className="flex items-start gap-1.5 text-[9.5px] leading-tight text-midnight-800 dark:text-ivory-200/90">
-                                <span className="mt-0.5 text-gold-500 text-[10px] leading-none shrink-0">◆</span>
+                              <li
+                                key={insight}
+                                className="flex items-start gap-1.5 text-[9.5px] leading-tight text-midnight-800 dark:text-ivory-200/90"
+                              >
+                                <span className="mt-0.5 text-gold-500 text-[10px] leading-none shrink-0">
+                                  ◆
+                                </span>
                                 <span className="font-medium">{insight}</span>
                               </li>
                             ))}
@@ -352,11 +420,17 @@ export function LivingMuseum() {
                         {/* بطاقة الفترة ونوع التحليل */}
                         <div className="mt-1.5 grid grid-cols-2 gap-1.5">
                           <div className="rounded-lg border border-gold-500/20 bg-gold-500/10 px-2 py-1 text-[9px] font-bold text-amber-900 dark:text-gold-300 flex flex-col">
-                            <span className="text-[8px] font-medium text-midnight-600 dark:text-ivory-300/70">الفترة الزمنية:</span>
-                            <span className="font-black nums-tabular mt-0.5">{era.historicalPeriod}</span>
+                            <span className="text-[8px] font-medium text-midnight-600 dark:text-ivory-300/70">
+                              الفترة الزمنية:
+                            </span>
+                            <span className="font-black nums-tabular mt-0.5">
+                              {era.historicalPeriod}
+                            </span>
                           </div>
                           <div className="rounded-lg border border-gold-500/20 bg-gold-500/10 px-2 py-1 text-[9px] font-bold text-amber-900 dark:text-gold-300 flex flex-col">
-                            <span className="text-[8px] font-medium text-midnight-600 dark:text-ivory-300/70">طبيعة التقييم:</span>
+                            <span className="text-[8px] font-medium text-midnight-600 dark:text-ivory-300/70">
+                              طبيعة التقييم:
+                            </span>
                             <span className="font-black mt-0.5">أسئلة الربط والتحليل</span>
                           </div>
                         </div>

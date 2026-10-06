@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AssessmentAttemptStatus, PublishStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../common/decorators';
@@ -21,25 +26,82 @@ export class AssessmentsService {
         OR: [{ availableFrom: null }, { availableFrom: { lte: now } }],
         AND: {
           OR: [
-            { lesson: { chapter: { unit: { course: { grade: { educationSystem: profile.educationSystem, level: profile.gradeLevel } } } } } },
-            { unit: { course: { grade: { educationSystem: profile.educationSystem, level: profile.gradeLevel } } } },
+            {
+              lesson: {
+                chapter: {
+                  unit: {
+                    course: {
+                      grade: {
+                        educationSystem: profile.educationSystem,
+                        level: profile.gradeLevel,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              unit: {
+                course: {
+                  grade: { educationSystem: profile.educationSystem, level: profile.gradeLevel },
+                },
+              },
+            },
           ],
         },
       },
       orderBy: [{ dueAt: 'asc' }, { createdAt: 'desc' }],
       include: {
-        lesson: { select: { title: true, titleEn: true, chapter: { select: { unit: { select: { title: true, titleEn: true, course: { select: { title: true, titleEn: true } } } } } } } },
-        unit: { select: { title: true, titleEn: true, course: { select: { title: true, titleEn: true } } } },
+        lesson: {
+          select: {
+            title: true,
+            titleEn: true,
+            chapter: {
+              select: {
+                unit: {
+                  select: {
+                    title: true,
+                    titleEn: true,
+                    course: { select: { title: true, titleEn: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        unit: {
+          select: {
+            title: true,
+            titleEn: true,
+            course: { select: { title: true, titleEn: true } },
+          },
+        },
         _count: { select: { questions: true } },
         attempts: {
-          where: { userId: user.id, status: { in: [AssessmentAttemptStatus.SUBMITTED, AssessmentAttemptStatus.TIMED_OUT] } },
+          where: {
+            userId: user.id,
+            status: { in: [AssessmentAttemptStatus.SUBMITTED, AssessmentAttemptStatus.TIMED_OUT] },
+          },
           orderBy: { submittedAt: 'desc' },
           select: { id: true, percentage: true, passed: true, submittedAt: true },
         },
         products: { where: { isActive: true }, select: { id: true, priceMinor: true } },
       },
     });
-    const owned = new Set((await this.prisma.entitlement.findMany({ where: { userId: user.id, assessmentId: { in: rows.map((row) => row.id) }, status: 'ACTIVE' }, select: { assessmentId: true } })).map((item) => item.assessmentId).filter(Boolean));
+    const owned = new Set(
+      (
+        await this.prisma.entitlement.findMany({
+          where: {
+            userId: user.id,
+            assessmentId: { in: rows.map((row) => row.id) },
+            status: 'ACTIVE',
+          },
+          select: { assessmentId: true },
+        })
+      )
+        .map((item) => item.assessmentId)
+        .filter(Boolean),
+    );
 
     return rows.map((row) => ({
       id: row.id,
@@ -58,8 +120,24 @@ export class AssessmentsService {
       questionCount: row._count.questions,
       attemptCount: row.attempts.length,
       latestAttempt: row.attempts[0] ?? null,
-      lesson: row.lesson ? { title: row.lesson.title, titleEn: row.lesson.titleEn, unitTitle: row.lesson.chapter.unit.title, unitTitleEn: row.lesson.chapter.unit.titleEn, courseTitle: row.lesson.chapter.unit.course.title, courseTitleEn: row.lesson.chapter.unit.course.titleEn } : null,
-      unit: row.unit ? { title: row.unit.title, titleEn: row.unit.titleEn, courseTitle: row.unit.course.title, courseTitleEn: row.unit.course.titleEn } : null,
+      lesson: row.lesson
+        ? {
+            title: row.lesson.title,
+            titleEn: row.lesson.titleEn,
+            unitTitle: row.lesson.chapter.unit.title,
+            unitTitleEn: row.lesson.chapter.unit.titleEn,
+            courseTitle: row.lesson.chapter.unit.course.title,
+            courseTitleEn: row.lesson.chapter.unit.course.titleEn,
+          }
+        : null,
+      unit: row.unit
+        ? {
+            title: row.unit.title,
+            titleEn: row.unit.titleEn,
+            courseTitle: row.unit.course.title,
+            courseTitleEn: row.unit.course.titleEn,
+          }
+        : null,
       isOverdue: Boolean(row.dueAt && row.dueAt < now),
       isFree: row.isFree || owned.has(row.id),
       priceMinor: row.priceMinor,
@@ -75,17 +153,37 @@ export class AssessmentsService {
       include: {
         questions: {
           orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-          select: { id: true, prompt: true, promptEn: true, points: true, sortOrder: true, options: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }], select: { id: true, text: true, textEn: true, sortOrder: true } } },
+          select: {
+            id: true,
+            prompt: true,
+            promptEn: true,
+            points: true,
+            sortOrder: true,
+            options: {
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              select: { id: true, text: true, textEn: true, sortOrder: true },
+            },
+          },
         },
-        attempts: { where: { userId: user.id }, orderBy: { startedAt: 'desc' }, include: { answers: true } },
+        attempts: {
+          where: { userId: user.id },
+          orderBy: { startedAt: 'desc' },
+          include: { answers: true },
+        },
         lesson: { select: { title: true } },
         unit: { select: { title: true } },
       },
     });
     if (!assessment) throw new NotFoundException('التقييم غير موجود');
-    const active = assessment.attempts.find((attempt) => attempt.status === AssessmentAttemptStatus.IN_PROGRESS);
-    if (active?.expiresAt && active.expiresAt <= new Date()) await this.finalize(active.id, AssessmentAttemptStatus.TIMED_OUT);
-    const latest = await this.prisma.assessmentAttempt.findFirst({ where: { assessmentId: id, userId: user.id }, orderBy: { startedAt: 'desc' } });
+    const active = assessment.attempts.find(
+      (attempt) => attempt.status === AssessmentAttemptStatus.IN_PROGRESS,
+    );
+    if (active?.expiresAt && active.expiresAt <= new Date())
+      await this.finalize(active.id, AssessmentAttemptStatus.TIMED_OUT);
+    const latest = await this.prisma.assessmentAttempt.findFirst({
+      where: { assessmentId: id, userId: user.id },
+      orderBy: { startedAt: 'desc' },
+    });
     if (latest && latest.status !== AssessmentAttemptStatus.IN_PROGRESS) {
       return this.review(latest.id, user.id);
     }
@@ -102,7 +200,16 @@ export class AssessmentsService {
           : question.options,
       })),
       mode: active ? 'ACTIVE' : 'READY',
-      activeAttempt: active ? { id: active.id, expiresAt: active.expiresAt, answers: active.answers.map((answer) => ({ questionId: answer.questionId, optionId: answer.optionId })) } : null,
+      activeAttempt: active
+        ? {
+            id: active.id,
+            expiresAt: active.expiresAt,
+            answers: active.answers.map((answer) => ({
+              questionId: answer.questionId,
+              optionId: answer.optionId,
+            })),
+          }
+        : null,
       attemptCount: assessment.attempts.length,
       latestAttempt: assessment.attempts[0] ?? null,
     };
@@ -110,50 +217,128 @@ export class AssessmentsService {
 
   async start(id: string, user: AuthenticatedUser) {
     await this.assertStudentCanAccess(id, user.id);
-    const assessment = await this.prisma.assessment.findUniqueOrThrow({ where: { id }, include: { questions: { orderBy: { sortOrder: 'asc' }, include: { options: { orderBy: { sortOrder: 'asc' } } } } } });
-    const active = await this.prisma.assessmentAttempt.findFirst({ where: { assessmentId: id, userId: user.id, status: AssessmentAttemptStatus.IN_PROGRESS } });
+    const assessment = await this.prisma.assessment.findUniqueOrThrow({
+      where: { id },
+      include: {
+        questions: {
+          orderBy: { sortOrder: 'asc' },
+          include: { options: { orderBy: { sortOrder: 'asc' } } },
+        },
+      },
+    });
+    const active = await this.prisma.assessmentAttempt.findFirst({
+      where: { assessmentId: id, userId: user.id, status: AssessmentAttemptStatus.IN_PROGRESS },
+    });
     if (active) return this.getForStudent(id, user);
-    const used = await this.prisma.assessmentAttempt.count({ where: { assessmentId: id, userId: user.id } });
-    if (used >= assessment.maxAttempts) throw new BadRequestException('استنفدت عدد المحاولات المتاحة');
+    const used = await this.prisma.assessmentAttempt.count({
+      where: { assessmentId: id, userId: user.id },
+    });
+    if (used >= assessment.maxAttempts)
+      throw new BadRequestException('استنفدت عدد المحاولات المتاحة');
     const now = new Date();
-    await this.prisma.assessmentAttempt.create({ data: { assessmentId: id, userId: user.id, expiresAt: assessment.timeLimitMinutes ? new Date(now.getTime() + assessment.timeLimitMinutes * 60_000) : null } });
+    await this.prisma.assessmentAttempt.create({
+      data: {
+        assessmentId: id,
+        userId: user.id,
+        expiresAt: assessment.timeLimitMinutes
+          ? new Date(now.getTime() + assessment.timeLimitMinutes * 60_000)
+          : null,
+      },
+    });
     return this.getForStudent(id, user);
   }
 
-  async save(id: string, user: AuthenticatedUser, answers: Array<{ questionId: string; optionId: string }>) {
+  async save(
+    id: string,
+    user: AuthenticatedUser,
+    answers: Array<{ questionId: string; optionId: string }>,
+  ) {
     const attempt = await this.activeAttempt(id, user.id);
-    if (attempt.expiresAt && attempt.expiresAt <= new Date()) { await this.finalize(attempt.id, AssessmentAttemptStatus.TIMED_OUT); throw new BadRequestException('انتهى وقت الامتحان وتم تسليم الإجابات المحفوظة'); }
+    if (attempt.expiresAt && attempt.expiresAt <= new Date()) {
+      await this.finalize(attempt.id, AssessmentAttemptStatus.TIMED_OUT);
+      throw new BadRequestException('انتهى وقت الامتحان وتم تسليم الإجابات المحفوظة');
+    }
     await this.storeAnswers(attempt.id, id, answers);
     return { ok: true };
   }
 
-  async submit(id: string, user: AuthenticatedUser, answers: Array<{ questionId: string; optionId: string }>) {
+  async submit(
+    id: string,
+    user: AuthenticatedUser,
+    answers: Array<{ questionId: string; optionId: string }>,
+  ) {
     const attempt = await this.activeAttempt(id, user.id);
     await this.storeAnswers(attempt.id, id, answers);
-    await this.finalize(attempt.id, attempt.expiresAt && attempt.expiresAt <= new Date() ? AssessmentAttemptStatus.TIMED_OUT : AssessmentAttemptStatus.SUBMITTED);
+    await this.finalize(
+      attempt.id,
+      attempt.expiresAt && attempt.expiresAt <= new Date()
+        ? AssessmentAttemptStatus.TIMED_OUT
+        : AssessmentAttemptStatus.SUBMITTED,
+    );
     return this.review(attempt.id, user.id);
   }
 
   private async activeAttempt(assessmentId: string, userId: string) {
-    const attempt = await this.prisma.assessmentAttempt.findFirst({ where: { assessmentId, userId, status: AssessmentAttemptStatus.IN_PROGRESS } });
+    const attempt = await this.prisma.assessmentAttempt.findFirst({
+      where: { assessmentId, userId, status: AssessmentAttemptStatus.IN_PROGRESS },
+    });
     if (!attempt) throw new BadRequestException('ابدأ الامتحان أولًا');
     return attempt;
   }
 
-  private async storeAnswers(attemptId: string, assessmentId: string, answers: Array<{ questionId: string; optionId: string }>) {
-    const questions = await this.prisma.assessmentQuestion.findMany({ where: { assessmentId }, include: { options: true } });
+  private async storeAnswers(
+    attemptId: string,
+    assessmentId: string,
+    answers: Array<{ questionId: string; optionId: string }>,
+  ) {
+    const questions = await this.prisma.assessmentQuestion.findMany({
+      where: { assessmentId },
+      include: { options: true },
+    });
     const map = new Map(questions.map((q) => [q.id, q]));
-    await this.prisma.$transaction(answers.map((answer) => {
-      const question = map.get(answer.questionId); const option = question?.options.find((item) => item.id === answer.optionId);
-      if (!question || !option) throw new BadRequestException('إحدى الإجابات غير صالحة');
-      return this.prisma.assessmentAnswer.upsert({ where: { attemptId_questionId: { attemptId, questionId: question.id } }, create: { attemptId, questionId: question.id, optionId: option.id, isCorrect: option.isCorrect, pointsAwarded: option.isCorrect ? question.points : 0 }, update: { optionId: option.id, isCorrect: option.isCorrect, pointsAwarded: option.isCorrect ? question.points : 0 } });
-    }));
+    await this.prisma.$transaction(
+      answers.map((answer) => {
+        const question = map.get(answer.questionId);
+        const option = question?.options.find((item) => item.id === answer.optionId);
+        if (!question || !option) throw new BadRequestException('إحدى الإجابات غير صالحة');
+        return this.prisma.assessmentAnswer.upsert({
+          where: { attemptId_questionId: { attemptId, questionId: question.id } },
+          create: {
+            attemptId,
+            questionId: question.id,
+            optionId: option.id,
+            isCorrect: option.isCorrect,
+            pointsAwarded: option.isCorrect ? question.points : 0,
+          },
+          update: {
+            optionId: option.id,
+            isCorrect: option.isCorrect,
+            pointsAwarded: option.isCorrect ? question.points : 0,
+          },
+        });
+      }),
+    );
   }
 
   private async finalize(attemptId: string, status: AssessmentAttemptStatus) {
-    const attempt = await this.prisma.assessmentAttempt.findUniqueOrThrow({ where: { id: attemptId }, include: { assessment: { include: { questions: true } }, answers: true } });
-    const maxScore = attempt.assessment.questions.reduce((sum, q) => sum + q.points, 0), score = attempt.answers.reduce((sum, a) => sum + a.pointsAwarded, 0), percentage = maxScore ? Math.round(score / maxScore * 100) : 0;
-    await this.prisma.assessmentAttempt.update({ where: { id: attemptId }, data: { status, score, maxScore, percentage, passed: percentage >= attempt.assessment.passingScore, submittedAt: new Date() } });
+    const attempt = await this.prisma.assessmentAttempt.findUniqueOrThrow({
+      where: { id: attemptId },
+      include: { assessment: { include: { questions: true } }, answers: true },
+    });
+    const maxScore = attempt.assessment.questions.reduce((sum, q) => sum + q.points, 0),
+      score = attempt.answers.reduce((sum, a) => sum + a.pointsAwarded, 0),
+      percentage = maxScore ? Math.round((score / maxScore) * 100) : 0;
+    await this.prisma.assessmentAttempt.update({
+      where: { id: attemptId },
+      data: {
+        status,
+        score,
+        maxScore,
+        percentage,
+        passed: percentage >= attempt.assessment.passingScore,
+        submittedAt: new Date(),
+      },
+    });
   }
 
   private async review(attemptId: string, userId: string) {
@@ -191,7 +376,8 @@ export class AssessmentsService {
       submittedAt: attempt.submittedAt,
       attemptCount: attemptsUsed,
       maxAttempts: attempt.assessment.maxAttempts,
-      canRetry: attemptsUsed < attempt.assessment.maxAttempts &&
+      canRetry:
+        attemptsUsed < attempt.assessment.maxAttempts &&
         (!attempt.assessment.dueAt || attempt.assessment.dueAt > new Date()),
       answers: attempt.assessment.questions.map((question) => {
         const answer = answers.get(question.id);
@@ -206,7 +392,9 @@ export class AssessmentsService {
           selectedText: answer?.option?.text ?? null,
           selectedTextEn: answer?.option?.textEn ?? null,
           isCorrect: answer?.isCorrect ?? false,
-          correctOption: correct ? { id: correct.id, text: correct.text, textEn: correct.textEn } : null,
+          correctOption: correct
+            ? { id: correct.id, text: correct.text, textEn: correct.textEn }
+            : null,
         };
       }),
     };
@@ -214,28 +402,69 @@ export class AssessmentsService {
 
   private async assertStudentCanAccess(id: string, userId: string) {
     const [user, assessment] = await Promise.all([
-      this.prisma.user.findUnique({ where: { id: userId }, select: { educationSystem: true, gradeLevel: true } }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { educationSystem: true, gradeLevel: true },
+      }),
       this.prisma.assessment.findUnique({
         where: { id },
         select: {
-          status: true, availableFrom: true,
-          lesson: { select: { chapter: { select: { unit: { select: { course: { select: { grade: { select: { educationSystem: true, level: true } } } } } } } } } },
-          unit: { select: { course: { select: { grade: { select: { educationSystem: true, level: true } } } } } },
+          status: true,
+          availableFrom: true,
+          lesson: {
+            select: {
+              chapter: {
+                select: {
+                  unit: {
+                    select: {
+                      course: {
+                        select: { grade: { select: { educationSystem: true, level: true } } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          unit: {
+            select: {
+              course: { select: { grade: { select: { educationSystem: true, level: true } } } },
+            },
+          },
         },
       }),
     ]);
     if (!assessment) throw new NotFoundException('التقييم غير موجود');
     const now = new Date();
-    if (assessment.status !== PublishStatus.PUBLISHED || (assessment.availableFrom && assessment.availableFrom > now)) throw new ForbiddenException('هذا التقييم غير متاح الآن');
-    const timing = await this.prisma.assessment.findUnique({ where: { id }, select: { dueAt: true } });
-    if (timing?.dueAt && timing.dueAt <= now) throw new ForbiddenException('انتهى موعد هذا التقييم');
-    const access = await this.prisma.assessment.findUnique({ where: { id }, select: { isFree: true } });
+    if (
+      assessment.status !== PublishStatus.PUBLISHED ||
+      (assessment.availableFrom && assessment.availableFrom > now)
+    )
+      throw new ForbiddenException('هذا التقييم غير متاح الآن');
+    const timing = await this.prisma.assessment.findUnique({
+      where: { id },
+      select: { dueAt: true },
+    });
+    if (timing?.dueAt && timing.dueAt <= now)
+      throw new ForbiddenException('انتهى موعد هذا التقييم');
+    const access = await this.prisma.assessment.findUnique({
+      where: { id },
+      select: { isFree: true },
+    });
     if (!access?.isFree) {
-      const owned = await this.prisma.entitlement.findFirst({ where: { userId, assessmentId: id, status: 'ACTIVE' } });
+      const owned = await this.prisma.entitlement.findFirst({
+        where: { userId, assessmentId: id, status: 'ACTIVE' },
+      });
       if (!owned) throw new ForbiddenException('يجب شراء الامتحان أولًا');
     }
     const grade = assessment.lesson?.chapter.unit.course.grade ?? assessment.unit?.course.grade;
-    if (!user || !grade || user.educationSystem !== grade.educationSystem || user.gradeLevel !== grade.level) throw new ForbiddenException('هذا التقييم غير مخصص لصفك');
+    if (
+      !user ||
+      !grade ||
+      user.educationSystem !== grade.educationSystem ||
+      user.gradeLevel !== grade.level
+    )
+      throw new ForbiddenException('هذا التقييم غير مخصص لصفك');
   }
 
   /** Deterministic per attempt: refresh/resume never rearranges the exam. */

@@ -8,7 +8,13 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { api, ApiError } from '@/lib/api';
 import { cn, formatEgp, formatNumber, formatRelative } from '@/lib/utils';
 import { EASE_ENTRANCE } from '@/lib/motion';
-import type { AdminLessonAccess, AdminStudent, EducationSystem, GradeLevel, Paginated } from '@/types/api';
+import type {
+  AdminLessonAccess,
+  AdminStudent,
+  EducationSystem,
+  GradeLevel,
+  Paginated,
+} from '@/types/api';
 
 const GRADE_LABELS: Record<string, string> = {
   SEC_1: 'أولى ثانوي',
@@ -60,7 +66,9 @@ export function AdminStudents() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">الطلاب</h1>
+        <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">
+          الطلاب
+        </h1>
         <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
           {data ? `${formatNumber(data.total)} طالب مسجل في الصرح` : 'جاري التحميل...'}
         </p>
@@ -166,13 +174,27 @@ export function AdminStudents() {
             <table className="w-full min-w-[54rem] text-start text-sm">
               <thead className="bg-ivory-100/70 dark:bg-midnight-900/90 text-xs text-midnight-700 dark:text-gold-300/90 border-b border-gold-500/20">
                 <tr>
-                  <th scope="col" className="px-4 py-3 text-start font-bold">الطالب</th>
-                  <th scope="col" className="px-4 py-3 text-start font-bold">الصف</th>
-                  <th scope="col" className="px-4 py-3 text-start font-bold">الموبايل</th>
-                  <th scope="col" className="px-4 py-3 text-start font-bold">ولي الأمر</th>
-                  <th scope="col" className="px-4 py-3 text-start font-bold">الوصول</th>
-                  <th scope="col" className="px-4 py-3 text-start font-bold">آخر دخول</th>
-                  <th scope="col" className="px-4 py-3 text-start font-bold">الحالة</th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الطالب
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الصف
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الموبايل
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    ولي الأمر
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الوصول
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    آخر دخول
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-start font-bold">
+                    الحالة
+                  </th>
                   <th scope="col" className="px-4 py-3 text-start font-bold">
                     <span className="sr-only">إجراءات</span>
                   </th>
@@ -192,18 +214,29 @@ export function AdminStudents() {
                         <span className="block font-bold text-midnight-950 dark:text-ivory-50">
                           {student.fullName}
                         </span>
-                        <span className="block text-xs font-bold text-gold-700 dark:text-gold-300">{student.studentType === 'CENTER' ? 'طالب سنتر' : 'طالب أونلاين'}</span>
-                        <span className="block text-xs text-midnight-500 dark:text-ivory-300/60" dir="ltr">
+                        <span className="block text-xs font-bold text-gold-700 dark:text-gold-300">
+                          {student.studentType === 'CENTER' ? 'طالب سنتر' : 'طالب أونلاين'}
+                        </span>
+                        <span
+                          className="block text-xs text-midnight-500 dark:text-ivory-300/60"
+                          dir="ltr"
+                        >
                           {student.username}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-midnight-700 dark:text-ivory-200">
                         {student.gradeLevel ? GRADE_LABELS[student.gradeLevel] : '—'}
                       </td>
-                      <td className="nums-tabular px-4 py-3 text-midnight-700 dark:text-ivory-200" dir="ltr">
+                      <td
+                        className="nums-tabular px-4 py-3 text-midnight-700 dark:text-ivory-200"
+                        dir="ltr"
+                      >
                         {student.phone}
                       </td>
-                      <td className="nums-tabular px-4 py-3 text-midnight-700 dark:text-ivory-200" dir="ltr">
+                      <td
+                        className="nums-tabular px-4 py-3 text-midnight-700 dark:text-ivory-200"
+                        dir="ltr"
+                      >
                         {student.parentPhone}
                       </td>
                       <td className="px-4 py-3">
@@ -231,30 +264,30 @@ export function AdminStudents() {
                       </td>
                       <td className="px-4 py-3 text-end">
                         <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setAccessStudent(student)}
-                          className="min-h-9 rounded-lg border border-gold-500/30 px-3 text-xs font-bold text-gold-700 transition-colors hover:bg-gold-500/10 dark:text-gold-300"
-                        >
-                          فتح حصص مجانًا
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPendingAction({
-                              student,
-                              next: student.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE',
-                            })
-                          }
-                          className={cn(
-                            'rounded-lg px-3 py-1.5 text-xs font-bold transition-colors',
-                            student.status === 'ACTIVE'
-                              ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40'
-                              : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40',
-                          )}
-                        >
-                          {student.status === 'ACTIVE' ? 'إيقاف' : 'تفعيل'}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => setAccessStudent(student)}
+                            className="min-h-9 rounded-lg border border-gold-500/30 px-3 text-xs font-bold text-gold-700 transition-colors hover:bg-gold-500/10 dark:text-gold-300"
+                          >
+                            فتح حصص مجانًا
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingAction({
+                                student,
+                                next: student.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE',
+                              })
+                            }
+                            className={cn(
+                              'rounded-lg px-3 py-1.5 text-xs font-bold transition-colors',
+                              student.status === 'ACTIVE'
+                                ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40'
+                                : 'text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40',
+                            )}
+                          >
+                            {student.status === 'ACTIVE' ? 'إيقاف' : 'تفعيل'}
+                          </button>
                         </div>
                       </td>
                     </motion.tr>
@@ -291,17 +324,12 @@ export function AdminStudents() {
         </div>
       )}
 
-      <StudentLessonAccessDialog
-        student={accessStudent}
-        onClose={() => setAccessStudent(null)}
-      />
+      <StudentLessonAccessDialog student={accessStudent} onClose={() => setAccessStudent(null)} />
 
       {/* --- Destructive-action confirmation --- */}
       <ConfirmDialog
         open={pendingAction !== null}
-        title={
-          pendingAction?.next === 'SUSPENDED' ? 'إيقاف حساب الطالب؟' : 'تفعيل حساب الطالب؟'
-        }
+        title={pendingAction?.next === 'SUSPENDED' ? 'إيقاف حساب الطالب؟' : 'تفعيل حساب الطالب؟'}
         body={
           pendingAction?.next === 'SUSPENDED'
             ? `هيتم إيقاف حساب ${pendingAction.student.fullName} وتسجيل خروجه من كل الأجهزة فوراً. اشتراكاته هتفضل موجودة لكن مش هيقدر يدخل.`
@@ -336,8 +364,7 @@ function StudentLessonAccessDialog({
 
   const accessQuery = useQuery({
     queryKey: ['admin-student-lesson-access', student?.id],
-    queryFn: () =>
-      api.get<AdminLessonAccess[]>(`/admin/students/${student!.id}/lesson-access`),
+    queryFn: () => api.get<AdminLessonAccess[]>(`/admin/students/${student!.id}/lesson-access`),
     enabled: Boolean(student),
   });
 
@@ -345,10 +372,9 @@ function StudentLessonAccessDialog({
     mutationFn: async ({ lesson, revoke }: { lesson: AdminLessonAccess; revoke: boolean }) => {
       if (!student) return;
       if (revoke && lesson.adminGrantEntitlementId) {
-        return api.patch(
-          `/admin/students/entitlements/${lesson.adminGrantEntitlementId}/revoke`,
-          { reason: 'إلغاء المنحة المجانية الخاصة بالطالب من لوحة الإدارة' },
-        );
+        return api.patch(`/admin/students/entitlements/${lesson.adminGrantEntitlementId}/revoke`, {
+          reason: 'إلغاء المنحة المجانية الخاصة بالطالب من لوحة الإدارة',
+        });
       }
       return api.post(`/admin/students/${student.id}/lesson-entitlements`, {
         lessonId: lesson.id,
@@ -357,8 +383,14 @@ function StudentLessonAccessDialog({
     },
     onMutate: () => setMessage(null),
     onSuccess: (_, variables) => {
-      setMessage(variables.revoke ? 'تم إلغاء فتح الحصة لهذا الطالب.' : 'تم فتح الحصة مجانًا لهذا الطالب فقط.');
-      void queryClient.invalidateQueries({ queryKey: ['admin-student-lesson-access', student?.id] });
+      setMessage(
+        variables.revoke
+          ? 'تم إلغاء فتح الحصة لهذا الطالب.'
+          : 'تم فتح الحصة مجانًا لهذا الطالب فقط.',
+      );
+      void queryClient.invalidateQueries({
+        queryKey: ['admin-student-lesson-access', student?.id],
+      });
       void queryClient.invalidateQueries({ queryKey: ['admin-students'] });
     },
     onError: (error) => {
@@ -369,11 +401,12 @@ function StudentLessonAccessDialog({
   if (!student) return null;
 
   const normalizedSearch = search.trim().toLocaleLowerCase('ar');
-  const lessons = (accessQuery.data ?? []).filter((lesson) =>
-    !normalizedSearch ||
-    `${lesson.title} ${lesson.chapterTitle} ${lesson.unitTitle} ${lesson.courseTitle} ${lesson.gradeName}`
-      .toLocaleLowerCase('ar')
-      .includes(normalizedSearch),
+  const lessons = (accessQuery.data ?? []).filter(
+    (lesson) =>
+      !normalizedSearch ||
+      `${lesson.title} ${lesson.chapterTitle} ${lesson.unitTitle} ${lesson.courseTitle} ${lesson.gradeName}`
+        .toLocaleLowerCase('ar')
+        .includes(normalizedSearch),
   );
   const courseGroups = Array.from(
     lessons.reduce((groups, lesson) => {
@@ -405,11 +438,15 @@ function StudentLessonAccessDialog({
         <header className="flex items-start justify-between gap-4 border-b border-gold-500/20 p-5">
           <div>
             <p className="text-xs font-bold text-gold-700 dark:text-gold-300">وصول مجاني خاص</p>
-            <h2 id="student-access-title" className="mt-1 font-display text-xl font-black text-midnight-950 dark:text-ivory-50">
+            <h2
+              id="student-access-title"
+              className="mt-1 font-display text-xl font-black text-midnight-950 dark:text-ivory-50"
+            >
               حصص {student.fullName}
             </h2>
             <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
-              ظاهر هنا حصص {student.gradeLevel ? GRADE_LABELS[student.gradeLevel] : 'صف الطالب'} فقط، وفتح الحصة يخص الطالب ده ولا يغيّر سعرها لباقي الطلاب.
+              ظاهر هنا حصص {student.gradeLevel ? GRADE_LABELS[student.gradeLevel] : 'صف الطالب'}{' '}
+              فقط، وفتح الحصة يخص الطالب ده ولا يغيّر سعرها لباقي الطلاب.
             </p>
           </div>
           <button
@@ -433,7 +470,10 @@ function StudentLessonAccessDialog({
             className="min-h-11 w-full rounded-xl border-2 border-ivory-300 bg-white px-4 text-sm text-midnight-900 placeholder:text-midnight-400 focus:border-gold-500 focus:outline-none dark:border-midnight-700 dark:bg-midnight-900 dark:text-ivory-50"
           />
           {message && (
-            <p role="status" className="mt-3 rounded-lg bg-gold-500/10 px-3 py-2 text-sm font-semibold text-gold-800 dark:text-gold-200">
+            <p
+              role="status"
+              className="mt-3 rounded-lg bg-gold-500/10 px-3 py-2 text-sm font-semibold text-gold-800 dark:text-gold-200"
+            >
               {message}
             </p>
           )}
@@ -442,29 +482,47 @@ function StudentLessonAccessDialog({
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
           {accessQuery.isLoading ? (
             <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, index) => <div key={index} className="skeleton h-16 rounded-xl" />)}
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div key={index} className="skeleton h-16 rounded-xl" />
+              ))}
             </div>
           ) : accessQuery.isError ? (
             <p className="rounded-xl bg-red-50 p-4 text-sm font-bold text-red-700 dark:bg-red-950/30 dark:text-red-300">
               تعذر تحميل الحصص. اقفل النافذة وحاول مرة تانية.
             </p>
           ) : courseGroups.length === 0 ? (
-            <p className="py-10 text-center text-sm text-midnight-500 dark:text-ivory-300/70">مفيش حصص مطابقة للبحث.</p>
+            <p className="py-10 text-center text-sm text-midnight-500 dark:text-ivory-300/70">
+              مفيش حصص مطابقة للبحث.
+            </p>
           ) : (
             <div className="space-y-5">
               {courseGroups.map(([courseId, group]) => (
-                <section key={courseId} className="overflow-hidden rounded-xl border border-ivory-300 bg-white dark:border-midnight-800 dark:bg-midnight-900/70">
+                <section
+                  key={courseId}
+                  className="overflow-hidden rounded-xl border border-ivory-300 bg-white dark:border-midnight-800 dark:bg-midnight-900/70"
+                >
                   <div className="border-b border-ivory-200 bg-ivory-100/70 px-4 py-3 dark:border-midnight-800 dark:bg-midnight-900">
-                    <h3 className="text-sm font-black text-midnight-900 dark:text-ivory-50">{group.title}</h3>
-                    <p className="mt-0.5 text-xs text-midnight-500 dark:text-ivory-300/60">{group.gradeName}</p>
+                    <h3 className="text-sm font-black text-midnight-900 dark:text-ivory-50">
+                      {group.title}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-midnight-500 dark:text-ivory-300/60">
+                      {group.gradeName}
+                    </p>
                   </div>
                   <ul className="divide-y divide-ivory-200 dark:divide-midnight-800">
                     {group.lessons.map((lesson) => {
-                      const isThisPending = accessMutation.isPending && accessMutation.variables?.lesson.id === lesson.id;
+                      const isThisPending =
+                        accessMutation.isPending &&
+                        accessMutation.variables?.lesson.id === lesson.id;
                       return (
-                        <li key={lesson.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                        <li
+                          key={lesson.id}
+                          className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"
+                        >
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-midnight-900 dark:text-ivory-50">{lesson.title}</p>
+                            <p className="font-bold text-midnight-900 dark:text-ivory-50">
+                              {lesson.title}
+                            </p>
                             <p className="mt-1 text-xs text-midnight-500 dark:text-ivory-300/60">
                               {lesson.unitTitle} — {lesson.chapterTitle}
                               {lesson.priceMinor ? ` — ${formatEgp(lesson.priceMinor)}` : ''}
@@ -506,4 +564,3 @@ function StudentLessonAccessDialog({
     </div>
   );
 }
-

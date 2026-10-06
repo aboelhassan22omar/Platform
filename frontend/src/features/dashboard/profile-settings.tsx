@@ -104,7 +104,9 @@ export function ProfileSettings() {
 
   return (
     <div className="space-y-8">
-      <h1 className="font-display text-2xl font-black text-midnight-900 dark:text-ivory-50">بياناتي</h1>
+      <h1 className="font-display text-2xl font-black text-midnight-900 dark:text-ivory-50">
+        بياناتي
+      </h1>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Editable details */}
@@ -141,7 +143,10 @@ export function ProfileSettings() {
             />
 
             {profileError && (
-              <p role="alert" className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm font-semibold text-red-700 dark:text-red-300">
+              <p
+                role="alert"
+                className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm font-semibold text-red-700 dark:text-red-300"
+              >
                 {profileError}
               </p>
             )}
@@ -178,48 +183,84 @@ export function ProfileSettings() {
 
           <dl className="mt-5 space-y-4 text-sm">
             <div className="rounded-xl border border-gold-500/20 bg-gold-500/5 px-4 py-3">
-              <dt className="text-xs font-semibold text-midnight-500 dark:text-ivory-300/70">وقت المذاكرة</dt>
-              <dd className="mt-1 font-display text-xl font-black text-gold-700 dark:text-gold-300" aria-live="polite">
-                {studySummaryLoading ? 'جاري الحساب…' : formatDurationLabel(studySummary?.totalWatchedSeconds ?? 0)}
+              <dt className="text-xs font-semibold text-midnight-500 dark:text-ivory-300/70">
+                وقت المذاكرة
+              </dt>
+              <dd
+                className="mt-1 font-display text-xl font-black text-gold-700 dark:text-gold-300"
+                aria-live="polite"
+              >
+                {studySummaryLoading
+                  ? 'جاري الحساب…'
+                  : formatDurationLabel(studySummary?.totalWatchedSeconds ?? 0)}
               </dd>
-              <p className="mt-1 text-xs leading-5 text-midnight-500 dark:text-ivory-300/60">محسوب حسب أبعد نقطة وصلت لها في كل فيديو، من غير تكرار.</p>
+              <p className="mt-1 text-xs leading-5 text-midnight-500 dark:text-ivory-300/60">
+                محسوب حسب أبعد نقطة وصلت لها في كل فيديو، من غير تكرار.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3 rounded-xl border border-gold-500/20 bg-gold-500/5 px-4 py-3">
               <div>
-                <dt className="text-xs font-semibold text-midnight-500 dark:text-ivory-300/70">إجمالي نقاطك</dt>
-                <dd className="mt-1 font-display text-xl font-black text-gold-700 dark:text-gold-300" aria-live="polite">{leaderboardLoading ? '…' : (leaderboard?.currentStudent?.totalPoints ?? 0).toLocaleString('ar-EG')}</dd>
+                <dt className="text-xs font-semibold text-midnight-500 dark:text-ivory-300/70">
+                  إجمالي نقاطك
+                </dt>
+                <dd
+                  className="mt-1 font-display text-xl font-black text-gold-700 dark:text-gold-300"
+                  aria-live="polite"
+                >
+                  {leaderboardLoading
+                    ? '…'
+                    : (leaderboard?.currentStudent?.totalPoints ?? 0).toLocaleString('ar-EG')}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold text-midnight-500 dark:text-ivory-300/70">ترتيبك في الصف</dt>
-                <dd className="mt-1 font-display text-xl font-black text-midnight-900 dark:text-ivory-50">{leaderboardLoading ? '…' : leaderboard?.currentStudent ? `#${leaderboard.currentStudent.rank.toLocaleString('ar-EG')}` : '—'}</dd>
+                <dt className="text-xs font-semibold text-midnight-500 dark:text-ivory-300/70">
+                  ترتيبك في الصف
+                </dt>
+                <dd className="mt-1 font-display text-xl font-black text-midnight-900 dark:text-ivory-50">
+                  {leaderboardLoading
+                    ? '…'
+                    : leaderboard?.currentStudent
+                      ? `#${leaderboard.currentStudent.rank.toLocaleString('ar-EG')}`
+                      : '—'}
+                </dd>
               </div>
             </div>
             <div>
-              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">اسم المستخدم</dt>
+              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">
+                اسم المستخدم
+              </dt>
               <dd className="mt-0.5 font-bold text-midnight-800 dark:text-ivory-100" dir="ltr">
                 {user.username}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">رقم موبايلك</dt>
+              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">
+                رقم موبايلك
+              </dt>
               <dd className="mt-0.5 font-bold text-midnight-800 dark:text-ivory-100" dir="ltr">
                 {user.phone}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">النظام التعليمي</dt>
+              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">
+                النظام التعليمي
+              </dt>
               <dd className="mt-0.5 font-bold text-midnight-800 dark:text-ivory-100">
                 {user.educationSystem === 'BACC' ? 'البكالوريا المصرية' : 'الثانوية العامة'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">الصف الدراسي</dt>
+              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">
+                الصف الدراسي
+              </dt>
               <dd className="mt-0.5 font-bold text-midnight-800 dark:text-ivory-100">
                 {user.gradeLevel ? GRADE_LABELS[user.gradeLevel] : '—'}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">تاريخ التسجيل</dt>
+              <dt className="text-xs font-semibold text-midnight-400 dark:text-ivory-300/60">
+                تاريخ التسجيل
+              </dt>
               <dd className="mt-0.5 font-bold text-midnight-800 dark:text-ivory-100">
                 {formatDate(user.createdAt)}
               </dd>
@@ -227,8 +268,7 @@ export function ProfileSettings() {
           </dl>
 
           <p className="mt-5 rounded-lg bg-ivory-100 dark:bg-midnight-950 px-3 py-2.5 text-xs leading-relaxed text-midnight-500 dark:text-ivory-300/70">
-            لتغيير الصف الدراسي أو رقم موبايلك، تواصل مع الدعم. التغيير بيتسجّل
-            لحماية اشتراكك.
+            لتغيير الصف الدراسي أو رقم موبايلك، تواصل مع الدعم. التغيير بيتسجّل لحماية اشتراكك.
           </p>
         </motion.section>
       </div>

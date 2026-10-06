@@ -10,9 +10,7 @@ test.describe('password reset page', () => {
 
     await link.click();
     await page.waitForURL('**/forgot-password');
-    await expect(
-      page.getByRole('heading', { name: 'نسيت كلمة السر؟', level: 1 }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'نسيت كلمة السر؟', level: 1 })).toBeVisible();
     await expect(page.getByLabel('رقم الموبايل المسجل')).toBeVisible();
   });
 });

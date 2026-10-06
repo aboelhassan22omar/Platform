@@ -15,13 +15,7 @@ interface Particle {
   hueShift: number;
 }
 
-export function GoldParticles({
-  count = 45,
-  className,
-}: {
-  count?: number;
-  className?: string;
-}) {
+export function GoldParticles({ count = 45, className }: { count?: number; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reduceMotion = useReducedMotion();
 
@@ -123,4 +117,3 @@ export function GoldParticles({
     />
   );
 }
-

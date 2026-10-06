@@ -52,9 +52,7 @@ export class PaymobProvider implements IPaymentProvider {
 
   async createCheckout(ctx: CheckoutContext): Promise<CheckoutSession> {
     if (!this.cfg.apiKey) {
-      throw new ServiceUnavailableException(
-        'بوابة الدفع غير مهيأة حالياً، حاول بعد شوية',
-      );
+      throw new ServiceUnavailableException('بوابة الدفع غير مهيأة حالياً، حاول بعد شوية');
     }
 
     const authToken = await this.authenticate();
@@ -68,12 +66,7 @@ export class PaymobProvider implements IPaymentProvider {
       throw new ServiceUnavailableException('وسيلة الدفع دي مش متاحة حالياً');
     }
 
-    const paymentKey = await this.createPaymentKey(
-      authToken,
-      paymobOrderId,
-      integrationId,
-      ctx,
-    );
+    const paymentKey = await this.createPaymentKey(authToken, paymobOrderId, integrationId, ctx);
 
     return {
       redirectUrl: `${this.cfg.baseUrl}/api/acceptance/iframes/${this.cfg.iframeId}?payment_token=${paymentKey}`,
@@ -214,9 +207,7 @@ export class PaymobProvider implements IPaymentProvider {
       String(this.readPath(obj, field) ?? ''),
     ).join('');
 
-    const expected = createHmac('sha512', this.cfg.hmacSecret)
-      .update(concatenated)
-      .digest('hex');
+    const expected = createHmac('sha512', this.cfg.hmacSecret).update(concatenated).digest('hex');
 
     if (!provided || !this.safeEqual(provided.toLowerCase(), expected.toLowerCase())) {
       this.logger.warn('Rejected Paymob webhook: HMAC mismatch');
@@ -230,9 +221,7 @@ export class PaymobProvider implements IPaymentProvider {
       eventId: String(obj.id),
       eventType: String(payload.type ?? 'TRANSACTION'),
       providerRef: String(order?.id ?? obj.order_id ?? obj.id),
-      orderReference: order?.merchant_order_id
-        ? String(order.merchant_order_id)
-        : undefined,
+      orderReference: order?.merchant_order_id ? String(order.merchant_order_id) : undefined,
       succeeded: success,
       amountMinor: Number(obj.amount_cents ?? 0),
       method: this.resolveMethod(obj),
@@ -255,9 +244,7 @@ export class PaymobProvider implements IPaymentProvider {
       .split('.')
       .reduce<unknown>(
         (acc, key) =>
-          acc && typeof acc === 'object'
-            ? (acc as Record<string, unknown>)[key]
-            : undefined,
+          acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[key] : undefined,
         obj,
       );
   }

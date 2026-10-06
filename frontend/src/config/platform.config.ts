@@ -1,51 +1,27 @@
-/**
- * Public, deployment-specific platform identity.
- *
- * Keep product code generic and change a teacher/subject through environment
- * variables or by replacing this one file. Secrets must never be added here.
- */
-export type SubjectKey = 'history' | 'chemistry' | 'biology' | 'physics' | 'custom';
+import { createPlatformIdentity, publicValue } from './platform-identity';
+export type { SubjectKey } from './subject.types';
 
-const publicValue = (value: string | undefined, fallback: string) =>
-  value?.trim() || fallback;
+// Explicit NEXT_PUBLIC reads are required for Next.js to inline client settings.
+const identity = createPlatformIdentity({
+  subjectKey: process.env.NEXT_PUBLIC_SUBJECT_KEY,
+  subjectName: process.env.NEXT_PUBLIC_SUBJECT_NAME,
+  subjectAdjective: process.env.NEXT_PUBLIC_SUBJECT_ADJECTIVE,
+  teacherName: process.env.NEXT_PUBLIC_TEACHER_NAME,
+  teacherShortName: process.env.NEXT_PUBLIC_TEACHER_SHORT_NAME,
+  teacherTitle: process.env.NEXT_PUBLIC_TEACHER_TITLE,
+  teacherTagline: process.env.NEXT_PUBLIC_TEACHER_TAGLINE,
+  platformName: process.env.NEXT_PUBLIC_PLATFORM_NAME,
+  shortPlatformName: process.env.NEXT_PUBLIC_PLATFORM_SHORT_NAME,
+  description: process.env.NEXT_PUBLIC_PLATFORM_DESCRIPTION,
+  logoLight: process.env.NEXT_PUBLIC_LOGO_LIGHT,
+  logoDark: process.env.NEXT_PUBLIC_LOGO_DARK,
+  logoAlt: process.env.NEXT_PUBLIC_LOGO_ALT,
+  teacherImage: process.env.NEXT_PUBLIC_TEACHER_IMAGE,
+  authBackground: process.env.NEXT_PUBLIC_AUTH_BACKGROUND,
+});
 
 export const platformConfig = Object.freeze({
-  locale: 'ar' as const,
-  direction: 'rtl' as const,
-  teacher: {
-    displayName: publicValue(process.env.NEXT_PUBLIC_TEACHER_NAME, 'مستر عمرو محروس'),
-    shortName: publicValue(process.env.NEXT_PUBLIC_TEACHER_SHORT_NAME, 'عمرو محروس'),
-    title: publicValue(process.env.NEXT_PUBLIC_TEACHER_TITLE, 'مستر'),
-    tagline: publicValue(process.env.NEXT_PUBLIC_TEACHER_TAGLINE, 'أسطورة التاريخ'),
-  },
-  subject: {
-    key: publicValue(process.env.NEXT_PUBLIC_SUBJECT_KEY, 'history') as SubjectKey,
-    name: publicValue(process.env.NEXT_PUBLIC_SUBJECT_NAME, 'التاريخ'),
-    adjective: publicValue(process.env.NEXT_PUBLIC_SUBJECT_ADJECTIVE, 'التاريخية'),
-  },
-  brand: {
-    platformName: publicValue(
-      process.env.NEXT_PUBLIC_PLATFORM_NAME,
-      'منصة مستر عمرو محروس التعليمية',
-    ),
-    shortPlatformName: publicValue(
-      process.env.NEXT_PUBLIC_PLATFORM_SHORT_NAME,
-      'منصة عمرو محروس',
-    ),
-    logoLight: publicValue(
-      process.env.NEXT_PUBLIC_LOGO_LIGHT,
-      '/brand/horus-eye-logo-light.png',
-    ),
-    logoDark: publicValue(process.env.NEXT_PUBLIC_LOGO_DARK, '/brand/horus-eye-logo.png'),
-    logoAlt: publicValue(
-      process.env.NEXT_PUBLIC_LOGO_ALT,
-      'شعار منصة مستر عمرو محروس التعليمية',
-    ),
-    description: publicValue(
-      process.env.NEXT_PUBLIC_PLATFORM_DESCRIPTION,
-      'منصة تعليمية لطلاب الثانوية العامة والبكالوريا، تجمع الشرح والمراجعة والمتابعة في مكان واحد.',
-    ),
-  },
+  ...identity,
   contact: {
     facebookUrl: publicValue(
       process.env.NEXT_PUBLIC_FACEBOOK_URL,
@@ -66,14 +42,12 @@ export const platformConfig = Object.freeze({
   },
   seo: {
     keywords: [
-      publicValue(process.env.NEXT_PUBLIC_SUBJECT_NAME, 'التاريخ'),
+      identity.subject.name,
       'ثانوية عامة',
       'بكالوريا مصرية',
-      publicValue(process.env.NEXT_PUBLIC_TEACHER_NAME, 'مستر عمرو محروس'),
+      identity.teacher.displayName,
       'حصص أونلاين',
     ],
   },
 });
-
 export type PlatformConfig = typeof platformConfig;
-

@@ -21,12 +21,7 @@ import { ConnectionState } from 'livekit-client';
 import { api, ApiError } from '@/lib/api';
 import { cn, toArabicDigits } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import type {
-  LiveChatMessage,
-  LiveEvent,
-  LiveReactionEvent,
-  LiveSessionDetail,
-} from '@/types/api';
+import type { LiveChatMessage, LiveEvent, LiveReactionEvent, LiveSessionDetail } from '@/types/api';
 
 export const REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🔥'] as const;
 
@@ -61,14 +56,18 @@ function useElapsed(startedAt: string | null) {
 
 const ICONS = {
   mic: 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3ZM5 11a7 7 0 0 0 14 0M12 18v3',
-  micOff: 'M3 3l18 18M9 9v3a3 3 0 0 0 5.1 2.1M15 9.3V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3',
+  micOff:
+    'M3 3l18 18M9 9v3a3 3 0 0 0 5.1 2.1M15 9.3V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3',
   cam: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h10A1.5 1.5 0 0 1 16 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 3 16.5v-9ZM16 10.5l5-3v9l-5-3',
-  camOff: 'M3 3l18 18M16 10.5l5-3v9l-5-3M14.5 18h-10A1.5 1.5 0 0 1 3 16.5v-9A1.5 1.5 0 0 1 4.5 6H6m3.5 0h5A1.5 1.5 0 0 1 16 7.5v5',
+  camOff:
+    'M3 3l18 18M16 10.5l5-3v9l-5-3M14.5 18h-10A1.5 1.5 0 0 1 3 16.5v-9A1.5 1.5 0 0 1 4.5 6H6m3.5 0h5A1.5 1.5 0 0 1 16 7.5v5',
   screen: 'M3 5h18v11H3zM8 20h8M12 16v4M9.5 10.5 12 8l2.5 2.5M12 8v5',
   chat: 'M4 19l1.5-3.9A7.5 7.5 0 1 1 8.5 18L4 19Z',
-  chatOff: 'M3 3l18 18M4 19l1.5-3.9a7.5 7.5 0 0 1 1.2-8.8M10 4.6A7.5 7.5 0 0 1 19.4 14M15.5 17.7A7.5 7.5 0 0 1 8.5 18L4 19',
+  chatOff:
+    'M3 3l18 18M4 19l1.5-3.9a7.5 7.5 0 0 1 1.2-8.8M10 4.6A7.5 7.5 0 0 1 19.4 14M15.5 17.7A7.5 7.5 0 0 1 8.5 18L4 19',
   leave: 'M14 4.5h3.5A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5H14M10 8l-4 4 4 4M6 12h9',
-  users: 'M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM20 19v-1.5a3.5 3.5 0 0 0-2.5-3.35M15.5 5.15a3 3 0 0 1 0 5.7',
+  users:
+    'M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 17.5V19M10 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM20 19v-1.5a3.5 3.5 0 0 0-2.5-3.35M15.5 5.15a3 3 0 0 1 0 5.7',
   smile: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM8.5 14a4 4 0 0 0 7 0M9 9.5h.01M15 9.5h.01',
   send: 'M20 12 4 4l3 8-3 8 16-8ZM7 12h6',
   volume: 'M4 9.5h3.5L12 6v12l-4.5-3.5H4v-5ZM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11',
@@ -138,12 +137,19 @@ function ControlButton({
 // The stage
 // ---------------------------------------------------------------------------
 
-export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; onEnded: () => void }) {
+export function LiveStage({
+  session,
+  onEnded,
+}: {
+  session: LiveSessionDetail;
+  onEnded: () => void;
+}) {
   const router = useRouter();
   const room = useRoomContext();
   const connection = useConnectionState();
   const participants = useParticipants();
-  const { localParticipant, isMicrophoneEnabled, isCameraEnabled, isScreenShareEnabled } = useLocalParticipant();
+  const { localParticipant, isMicrophoneEnabled, isCameraEnabled, isScreenShareEnabled } =
+    useLocalParticipant();
   const { canPlayAudio, startAudio } = useAudioPlayback(room);
   const isHost = session.isHost;
   const elapsed = useElapsed(session.startedAt);
@@ -188,10 +194,13 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
 
   // History for latecomers; the teacher also loads who has reacted so far.
   useEffect(() => {
-    api.get<LiveChatMessage[]>(`/live/${session.id}/chat`).then((rows) => {
-      rows.forEach((row) => seen.current.add(row.id));
-      setMessages(rows);
-    }).catch(() => {});
+    api
+      .get<LiveChatMessage[]>(`/live/${session.id}/chat`)
+      .then((rows) => {
+        rows.forEach((row) => seen.current.add(row.id));
+        setMessages(rows);
+      })
+      .catch(() => {});
     if (isHost) {
       api
         .get<{ totals: Array<{ emoji: string; count: number }>; recent: LiveReactionEvent[] }>(
@@ -267,7 +276,13 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
       // Normally the broadcast lands first; this covers a missed packet.
       window.setTimeout(() => {
         if (!seen.current.has(id)) {
-          addReaction({ id, emoji, userId: localParticipant.identity, name: localParticipant.name ?? '', createdAt: new Date().toISOString() });
+          addReaction({
+            id,
+            emoji,
+            userId: localParticipant.identity,
+            name: localParticipant.name ?? '',
+            createdAt: new Date().toISOString(),
+          });
         }
       }, 1500);
     } catch {
@@ -290,7 +305,8 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
     try {
       if (kind === 'mic') await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
       if (kind === 'camera') await localParticipant.setCameraEnabled(!isCameraEnabled);
-      if (kind === 'screen') await localParticipant.setScreenShareEnabled(!isScreenShareEnabled, { audio: true });
+      if (kind === 'screen')
+        await localParticipant.setScreenShareEnabled(!isScreenShareEnabled, { audio: true });
     } catch (caught) {
       const name = (caught as Error)?.name;
       setMediaError(
@@ -339,24 +355,41 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
           </span>
           <h1 className="truncate font-display text-sm font-bold sm:text-base">{session.title}</h1>
           {elapsed && (
-            <span dir="ltr" className="nums-tabular hidden shrink-0 text-xs text-white/60 sm:inline">
+            <span
+              dir="ltr"
+              className="nums-tabular hidden shrink-0 text-xs text-white/60 sm:inline"
+            >
               {elapsed}
             </span>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-3 text-xs text-white/70">
-          {isHost && <Link href={`/admin/live/${session.id}/participants`} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center rounded-xl bg-white/10 px-3 font-bold hover:bg-white/20">الحاضرين ({toArabicDigits(String(viewers))} طالب)</Link>}
+          {isHost && (
+            <Link
+              href={`/admin/live/${session.id}/participants`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 items-center rounded-xl bg-white/10 px-3 font-bold hover:bg-white/20"
+            >
+              الحاضرين ({toArabicDigits(String(viewers))} طالب)
+            </Link>
+          )}
           {isHost && session.recordingEnabled && (
             <span
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-black',
-                recordingActive ? 'border-red-500/50 text-red-300' : 'border-white/15 text-white/60',
+                recordingActive
+                  ? 'border-red-500/50 text-red-300'
+                  : 'border-white/15 text-white/60',
               )}
               role="status"
             >
               <span
                 aria-hidden
-                className={cn('h-2 w-2 rounded-full', recordingActive ? 'animate-pulse bg-red-500' : 'bg-white/40')}
+                className={cn(
+                  'h-2 w-2 rounded-full',
+                  recordingActive ? 'animate-pulse bg-red-500' : 'bg-white/40',
+                )}
               />
               {recordingActive ? 'بيسجّل' : 'التسجيل هيبدأ مع الكاميرا أو المايك'}
             </span>
@@ -370,7 +403,10 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
       </header>
 
       {connection === ConnectionState.Reconnecting && (
-        <p className="bg-amber-500/20 px-4 py-1.5 text-center text-xs font-bold text-amber-200" role="status">
+        <p
+          className="bg-amber-500/20 px-4 py-1.5 text-center text-xs font-bold text-amber-200"
+          role="status"
+        >
           الاتصال بيتقطع، بنحاول نرجّعه…
         </p>
       )}
@@ -394,7 +430,9 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
                     {isHost ? 'أنت' : 'م'}
                   </span>
                   <p className="mt-4 text-sm text-white/70">
-                    {isHost ? 'الكاميرا مقفولة. شغّلها أو اعرض الشاشة من الأزرار تحت.' : 'المستر لسه مشغّلش الكاميرا… الصوت شغال عادي.'}
+                    {isHost
+                      ? 'الكاميرا مقفولة. شغّلها أو اعرض الشاشة من الأزرار تحت.'
+                      : 'المستر لسه مشغّلش الكاميرا… الصوت شغال عادي.'}
                   </p>
                 </div>
               </div>
@@ -402,7 +440,10 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
 
             {pip && (
               <div className="absolute bottom-3 left-3 aspect-video w-32 overflow-hidden rounded-xl border border-white/20 bg-black shadow-xl sm:w-44">
-                <VideoTrack trackRef={pip} className={cn('h-full w-full object-cover', isHost && '-scale-x-100')} />
+                <VideoTrack
+                  trackRef={pip}
+                  className={cn('h-full w-full object-cover', isHost && '-scale-x-100')}
+                />
               </div>
             )}
 
@@ -421,7 +462,9 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
                   >
                     <span className="text-3xl drop-shadow">{item.emoji}</span>
                     {isHost && item.name && (
-                      <span className="rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold">{item.name}</span>
+                      <span className="rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold">
+                        {item.name}
+                      </span>
                     )}
                   </motion.div>
                 ))}
@@ -440,7 +483,10 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
             )}
 
             {mediaError && (
-              <p className="absolute inset-x-3 top-3 rounded-xl bg-red-600/90 px-3 py-2 text-center text-xs font-bold" role="alert">
+              <p
+                className="absolute inset-x-3 top-3 rounded-xl bg-red-600/90 px-3 py-2 text-center text-xs font-bold"
+                role="alert"
+              >
                 {mediaError}
               </p>
             )}
@@ -464,7 +510,9 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
                     onClick={() => setTab(key)}
                     className={cn(
                       'flex-1 border-b-2 px-3 py-2.5 transition-colors',
-                      tab === key ? 'border-gold-400 text-white' : 'border-transparent text-white/60 hover:text-white',
+                      tab === key
+                        ? 'border-gold-400 text-white'
+                        : 'border-transparent text-white/60 hover:text-white',
                     )}
                   >
                     {key === 'chat' ? 'الشات' : 'الرياكشنز'}
@@ -479,18 +527,25 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
                   {sortedTotals.map(({ emoji, count }) => (
                     <div key={emoji} className="rounded-lg bg-white/5 py-1.5 text-center">
                       <span className="block text-lg">{emoji}</span>
-                      <span className="nums-tabular text-[11px] font-bold text-white/70">{toArabicDigits(String(count))}</span>
+                      <span className="nums-tabular text-[11px] font-bold text-white/70">
+                        {toArabicDigits(String(count))}
+                      </span>
                     </div>
                   ))}
                 </div>
                 <ul className="min-h-0 flex-1 divide-y divide-white/5 overflow-y-auto px-3">
-                  {feed.length === 0 && <li className="py-6 text-center text-xs text-white/50">لسه محدش عمل رياكت</li>}
+                  {feed.length === 0 && (
+                    <li className="py-6 text-center text-xs text-white/50">لسه محدش عمل رياكت</li>
+                  )}
                   {feed.map((item) => (
                     <li key={item.id} className="flex items-center gap-3 py-2 text-sm">
                       <span className="text-xl">{item.emoji}</span>
                       <span className="min-w-0 flex-1 truncate font-bold">{item.name}</span>
                       <span className="nums-tabular text-[11px] text-white/50">
-                        {new Date(item.createdAt).toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' })}
+                        {new Date(item.createdAt).toLocaleTimeString('ar-EG', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
                       </span>
                     </li>
                   ))}
@@ -498,20 +553,35 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
               </div>
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">
-                {!isHost && <p className="border-b border-white/10 px-4 py-2.5 text-sm font-bold">الشات</p>}
-                <div ref={listRef} className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 py-3" aria-live="polite">
+                {!isHost && (
+                  <p className="border-b border-white/10 px-4 py-2.5 text-sm font-bold">الشات</p>
+                )}
+                <div
+                  ref={listRef}
+                  className="min-h-0 flex-1 space-y-2.5 overflow-y-auto px-3 py-3"
+                  aria-live="polite"
+                >
                   {messages.length === 0 && (
-                    <p className="py-6 text-center text-xs text-white/50">مفيش رسايل لسه. ابدأ إنت!</p>
+                    <p className="py-6 text-center text-xs text-white/50">
+                      مفيش رسايل لسه. ابدأ إنت!
+                    </p>
                   )}
                   {messages.map((message) => (
                     <div
                       key={message.id}
                       className={cn(
                         'rounded-xl px-3 py-2 text-sm leading-relaxed',
-                        message.user.isHost ? 'border border-gold-500/40 bg-gold-500/10' : 'bg-white/5',
+                        message.user.isHost
+                          ? 'border border-gold-500/40 bg-gold-500/10'
+                          : 'bg-white/5',
                       )}
                     >
-                      <p className={cn('text-[11px] font-black', message.user.isHost ? 'text-gold-300' : 'text-white/60')}>
+                      <p
+                        className={cn(
+                          'text-[11px] font-black',
+                          message.user.isHost ? 'text-gold-300' : 'text-white/60',
+                        )}
+                      >
                         {message.user.name}
                         {message.user.isHost && ' · المستر'}
                       </p>
@@ -522,13 +592,21 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
 
                 {!chatEnabled && (
                   <p className="border-t border-white/10 px-4 py-2 text-center text-xs font-bold text-amber-300">
-                    {isHost ? 'الشات مقفول للطلبة، إنت بس اللي تقدر تكتب' : 'المستر قفل الشات دلوقتي'}
+                    {isHost
+                      ? 'الشات مقفول للطلبة، إنت بس اللي تقدر تكتب'
+                      : 'المستر قفل الشات دلوقتي'}
                   </p>
                 )}
-                {chatError && <p className="px-4 pt-2 text-xs font-bold text-red-300" role="alert">{chatError}</p>}
+                {chatError && (
+                  <p className="px-4 pt-2 text-xs font-bold text-red-300" role="alert">
+                    {chatError}
+                  </p>
+                )}
 
                 <form onSubmit={sendMessage} className="flex gap-2 border-t border-white/10 p-3">
-                  <label htmlFor="live-chat-input" className="sr-only">اكتب رسالة</label>
+                  <label htmlFor="live-chat-input" className="sr-only">
+                    اكتب رسالة
+                  </label>
                   <input
                     id="live-chat-input"
                     value={draft}
@@ -589,7 +667,12 @@ export function LiveStage({ session, onEnded }: { session: LiveSessionDetail; on
               onClick={() => setPanelOpen((v) => !v)}
               expanded={panelOpen}
             />
-            <ControlButton label="إنهاء اللايف" icon={ICONS.leave} danger onClick={() => setConfirmEnd(true)} />
+            <ControlButton
+              label="إنهاء اللايف"
+              icon={ICONS.leave}
+              danger
+              onClick={() => setConfirmEnd(true)}
+            />
           </>
         ) : (
           <>

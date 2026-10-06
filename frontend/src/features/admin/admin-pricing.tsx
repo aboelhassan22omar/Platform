@@ -23,13 +23,8 @@ export function AdminPricing() {
   });
 
   const updatePlan = useMutation({
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string;
-      body: { priceMinor?: number; isActive?: boolean };
-    }) => api.patch<AdminPlan>(`/admin/pricing/plans/${id}`, body),
+    mutationFn: ({ id, body }: { id: string; body: { priceMinor?: number; isActive?: boolean } }) =>
+      api.patch<AdminPlan>(`/admin/pricing/plans/${id}`, body),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin-plans'] });
       setEditing(null);
@@ -58,9 +53,12 @@ export function AdminPricing() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">إدارة الأسعار والاشتراكات</h1>
+        <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">
+          إدارة الأسعار والاشتراكات
+        </h1>
         <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
-          الباقات بتتنشأ غير مفعّلة تلقائياً. حدّد السعر المناسب ثم اضغط تفعيل لتظهر للطلاب في المتجر.
+          الباقات بتتنشأ غير مفعّلة تلقائياً. حدّد السعر المناسب ثم اضغط تفعيل لتظهر للطلاب في
+          المتجر.
         </p>
       </div>
 
@@ -93,7 +91,9 @@ export function AdminPricing() {
                 }}
                 className={cn(
                   'rounded-2xl border bg-white dark:bg-midnight-950/80 p-5 shadow-card transition-colors',
-                  plan.isActive ? 'border-emerald-500/50 dark:border-emerald-500/40' : 'border-gold-500/25',
+                  plan.isActive
+                    ? 'border-emerald-500/50 dark:border-emerald-500/40'
+                    : 'border-gold-500/25',
                 )}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -103,8 +103,7 @@ export function AdminPricing() {
                     </h3>
                     <p className="mt-0.5 text-[11px] text-midnight-500 dark:text-ivory-300/60">
                       {plan.kind === 'YEARLY_PLAN' ? 'سنوي' : 'شهري'}
-                      {plan.durationDays &&
-                        ` · ${toArabicDigits(String(plan.durationDays))} يوم`}
+                      {plan.durationDays && ` · ${toArabicDigits(String(plan.durationDays))} يوم`}
                       {' · '}
                       {plan.academicYear.label}
                     </p>
@@ -227,4 +226,3 @@ export function AdminPricing() {
     </div>
   );
 }
-

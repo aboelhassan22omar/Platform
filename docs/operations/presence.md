@@ -86,7 +86,9 @@ write:
 
 ```ts
 const fresh = await redis.set(`presence:mirrored:${userId}`, '1', 'EX', ttl, 'NX');
-if (fresh) { /* write to Postgres */ }
+if (fresh) {
+  /* write to Postgres */
+}
 ```
 
 So the mirror is written at most once per TTL window per student — a ~60×
@@ -116,10 +118,10 @@ rather than in documentation nobody opens.
 
 ## Tuning
 
-| Variable | Default | Effect |
-|---|---|---|
-| `PRESENCE_HEARTBEAT_SECONDS` | `45` | How often the client pings |
-| `PRESENCE_TTL_SECONDS` | `120` | How long a ping keeps someone "online" |
+| Variable                     | Default | Effect                                 |
+| ---------------------------- | ------- | -------------------------------------- |
+| `PRESENCE_HEARTBEAT_SECONDS` | `45`    | How often the client pings             |
+| `PRESENCE_TTL_SECONDS`       | `120`   | How long a ping keeps someone "online" |
 
 Keep the TTL at roughly **2–3×** the heartbeat. Too tight and a single dropped
 request makes an active student flicker offline; too loose and the number lags

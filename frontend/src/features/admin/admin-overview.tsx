@@ -118,9 +118,7 @@ export function AdminOverview() {
     fill: GRADE_COLOURS[row.gradeLevel] ?? '#476199',
   }));
 
-  const onlineByGrade = new Map(
-    overview.online.byGrade.map((row) => [row.gradeLevel, row.count]),
-  );
+  const onlineByGrade = new Map(overview.online.byGrade.map((row) => [row.gradeLevel, row.count]));
 
   return (
     <div className="space-y-8">
@@ -142,7 +140,9 @@ export function AdminOverview() {
           }}
           className="rounded-2xl border border-gold-400/50 bg-gradient-to-bl from-gold-100/70 via-white to-gold-50/50 dark:from-midnight-900/90 dark:via-midnight-950 dark:to-midnight-900 p-5 shadow-card sm:col-span-2 text-midnight-950 dark:text-ivory-50 transition-colors"
         >
-          <p className="text-xs font-semibold text-gold-800 dark:text-gold-300">الإيرادات المحصّلة</p>
+          <p className="text-xs font-semibold text-gold-800 dark:text-gold-300">
+            الإيرادات المحصّلة
+          </p>
           <p className="mt-1 font-display text-3xl font-black text-midnight-950 dark:text-ivory-50 sm:text-4xl">
             {formatEgp(overview.commerce.revenueMinor)}
           </p>
@@ -170,7 +170,9 @@ export function AdminOverview() {
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
               )}
-              <p className="text-xs font-bold text-midnight-600 dark:text-ivory-300/80">{kpi.label}</p>
+              <p className="text-xs font-bold text-midnight-600 dark:text-ivory-300/80">
+                {kpi.label}
+              </p>
             </div>
 
             <p className="mt-2 font-display text-2xl font-black text-midnight-950 dark:text-ivory-50 sm:text-3xl">
@@ -199,7 +201,11 @@ export function AdminOverview() {
         <div className="mt-5 h-72" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={gradeData} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(200, 149, 42, 0.15)" vertical={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(200, 149, 42, 0.15)"
+                vertical={false}
+              />
               <XAxis
                 dataKey="nameAr"
                 tick={{ fontSize: 11, fill: '#8b9bb4', fontFamily: 'var(--font-cairo)' }}
@@ -247,7 +253,9 @@ export function AdminOverview() {
                 className="block h-1 w-8 rounded-full"
                 style={{ background: grade.fill }}
               />
-              <p className="mt-2 text-xs font-bold text-midnight-800 dark:text-ivory-200">{grade.nameAr}</p>
+              <p className="mt-2 text-xs font-bold text-midnight-800 dark:text-ivory-200">
+                {grade.nameAr}
+              </p>
               <p className="mt-0.5 font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
                 {formatNumber(grade.count)}
               </p>
@@ -265,7 +273,11 @@ export function AdminOverview() {
       <div className="grid gap-5 lg:grid-cols-2">
         <ChartCard title="التسجيلات — آخر ٣٠ يوم" empty={!registrations?.length}>
           <LineChart data={registrations ?? []} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(200, 149, 42, 0.15)" vertical={false} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(200, 149, 42, 0.15)"
+              vertical={false}
+            />
             <XAxis
               dataKey="date"
               tickFormatter={(value: string) =>
@@ -309,7 +321,11 @@ export function AdminOverview() {
 
         <ChartCard title="الإيرادات — آخر ٣٠ يوم" empty={!sales?.length}>
           <LineChart data={sales ?? []} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(200, 149, 42, 0.15)" vertical={false} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(200, 149, 42, 0.15)"
+              vertical={false}
+            />
             <XAxis
               dataKey="date"
               tickFormatter={(value: string) =>
@@ -366,10 +382,14 @@ function ChartCard({
 }) {
   return (
     <section className="rounded-2xl border border-gold-500/25 bg-white dark:bg-midnight-950/80 p-5 shadow-card transition-colors">
-      <h2 className="font-display text-base font-extrabold text-midnight-950 dark:text-ivory-50">{title}</h2>
+      <h2 className="font-display text-base font-extrabold text-midnight-950 dark:text-ivory-50">
+        {title}
+      </h2>
       {empty ? (
         <div className="mt-4 grid h-56 place-items-center rounded-xl border border-dashed border-gold-500/30 bg-ivory-50/50 dark:bg-midnight-900/40">
-          <p className="text-sm text-midnight-500 dark:text-ivory-300/60">مفيش بيانات في الفترة دي</p>
+          <p className="text-sm text-midnight-500 dark:text-ivory-300/60">
+            مفيش بيانات في الفترة دي
+          </p>
         </div>
       ) : (
         <div className="mt-4 h-56" dir="ltr">
@@ -381,4 +401,3 @@ function ChartCard({
     </section>
   );
 }
-

@@ -14,14 +14,18 @@ interface MotifBaseProps {
  * قرص الشمس المجنح (حورس البحدتي)
  * رمز الحماية الملكية والرفعة المصرية القديمة
  */
-export function WingedSunOfHorus({ className, color = '#f59e0b', glow = true }: MotifBaseProps) {
+export function WingedSunOfHorus({ className, glow = true }: MotifBaseProps) {
   return (
     <svg
       viewBox="0 0 400 100"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
-      className={cn('w-full max-w-md overflow-visible', glow && 'drop-shadow-[0_0_12px_rgba(245,158,11,0.4)]', className)}
+      className={cn(
+        'w-full max-w-md overflow-visible',
+        glow && 'drop-shadow-[0_0_12px_rgba(245,158,11,0.4)]',
+        className,
+      )}
     >
       <defs>
         <linearGradient id="horusGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -106,7 +110,15 @@ export function WingedSunOfHorus({ className, color = '#f59e0b', glow = true }: 
         animate={{ scale: [0.95, 1.05, 0.95] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <circle cx="200" cy="48" r="22" stroke="#fef08a" strokeWidth="1" strokeDasharray="3 2" opacity="0.75" />
+      <circle
+        cx="200"
+        cy="48"
+        r="22"
+        stroke="#fef08a"
+        strokeWidth="1"
+        strokeDasharray="3 2"
+        opacity="0.75"
+      />
     </svg>
   );
 }
@@ -259,33 +271,13 @@ export function LotusBlossom({ className, color = '#f59e0b' }: MotifBaseProps) {
       className={cn('inline-block h-7 w-9 overflow-visible', className)}
     >
       {/* البتلة الوسطى */}
-      <path
-        d="M40 8 Q34 30 40 48 Q46 30 40 8 Z"
-        fill={color}
-        opacity="0.9"
-      />
+      <path d="M40 8 Q34 30 40 48 Q46 30 40 8 Z" fill={color} opacity="0.9" />
       {/* البتلات الجانبية */}
-      <path
-        d="M40 48 Q22 36 14 20 Q28 22 38 38 Z"
-        fill={color}
-        opacity="0.75"
-      />
-      <path
-        d="M40 48 Q58 36 66 20 Q52 22 42 38 Z"
-        fill={color}
-        opacity="0.75"
-      />
+      <path d="M40 48 Q22 36 14 20 Q28 22 38 38 Z" fill={color} opacity="0.75" />
+      <path d="M40 48 Q58 36 66 20 Q52 22 42 38 Z" fill={color} opacity="0.75" />
       {/* البتلات الخارجية الرقيقة */}
-      <path
-        d="M40 48 Q10 44 4 32 Q18 32 34 42 Z"
-        fill={color}
-        opacity="0.55"
-      />
-      <path
-        d="M40 48 Q70 44 76 32 Q62 32 46 42 Z"
-        fill={color}
-        opacity="0.55"
-      />
+      <path d="M40 48 Q10 44 4 32 Q18 32 34 42 Z" fill={color} opacity="0.55" />
+      <path d="M40 48 Q70 44 76 32 Q62 32 46 42 Z" fill={color} opacity="0.55" />
       {/* قاعدة الزهرة */}
       <path d="M30 52 C35 56 45 56 50 52" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
     </svg>
@@ -347,13 +339,16 @@ export function HieroglyphRegister({
       aria-hidden
       className={cn(
         'flex items-center justify-between gap-6 overflow-hidden select-none opacity-25 text-gold-400 font-serif text-sm pointer-events-none py-1',
-        className
+        className,
       )}
     >
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gold-500/40 to-gold-500/80" />
       <div className="flex items-center gap-4 shrink-0">
         {glyphs.map((g, i) => (
-          <span key={i} className="inline-block transform hover:scale-125 transition-transform duration-300">
+          <span
+            key={i}
+            className="inline-block transform hover:scale-125 transition-transform duration-300"
+          >
             {g}
           </span>
         ))}
@@ -444,4 +439,3 @@ export function PlatformLogo({
     </div>
   );
 }
-

@@ -26,7 +26,13 @@ function Panel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function WaitingRoom({ session, onStarted }: { session: LiveSessionDetail; onStarted: () => void }) {
+function WaitingRoom({
+  session,
+  onStarted,
+}: {
+  session: LiveSessionDetail;
+  onStarted: () => void;
+}) {
   const countdown = useCountdown(session.scheduledAt);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +57,9 @@ function WaitingRoom({ session, onStarted }: { session: LiveSessionDetail; onSta
       <h1 className="mt-3 font-display text-2xl font-black text-midnight-950 dark:text-ivory-50 sm:text-3xl">
         {session.title}
       </h1>
-      <p className="mt-2 text-sm text-midnight-600 dark:text-ivory-300/75">{formatLiveDate(session.scheduledAt)}</p>
+      <p className="mt-2 text-sm text-midnight-600 dark:text-ivory-300/75">
+        {formatLiveDate(session.scheduledAt)}
+      </p>
       {session.description && (
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-midnight-700 dark:text-ivory-200/80">
           {session.description}
@@ -65,7 +73,9 @@ function WaitingRoom({ session, onStarted }: { session: LiveSessionDetail; onSta
           </p>
         ) : (
           <>
-            <p className="mb-2 text-xs font-bold text-midnight-500 dark:text-ivory-300/70">باقي على اللايف</p>
+            <p className="mb-2 text-xs font-bold text-midnight-500 dark:text-ivory-300/70">
+              باقي على اللايف
+            </p>
             <CountdownDisplay parts={countdown} size="lg" />
           </>
         )}
@@ -128,7 +138,11 @@ function Ended({ session }: { session: LiveSessionDetail }) {
           التسجيل بيتجهز، وهتلاقيه في صفحة اللايفات في لوحة التحكم خلال دقايق.
         </p>
       )}
-      <ButtonLink href={session.isHost ? '/admin/live' : '/dashboard'} variant="accent" className="mt-6">
+      <ButtonLink
+        href={session.isHost ? '/admin/live' : '/dashboard'}
+        variant="accent"
+        className="mt-6"
+      >
         {session.isHost ? 'رجوع للايفات' : 'رجوع لحسابي'}
       </ButtonLink>
     </Panel>
@@ -147,7 +161,10 @@ function Connect({ session, onEnded }: { session: LiveSessionDetail; onEnded: ()
       .catch((caught) => {
         if (cancelled) return;
         if (caught instanceof ApiError && caught.status === 410) onEnded();
-        else setError(caught instanceof ApiError ? caught.message : 'مقدرناش ندخلك اللايف، حدّث الصفحة');
+        else
+          setError(
+            caught instanceof ApiError ? caught.message : 'مقدرناش ندخلك اللايف، حدّث الصفحة',
+          );
       });
     return () => {
       cancelled = true;
@@ -157,7 +174,9 @@ function Connect({ session, onEnded }: { session: LiveSessionDetail; onEnded: ()
   if (error) {
     return (
       <Panel>
-        <p className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">{error}</p>
+        <p className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
+          {error}
+        </p>
         <Button variant="accent" className="mt-5" onClick={() => window.location.reload()}>
           حاول تاني
         </Button>
@@ -168,8 +187,13 @@ function Connect({ session, onEnded }: { session: LiveSessionDetail; onEnded: ()
   if (!ticket) {
     return (
       <Panel>
-        <span className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-gold-500 border-t-transparent" aria-hidden />
-        <p className="mt-4 text-sm font-bold text-midnight-700 dark:text-ivory-200">بندخّلك اللايف…</p>
+        <span
+          className="mx-auto block h-8 w-8 animate-spin rounded-full border-2 border-gold-500 border-t-transparent"
+          aria-hidden
+        />
+        <p className="mt-4 text-sm font-bold text-midnight-700 dark:text-ivory-200">
+          بندخّلك اللايف…
+        </p>
       </Panel>
     );
   }
@@ -183,11 +207,14 @@ function Connect({ session, onEnded }: { session: LiveSessionDetail; onEnded: ()
       video={ticket.isHost}
       options={{ adaptiveStream: true, dynacast: true }}
       onDisconnected={() => {
-        api.get<LiveSessionDetail>(`/live/${session.id}`).then((current) => {
-          if (current.status === 'ENDED' || current.status === 'CANCELLED') onEnded();
-        }).catch((caught) => {
-          if (caught instanceof ApiError && caught.status === 403) setError(caught.message);
-        });
+        api
+          .get<LiveSessionDetail>(`/live/${session.id}`)
+          .then((current) => {
+            if (current.status === 'ENDED' || current.status === 'CANCELLED') onEnded();
+          })
+          .catch((caught) => {
+            if (caught instanceof ApiError && caught.status === 403) setError(caught.message);
+          });
       }}
     >
       <LiveStage session={session} onEnded={onEnded} />
@@ -199,14 +226,21 @@ export function LiveRoom({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const [endedLocally, setEndedLocally] = useState(false);
 
-  const { data: session, error, isLoading } = useQuery({
+  const {
+    data: session,
+    error,
+    isLoading,
+  } = useQuery({
     queryKey: ['live', id],
     queryFn: () => api.get<LiveSessionDetail>(`/live/${id}`),
     // Waiting students poll so they drop into the room when the teacher starts.
     refetchInterval: (query) => (query.state.data?.status === 'SCHEDULED' ? 8_000 : false),
   });
 
-  const refresh = useCallback(() => void queryClient.invalidateQueries({ queryKey: ['live', id] }), [queryClient, id]);
+  const refresh = useCallback(
+    () => void queryClient.invalidateQueries({ queryKey: ['live', id] }),
+    [queryClient, id],
+  );
   const markEnded = useCallback(() => {
     setEndedLocally(true);
     void queryClient.invalidateQueries({ queryKey: ['live-upcoming'] });
@@ -228,7 +262,10 @@ export function LiveRoom({ id }: { id: string }) {
         <p className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
           {error instanceof ApiError ? error.message : 'مقدرناش نفتح اللايف'}
         </p>
-        <Link href="/dashboard" className="mt-4 inline-block text-sm font-bold text-gold-700 underline dark:text-gold-400">
+        <Link
+          href="/dashboard"
+          className="mt-4 inline-block text-sm font-bold text-gold-700 underline dark:text-gold-400"
+        >
           رجوع لحسابي
         </Link>
       </Panel>
@@ -236,7 +273,11 @@ export function LiveRoom({ id }: { id: string }) {
   }
 
   if (endedLocally || session.status === 'ENDED' || session.status === 'CANCELLED') {
-    return <Ended session={{ ...session, status: session.status === 'CANCELLED' ? 'CANCELLED' : 'ENDED' }} />;
+    return (
+      <Ended
+        session={{ ...session, status: session.status === 'CANCELLED' ? 'CANCELLED' : 'ENDED' }}
+      />
+    );
   }
   if (session.status === 'SCHEDULED') return <WaitingRoom session={session} onStarted={refresh} />;
   return <Connect session={session} onEnded={markEnded} />;

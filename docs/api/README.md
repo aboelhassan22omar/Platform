@@ -40,17 +40,17 @@ limited.
 
 ## Authentication
 
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| `POST` | `/auth/register` | — | Create a student account |
-| `POST` | `/auth/login` | — | Sign in (username or phone) |
-| `POST` | `/auth/refresh` | cookie | Rotate the session |
-| `POST` | `/auth/logout` | — | End the session |
-| `GET` | `/auth/me` | ✔ | Current account |
-| `PATCH` | `/auth/me` | ✔ | Update name / guardian phone |
-| `PATCH` | `/auth/me/password` | ✔ | Change password |
-| `POST` | `/auth/password/reset/request` | — | Begin a reset |
-| `POST` | `/auth/password/reset/confirm` | — | Complete a reset |
+| Method  | Path                           | Auth   | Purpose                      |
+| ------- | ------------------------------ | ------ | ---------------------------- |
+| `POST`  | `/auth/register`               | —      | Create a student account     |
+| `POST`  | `/auth/login`                  | —      | Sign in (username or phone)  |
+| `POST`  | `/auth/refresh`                | cookie | Rotate the session           |
+| `POST`  | `/auth/logout`                 | —      | End the session              |
+| `GET`   | `/auth/me`                     | ✔     | Current account              |
+| `PATCH` | `/auth/me`                     | ✔     | Update name / guardian phone |
+| `PATCH` | `/auth/me/password`            | ✔     | Change password              |
+| `POST`  | `/auth/password/reset/request` | —      | Begin a reset                |
+| `POST`  | `/auth/password/reset/confirm` | —      | Complete a reset             |
 
 ### `POST /auth/register`
 
@@ -72,10 +72,10 @@ are valid.
 
 `gradeLevel` **must belong to** `educationSystem`:
 
-| System | Valid grades |
-|---|---|
+| System    | Valid grades              |
+| --------- | ------------------------- |
 | `GENERAL` | `SEC_1`, `SEC_2`, `SEC_3` |
-| `BACC` | `BACC_1`, `BACC_2` |
+| `BACC`    | `BACC_1`, `BACC_2`        |
 
 Any other pairing returns `400`.
 
@@ -92,13 +92,13 @@ rather than implying a message is on its way.
 
 ## Catalogue (public)
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/academic/systems` | Both pathways with their grades |
-| `GET` | `/academic/grades` | All grades (`?system=GENERAL\|BACC`) |
-| `GET` | `/academic/grades/:slug` | One grade with courses and plans |
-| `GET` | `/academic/years` | Academic years |
-| `GET` | `/grades/:gradeSlug/courses/:courseSlug` | Full syllabus |
+| Method | Path                                     | Purpose                              |
+| ------ | ---------------------------------------- | ------------------------------------ |
+| `GET`  | `/academic/systems`                      | Both pathways with their grades      |
+| `GET`  | `/academic/grades`                       | All grades (`?system=GENERAL\|BACC`) |
+| `GET`  | `/academic/grades/:slug`                 | One grade with courses and plans     |
+| `GET`  | `/academic/years`                        | Academic years                       |
+| `GET`  | `/grades/:gradeSlug/courses/:courseSlug` | Full syllabus                        |
 
 Public routes still read the session when one is present, so a signed-in
 student receives their `isAccessible` flags and progress inline.
@@ -110,18 +110,18 @@ entitlements. Staff receive drafts with `access.reason: "STAFF"`.
 
 ## Student
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/me/lessons` | **حصصي** — everything reachable right now |
-| `GET` | `/me/continue-watching` | **كمّل من مكان ما وقفت** |
-| `GET` | `/me/progress/summary` | Totals for the dashboard |
-| `GET` | `/lessons/:id` | Lesson with an access decision |
-| `GET` | `/lessons/:id/progress` | Saved position |
-| `PUT` | `/lessons/:id/progress` | Save position |
-| `GET` | `/orders` | Purchase history |
-| `GET` | `/orders/:reference` | One order |
-| `GET` | `/subscriptions/mine` | **اشتراكاتي** |
-| `POST` | `/presence/heartbeat` | Presence ping |
+| Method | Path                    | Purpose                                   |
+| ------ | ----------------------- | ----------------------------------------- |
+| `GET`  | `/me/lessons`           | **حصصي** — everything reachable right now |
+| `GET`  | `/me/continue-watching` | **كمّل من مكان ما وقفت**                  |
+| `GET`  | `/me/progress/summary`  | Totals for the dashboard                  |
+| `GET`  | `/lessons/:id`          | Lesson with an access decision            |
+| `GET`  | `/lessons/:id/progress` | Saved position                            |
+| `PUT`  | `/lessons/:id/progress` | Save position                             |
+| `GET`  | `/orders`               | Purchase history                          |
+| `GET`  | `/orders/:reference`    | One order                                 |
+| `GET`  | `/subscriptions/mine`   | **اشتراكاتي**                             |
+| `POST` | `/presence/heartbeat`   | Presence ping                             |
 
 ### `GET /lessons/:id`
 
@@ -139,15 +139,15 @@ Returns the lesson plus:
 
 `reason` drives the UI:
 
-| Reason | Shown as |
-|---|---|
-| `FREE_PREVIEW` | Plays |
-| `LESSON_PURCHASE` / `CHAPTER_BUNDLE` / `COURSE_PURCHASE` | Plays |
-| `SUBSCRIPTION` | Plays, with the expiry date |
-| `STAFF` | Plays, labelled as staff access |
-| `NOT_PUBLISHED` | "لسه مش منشورة" |
-| `NO_ENTITLEMENT` | **Buy** prompt |
-| `EXPIRED` | **Renew** prompt |
+| Reason                                                   | Shown as                        |
+| -------------------------------------------------------- | ------------------------------- |
+| `FREE_PREVIEW`                                           | Plays                           |
+| `LESSON_PURCHASE` / `CHAPTER_BUNDLE` / `COURSE_PURCHASE` | Plays                           |
+| `SUBSCRIPTION`                                           | Plays, with the expiry date     |
+| `STAFF`                                                  | Plays, labelled as staff access |
+| `NOT_PUBLISHED`                                          | "لسه مش منشورة"                 |
+| `NO_ENTITLEMENT`                                         | **Buy** prompt                  |
+| `EXPIRED`                                                | **Renew** prompt                |
 
 The distinction between the last two matters: showing a lapsed subscriber a
 "buy this lesson" screen when they need a renewal link loses the sale.
@@ -170,11 +170,11 @@ Called roughly every 15 seconds and on pause/unload — never per frame.
 
 ## Commerce
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/checkout` | Create an order, start payment |
-| `POST` | `/webhooks/payments` | Provider callback — **the only thing that grants access** |
-| `POST` | `/payments/sandbox/confirm` | Development only |
+| Method | Path                        | Purpose                                                   |
+| ------ | --------------------------- | --------------------------------------------------------- |
+| `POST` | `/checkout`                 | Create an order, start payment                            |
+| `POST` | `/webhooks/payments`        | Provider callback — **the only thing that grants access** |
+| `POST` | `/payments/sandbox/confirm` | Development only                                          |
 
 ### `POST /checkout`
 
@@ -215,11 +215,11 @@ Rejects an invalid signature with `400`. A replayed event returns
 
 ## Video
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/videos/:lessonId/playback` | Entitlement check → short-lived ticket |
-| `GET` | `/videos/:lessonId/manifest.m3u8?ticket=` | HLS master playlist |
-| `GET` | `/videos/:lessonId/hls/*?ticket=` | Variant playlists and segments |
+| Method | Path                                      | Purpose                                |
+| ------ | ----------------------------------------- | -------------------------------------- |
+| `POST` | `/videos/:lessonId/playback`              | Entitlement check → short-lived ticket |
+| `GET`  | `/videos/:lessonId/manifest.m3u8?ticket=` | HLS master playlist                    |
+| `GET`  | `/videos/:lessonId/hls/*?ticket=`         | Variant playlists and segments         |
 
 `POST /videos/:id/playback` returns:
 
@@ -247,27 +247,27 @@ single request**.
 All require staff. `RolesGuard` ranks roles, so a higher role satisfies a lower
 requirement.
 
-| Path | Minimum role |
-|---|---|
-| `/admin/dashboard/*` | `SUPPORT` |
-| `/admin/students` (read) | `SUPPORT` |
-| `/admin/students/:id/status` | `ADMIN` |
-| `/admin/students/:id/entitlements` | `ADMIN` |
-| `/admin/content/*` | `CONTENT_MANAGER` |
-| `/admin/pricing/*` | `ADMIN` |
-| `/admin/dashboard/audit` | `ADMIN` |
+| Path                               | Minimum role      |
+| ---------------------------------- | ----------------- |
+| `/admin/dashboard/*`               | `SUPPORT`         |
+| `/admin/students` (read)           | `SUPPORT`         |
+| `/admin/students/:id/status`       | `ADMIN`           |
+| `/admin/students/:id/entitlements` | `ADMIN`           |
+| `/admin/content/*`                 | `CONTENT_MANAGER` |
+| `/admin/pricing/*`                 | `ADMIN`           |
+| `/admin/dashboard/audit`           | `ADMIN`           |
 
 ### Dashboard
 
-| Method | Path | Returns |
-|---|---|---|
-| `GET` | `/admin/dashboard/overview` | KPIs from live tables |
-| `GET` | `/admin/dashboard/online` | Presence, with its definition |
-| `GET` | `/admin/dashboard/registrations?days=30` | Signups over time |
-| `GET` | `/admin/dashboard/sales?days=30` | Orders and revenue over time |
-| `GET` | `/admin/dashboard/popular-courses` | Best sellers |
-| `GET` | `/admin/dashboard/engagement` | Completion rates |
-| `GET` | `/admin/dashboard/audit` | Privileged-action log |
+| Method | Path                                     | Returns                       |
+| ------ | ---------------------------------------- | ----------------------------- |
+| `GET`  | `/admin/dashboard/overview`              | KPIs from live tables         |
+| `GET`  | `/admin/dashboard/online`                | Presence, with its definition |
+| `GET`  | `/admin/dashboard/registrations?days=30` | Signups over time             |
+| `GET`  | `/admin/dashboard/sales?days=30`         | Orders and revenue over time  |
+| `GET`  | `/admin/dashboard/popular-courses`       | Best sellers                  |
+| `GET`  | `/admin/dashboard/engagement`            | Completion rates              |
+| `GET`  | `/admin/dashboard/audit`                 | Privileged-action log         |
 
 `/online` includes a `definition` field stating that the count is an
 approximation based on recent heartbeats. The dashboard shows it verbatim
@@ -275,14 +275,14 @@ rather than presenting an estimate as fact.
 
 ### Content and video upload
 
-| Method | Path |
-|---|---|
-| `GET`/`POST`/`PATCH` | `/admin/content/courses` |
-| `POST`/`PATCH` | `/admin/content/.../units`, `.../chapters`, `.../lessons` |
-| `POST` | `/admin/content/lessons/:id/video/upload-ticket` |
-| `POST` | `/admin/content/lessons/:id/video/complete` |
-| `GET` | `/admin/content/lessons/:id/video/status` |
-| `POST` | `/admin/content/lessons/:id/video/retry` |
+| Method               | Path                                                      |
+| -------------------- | --------------------------------------------------------- |
+| `GET`/`POST`/`PATCH` | `/admin/content/courses`                                  |
+| `POST`/`PATCH`       | `/admin/content/.../units`, `.../chapters`, `.../lessons` |
+| `POST`               | `/admin/content/lessons/:id/video/upload-ticket`          |
+| `POST`               | `/admin/content/lessons/:id/video/complete`               |
+| `GET`                | `/admin/content/lessons/:id/video/status`                 |
+| `POST`               | `/admin/content/lessons/:id/video/retry`                  |
 
 Upload is three steps: request a presigned `PUT`, upload straight to storage,
 then notify the API, which queues transcoding on the worker. Lesson videos never
@@ -312,11 +312,11 @@ directly to avoid the edge limiter entirely.
 
 ## Health
 
-| Path | Purpose |
-|---|---|
-| `GET /api/health` | Liveness — dependency-free |
+| Path                    | Purpose                                           |
+| ----------------------- | ------------------------------------------------- |
+| `GET /api/health`       | Liveness — dependency-free                        |
 | `GET /api/health/ready` | Readiness — database, Redis, storage individually |
-| `GET /healthz` | Edge liveness (proxy) |
+| `GET /healthz`          | Edge liveness (proxy)                             |
 
 ```json
 { "status": "ok", "checks": { "database": true, "redis": true, "storage": true } }

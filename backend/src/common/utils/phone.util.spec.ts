@@ -50,12 +50,9 @@ describe('Egyptian phone handling', () => {
       expect(normalizeEgyptianPhone(input)).toBeNull();
     });
 
-    it.each(['010', '011', '012', '015'])(
-      'accepts the %s operator prefix',
-      (prefix) => {
-        expect(normalizeEgyptianPhone(`${prefix}12345678`)).toBe(`${prefix}12345678`);
-      },
-    );
+    it.each(['010', '011', '012', '015'])('accepts the %s operator prefix', (prefix) => {
+      expect(normalizeEgyptianPhone(`${prefix}12345678`)).toBe(`${prefix}12345678`);
+    });
   });
 
   describe('isValidEgyptianPhone', () => {

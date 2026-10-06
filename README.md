@@ -11,6 +11,9 @@ teacher, subject, logos, SEO and contact channels are configured through
 environment variables. See [the customization guide](docs/customization/teacher-platform.md)
 before creating a chemistry, biology or physics deployment.
 
+For source boundaries and maintenance commands, see
+[code organization](docs/architecture/code-organization.md).
+
 ---
 
 ## What this is

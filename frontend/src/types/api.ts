@@ -294,8 +294,34 @@ export interface LeaderboardResponse {
 export interface AchievementBadge {
   id: string;
   name: string;
-  icon: 'trophy' | 'crown' | 'medal' | 'scroll' | 'star' | 'eye' | 'ankh' | 'scarab' | 'pyramid' | 'lotus' | 'play' | 'book' | 'compass' | 'shield' | 'lightning' | 'diamond' | 'sword' | 'brain';
-  category: 'ranking' | 'videos' | 'homework' | 'exams' | 'points' | 'completion' | 'units' | 'special';
+  icon:
+    | 'trophy'
+    | 'crown'
+    | 'medal'
+    | 'scroll'
+    | 'star'
+    | 'eye'
+    | 'ankh'
+    | 'scarab'
+    | 'pyramid'
+    | 'lotus'
+    | 'play'
+    | 'book'
+    | 'compass'
+    | 'shield'
+    | 'lightning'
+    | 'diamond'
+    | 'sword'
+    | 'brain';
+  category:
+    | 'ranking'
+    | 'videos'
+    | 'homework'
+    | 'exams'
+    | 'points'
+    | 'completion'
+    | 'units'
+    | 'special';
   earned: boolean;
   progress: number;
   requirement: string;
@@ -334,7 +360,8 @@ export interface StudentAssessment {
   unit: { title: string; courseTitle: string } | null;
 }
 
-export interface AssessmentDetail extends Omit<StudentAssessment, 'questionCount' | 'isOverdue' | 'lesson' | 'unit'> {
+export interface AssessmentDetail
+  extends Omit<StudentAssessment, 'questionCount' | 'isOverdue' | 'lesson' | 'unit'> {
   status: PublishStatus;
   lesson: { title: string } | null;
   unit: { title: string } | null;
@@ -429,7 +456,6 @@ export interface AdminPlan {
   products: Array<{ id: string; isActive: boolean }>;
   _count: { subscriptions: number };
 }
-
 
 // ---------------------------------------------------------------------------
 // Live classes

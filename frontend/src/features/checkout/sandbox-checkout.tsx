@@ -44,9 +44,7 @@ export function SandboxCheckout() {
   if (!reference || !providerRef) {
     return (
       <div className="container-page py-20 text-center">
-        <p className="font-display text-lg font-bold text-midnight-800">
-          بيانات الطلب ناقصة
-        </p>
+        <p className="font-display text-lg font-bold text-midnight-800">بيانات الطلب ناقصة</p>
       </div>
     );
   }
@@ -65,8 +63,8 @@ export function SandboxCheckout() {
             ⚠️ وضع التطوير — محاكاة دفع
           </p>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            دي مش بوابة دفع حقيقية. مفيش أي مبلغ بيتخصم، ومفيش أي بيانات بنكية
-            بتتسجّل. الصفحة دي موجودة عشان اختبار المنصة قبل تفعيل الدفع الحقيقي.
+            دي مش بوابة دفع حقيقية. مفيش أي مبلغ بيتخصم، ومفيش أي بيانات بنكية بتتسجّل. الصفحة دي
+            موجودة عشان اختبار المنصة قبل تفعيل الدفع الحقيقي.
           </p>
         </div>
 
@@ -120,8 +118,8 @@ export function SandboxCheckout() {
           </div>
 
           <p className="mt-5 text-center text-[11px] leading-relaxed text-midnight-400">
-            لتفعيل الدفع الحقيقي، اضبط <code className="font-mono">PAYMENT_PROVIDER=paymob</code>{' '}
-            مع بيانات التاجر. راجع <code className="font-mono">docs/deployment/payments.md</code>.
+            لتفعيل الدفع الحقيقي، اضبط <code className="font-mono">PAYMENT_PROVIDER=paymob</code> مع
+            بيانات التاجر. راجع <code className="font-mono">docs/deployment/payments.md</code>.
           </p>
         </div>
       </motion.div>

@@ -10,4 +10,3 @@ export const primaryNavigation: readonly NavigationItem[] = Object.freeze([
   { href: '/about', label: 'عن الأستاذ' },
   { href: '/contact', label: 'تواصل معنا' },
 ]);
-

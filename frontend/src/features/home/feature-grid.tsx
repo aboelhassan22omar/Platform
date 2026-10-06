@@ -57,7 +57,10 @@ export function FeatureGrid() {
       id="features"
       className="relative overflow-hidden bg-gradient-to-b from-[#fbf8f0] via-[#f5edd8] to-[#eee2c6] dark:from-[#030912] dark:via-[#05131f] dark:to-[#06121e] py-20 sm:py-28 text-midnight-950 dark:text-ivory-50 transition-colors duration-300"
     >
-      <div className="texture-parchment pointer-events-none absolute inset-0 opacity-25" aria-hidden />
+      <div
+        className="texture-parchment pointer-events-none absolute inset-0 opacity-25"
+        aria-hidden
+      />
 
       <div
         aria-hidden
@@ -69,7 +72,8 @@ export function FeatureGrid() {
         aria-hidden
         className="pointer-events-none absolute -bottom-24 inset-x-0 h-48 opacity-25 dark:opacity-15"
         style={{
-          background: 'radial-gradient(ellipse 80% 50% at 50% 100%, rgb(245 158 11 / 0.25), transparent 75%)',
+          background:
+            'radial-gradient(ellipse 80% 50% at 50% 100%, rgb(245 158 11 / 0.25), transparent 75%)',
         }}
       />
 
@@ -89,7 +93,8 @@ export function FeatureGrid() {
             أركان المنصة: <span className="text-gradient-gold">صُنعت لتذاكر باقتدار</span>
           </h2>
           <p className="mt-3.5 text-base sm:text-lg leading-relaxed text-midnight-800/80 dark:text-ivory-200/80">
-            كل ميزة في المنصة مستوحاة من ركائز الانضباط التاريخي؛ لتمنحك الراحة والمرونة القصوى وتجعل المذاكرة تجربة مشوقة.
+            كل ميزة في المنصة مستوحاة من ركائز الانضباط التاريخي؛ لتمنحك الراحة والمرونة القصوى
+            وتجعل المذاكرة تجربة مشوقة.
           </p>
 
           <div className="mt-6">
@@ -150,4 +155,3 @@ export function FeatureGrid() {
     </section>
   );
 }
-

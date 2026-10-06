@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { motion, useSpring } from 'motion/react';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +12,6 @@ export function InteractiveTilt({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
 
   const rotateX = useSpring(0, { stiffness: 300, damping: 30 });
   const rotateY = useSpring(0, { stiffness: 300, damping: 30 });
@@ -35,7 +34,6 @@ export function InteractiveTilt({
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
     rotateX.set(0);
     rotateY.set(0);
   };
@@ -43,7 +41,6 @@ export function InteractiveTilt({
   return (
     <motion.div
       ref={ref}
-      onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{
@@ -57,4 +54,3 @@ export function InteractiveTilt({
     </motion.div>
   );
 }
-

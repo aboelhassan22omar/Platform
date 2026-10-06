@@ -16,7 +16,8 @@ const VARIANTS: Record<Variant, string> = {
     'bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-110 shadow-[0_10px_30px_-14px_var(--accent)]',
   outline:
     'border border-midnight-200 dark:border-gold-500/30 bg-transparent text-midnight-800 dark:text-ivory-100 hover:border-[var(--accent)] hover:text-[var(--accent)] dark:hover:border-gold-400 dark:hover:text-gold-300',
-  ghost: 'bg-transparent text-midnight-700 dark:text-ivory-200 hover:bg-midnight-50 dark:hover:bg-midnight-800/60',
+  ghost:
+    'bg-transparent text-midnight-700 dark:text-ivory-200 hover:bg-midnight-50 dark:hover:bg-midnight-800/60',
   danger: 'bg-[var(--color-danger)] text-white hover:brightness-110',
 };
 
@@ -35,12 +36,7 @@ interface BaseProps {
   children: React.ReactNode;
 }
 
-const baseClasses = (
-  variant: Variant,
-  size: Size,
-  fullWidth?: boolean,
-  className?: string,
-) =>
+const baseClasses = (variant: Variant, size: Size, fullWidth?: boolean, className?: string) =>
   cn(
     'relative inline-flex items-center justify-center rounded-xl font-semibold',
     'transition-[background-color,border-color,color,filter] duration-200',
@@ -54,10 +50,7 @@ const baseClasses = (
 
 function Spinner() {
   return (
-    <span
-      aria-hidden
-      className="absolute inset-0 grid place-items-center rounded-xl bg-inherit"
-    >
+    <span aria-hidden className="absolute inset-0 grid place-items-center rounded-xl bg-inherit">
       <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
     </span>
   );
@@ -68,7 +61,16 @@ export interface ButtonProps
     Omit<React.ComponentPropsWithoutRef<'button'>, keyof BaseProps> {}
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = 'primary', size = 'md', isLoading, fullWidth, className, children, disabled, ...props },
+  {
+    variant = 'primary',
+    size = 'md',
+    isLoading,
+    fullWidth,
+    className,
+    children,
+    disabled,
+    ...props
+  },
   ref,
 ) {
   return (

@@ -49,9 +49,7 @@ async function gotoSettled(page: Page, path: string): Promise<void> {
   await page.goto(path, { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
   // One frame, so any entrance animation has applied its final transform.
-  await page.evaluate(
-    () => new Promise((resolve) => requestAnimationFrame(() => resolve(null))),
-  );
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(null))));
 }
 
 /** True when the document is wider than the viewport, i.e. it scrolls sideways. */
@@ -118,9 +116,7 @@ test.describe('RTL and Arabic typography', () => {
 
   test('body text renders in an Arabic-capable font', async ({ page }) => {
     await page.goto('/');
-    const fontFamily = await page.evaluate(
-      () => getComputedStyle(document.body).fontFamily,
-    );
+    const fontFamily = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
     expect(fontFamily.toLowerCase()).toContain('cairo');
   });
 });
@@ -157,7 +153,7 @@ test.describe('mobile navigation', () => {
     const bodyOverflow = await page.evaluate(() => document.body.style.overflow);
     expect(bodyOverflow).toBe('hidden');
 
-    await page.getByRole('button', { name: 'اقفل القائمة' }).click();
+    await drawer.getByRole('button', { name: 'إغلاق القائمة', exact: true }).click();
     await expect(drawer).not.toBeVisible();
   });
 
@@ -186,10 +182,10 @@ test.describe('reduced motion', () => {
     await expect(heading).toBeVisible();
 
     await expect
-      .poll(
-        async () => Number(await heading.evaluate((el) => getComputedStyle(el).opacity)),
-        { message: 'heading never reached full opacity', timeout: 5000 },
-      )
+      .poll(async () => Number(await heading.evaluate((el) => getComputedStyle(el).opacity)), {
+        message: 'heading never reached full opacity',
+        timeout: 5000,
+      })
       .toBeGreaterThan(0.9);
 
     // And nothing should still be sliding: the final transform must be settled.

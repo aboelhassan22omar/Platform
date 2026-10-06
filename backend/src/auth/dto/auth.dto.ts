@@ -62,16 +62,15 @@ class GradeMatchesSystemConstraint implements ValidatorConstraintInterface {
 }
 
 export class RegisterDto {
-  @IsOptional() @IsEnum(StudentType)
+  @IsOptional()
+  @IsEnum(StudentType)
   studentType?: StudentType;
   @ApiProperty({ example: 'أحمد محمد علي', description: 'الاسم الكامل' })
   @IsString()
   @IsNotEmpty({ message: 'الاسم مطلوب' })
   @MinLength(3, { message: 'الاسم لازم يكون 3 حروف على الأقل' })
   @MaxLength(80, { message: 'الاسم طويل أوي' })
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value))
   fullName!: string;
 
   @ApiProperty({ example: 'ahmed.mohamed', description: 'اسم المستخدم' })
@@ -170,7 +169,11 @@ export class OtpChallengeDto {
 
 export class VerifyOtpDto extends OtpChallengeDto {
   @IsString()
-  @Transform(({ value }) => typeof value === 'string' ? value.trim().replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632)) : value)
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.trim().replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632))
+      : value,
+  )
   @Matches(/^\d{6}$/, { message: 'اكتب كود التحقق المكوّن من ٦ أرقام' })
   code!: string;
 }
@@ -181,9 +184,7 @@ export class UpdateProfileDto {
   @IsString()
   @MinLength(3, { message: 'الاسم لازم يكون 3 حروف على الأقل' })
   @MaxLength(80)
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value,
-  )
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : value))
   fullName?: string;
 
   @ApiPropertyOptional({ example: '01112345678' })

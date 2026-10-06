@@ -1,0 +1,65 @@
+import { INITIAL_PRODUCTS } from './catalog-seed';
+import type { StoreOrder } from './store.types';
+
+export function demoOrders(): StoreOrder[] {
+  return [
+    {
+      reference: 'DEMO-1001',
+      method: 'COD' as const,
+      status: 'CONFIRMED' as const,
+      paymentStatus: 'UNPAID' as const,
+      name: 'أحمد محمد',
+      gov: 'CAIRO',
+      city: 'مدينة نصر',
+      shipping: 6000,
+      index: 6,
+    },
+    {
+      reference: 'DEMO-1002',
+      method: 'INSTAPAY' as const,
+      status: 'AWAITING_PAYMENT' as const,
+      paymentStatus: 'SUBMITTED' as const,
+      name: 'مريم حسن',
+      gov: 'ALEXANDRIA',
+      city: 'سموحة',
+      shipping: 8000,
+      index: 5,
+    },
+    {
+      reference: 'DEMO-1003',
+      method: 'VODAFONE_CASH' as const,
+      status: 'SHIPPED' as const,
+      paymentStatus: 'PAID' as const,
+      name: 'يوسف علي',
+      gov: 'ASSIUT',
+      city: 'أسيوط',
+      shipping: 10000,
+      index: 0,
+    },
+  ].map((sample, index) => ({
+    reference: sample.reference,
+    method: sample.method,
+    status: sample.status,
+    paymentStatus: sample.paymentStatus,
+    createdAt: new Date(Date.now() - (index + 1) * 3600000).toISOString(),
+    delivery: {
+      customerName: sample.name,
+      phone: `0100000000${index + 1}`,
+      alternatePhone: `0110000000${index + 1}`,
+      governorate: sample.gov,
+      city: sample.city,
+      address: 'شارع المثال، بجوار ميدان الحي',
+      landmark: 'بجوار الصيدلية',
+      building: '١٢',
+      floor: 'الثاني',
+      apartment: '٥',
+      notes: '',
+    },
+    items: [{ product: { ...INITIAL_PRODUCTS[sample.index] }, quantity: 1 }],
+    subtotalMinor: INITIAL_PRODUCTS[sample.index].priceMinor,
+    shippingMinor: sample.shipping,
+    totalMinor: INITIAL_PRODUCTS[sample.index].priceMinor + sample.shipping,
+    transferReference: sample.paymentStatus === 'SUBMITTED' ? 'DEMO-TRANSFER-1002' : undefined,
+    trackingNumber: sample.status === 'SHIPPED' ? 'DEMO-SHIP-1003' : undefined,
+  }));
+}

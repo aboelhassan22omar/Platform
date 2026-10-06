@@ -46,14 +46,22 @@ export class LiveController {
   @Post(':id/chat')
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @ApiOperation({ summary: 'إرسال رسالة في الشات' })
-  send(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: LiveChatMessageDto) {
+  send(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: LiveChatMessageDto,
+  ) {
     return this.live.postChat(user, id, dto.body);
   }
 
   @Post(':id/reactions')
   @Throttle({ default: { limit: 40, ttl: 60_000 } })
   @ApiOperation({ summary: 'إرسال رياكشن' })
-  react(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: LiveReactionDto) {
+  react(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: LiveReactionDto,
+  ) {
     return this.live.react(user, id, dto.emoji);
   }
 }
@@ -79,7 +87,11 @@ export class AdminLiveController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'تعديل لايف قبل ما يبدأ' })
-  update(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: UpdateLiveSessionDto) {
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateLiveSessionDto,
+  ) {
     return this.live.update(user, id, dto);
   }
 
@@ -103,7 +115,11 @@ export class AdminLiveController {
 
   @Patch(':id/chat')
   @ApiOperation({ summary: 'فتح أو قفل الشات' })
-  chat(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() dto: LiveChatToggleDto) {
+  chat(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: LiveChatToggleDto,
+  ) {
     return this.live.setChat(user, id, dto.enabled);
   }
 
@@ -115,7 +131,10 @@ export class AdminLiveController {
 
   @Delete('recordings/:recordingId')
   @ApiOperation({ summary: 'مسح تسجيل' })
-  deleteRecording(@CurrentUser() user: AuthenticatedUser, @Param('recordingId') recordingId: string) {
+  deleteRecording(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('recordingId') recordingId: string,
+  ) {
     return this.live.deleteRecording(user, recordingId);
   }
 
@@ -126,10 +145,16 @@ export class AdminLiveController {
   }
 
   @Get(':id/participants')
-  participants(@Param('id') id: string) { return this.live.participantsFor(id); }
+  participants(@Param('id') id: string) {
+    return this.live.participantsFor(id);
+  }
 
   @Post(':id/participants/:userId/kick')
-  kick(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Param('userId') userId: string) {
+  kick(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
     return this.live.kickParticipant(user, id, userId);
   }
 }

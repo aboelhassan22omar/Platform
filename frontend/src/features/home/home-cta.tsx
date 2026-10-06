@@ -38,14 +38,18 @@ export function HomeCta() {
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#eee2c6] via-[#f7f2e4] to-[#fbf8f0] dark:bg-[#06121e] py-20 sm:py-28 text-midnight-950 dark:text-ivory-50 transition-colors duration-300">
-      <div className="texture-parchment pointer-events-none absolute inset-0 opacity-20" aria-hidden />
+      <div
+        className="texture-parchment pointer-events-none absolute inset-0 opacity-20"
+        aria-hidden
+      />
 
       {/* هالة إضاءة ذهبية ناعمة */}
       <div
         aria-hidden
         className="pointer-events-none absolute -top-32 inset-x-0 h-64 opacity-25 dark:opacity-15"
         style={{
-          background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgb(245 158 11 / 0.35), transparent 75%)',
+          background:
+            'radial-gradient(ellipse 80% 50% at 50% 0%, rgb(245 158 11 / 0.35), transparent 75%)',
         }}
       />
 
@@ -100,7 +104,12 @@ export function HomeCta() {
                 <span className="flex items-center gap-2">
                   <span>{content.action}</span>
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-                    <path d="M11 4l-5 5 5 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                    <path
+                      d="M11 4l-5 5 5 5"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </span>
               </ButtonLink>

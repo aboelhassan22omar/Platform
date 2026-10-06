@@ -10,7 +10,10 @@ import { formatEgp, toArabicDigits } from '@/lib/utils';
 import { EASE_ENTRANCE, staggerContainer } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import type { Order, Plan } from '@/types/api';
-import { PaymentMethodDialog, type CheckoutPaymentMethod } from '@/features/checkout/payment-method-dialog';
+import {
+  PaymentMethodDialog,
+  type CheckoutPaymentMethod,
+} from '@/features/checkout/payment-method-dialog';
 
 /**
  * Subscription packages for one grade.
@@ -51,9 +54,7 @@ export function PlanCards({ plans, gradeName }: { plans: Plan[]; gradeName: stri
         router.push(`/checkout/return?ref=${order.reference}`);
       }
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : 'حصل خطأ، حاول تاني بعد شوية',
-      );
+      setError(err instanceof ApiError ? err.message : 'حصل خطأ، حاول تاني بعد شوية');
       setPendingId(null);
     }
   };
@@ -117,7 +118,7 @@ export function PlanCards({ plans, gradeName }: { plans: Plan[]; gradeName: stri
           viewport={{ once: true }}
           className="mt-7 grid items-stretch gap-4 lg:grid-cols-2"
         >
-          {plans.map((plan, index) => {
+          {plans.map((plan) => {
             const isYearly = plan.kind === 'YEARLY_PLAN';
             return (
               <motion.li
@@ -144,9 +145,7 @@ export function PlanCards({ plans, gradeName }: { plans: Plan[]; gradeName: stri
                   </span>
                 )}
 
-                <h3 className="font-display text-xl font-extrabold text-ivory-50">
-                  {plan.title}
-                </h3>
+                <h3 className="font-display text-xl font-extrabold text-ivory-50">{plan.title}</h3>
                 {plan.description && (
                   <p className="mt-2 text-sm leading-relaxed text-ivory-200/65">
                     {plan.description}

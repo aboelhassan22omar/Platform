@@ -67,7 +67,15 @@ const SESSION_SELECT = {
   endReason: true,
   roomName: true,
   grade: {
-    select: { id: true, nameAr: true, shortNameAr: true, slug: true, themeKey: true, educationSystem: true, level: true },
+    select: {
+      id: true,
+      nameAr: true,
+      shortNameAr: true,
+      slug: true,
+      themeKey: true,
+      educationSystem: true,
+      level: true,
+    },
   },
 } as const;
 
@@ -75,7 +83,10 @@ const SESSION_SELECT = {
 export type LiveEvent =
   | { type: 'chat'; message: LiveChatView }
   | { type: 'chat-state'; enabled: boolean }
-  | { type: 'reaction'; reaction: { id: string; emoji: string; userId: string; name: string; createdAt: string } }
+  | {
+      type: 'reaction';
+      reaction: { id: string; emoji: string; userId: string; name: string; createdAt: string };
+    }
   | { type: 'recording'; active: boolean }
   | { type: 'ended' };
 
@@ -138,9 +149,14 @@ export class LiveService {
     const service = this.roomService();
     if (!service) return;
     try {
-      await service.sendData(roomName, this.encoder.encode(JSON.stringify(event)), DataPacket_Kind.RELIABLE, {
-        topic: 'live',
-      });
+      await service.sendData(
+        roomName,
+        this.encoder.encode(JSON.stringify(event)),
+        DataPacket_Kind.RELIABLE,
+        {
+          topic: 'live',
+        },
+      );
     } catch (error) {
       // An empty room (nobody connected yet) is not an error for the caller.
       this.logger.warn(`broadcast to ${roomName} failed: ${(error as Error).message}`);
@@ -152,14 +168,21 @@ export class LiveService {
   // -------------------------------------------------------------------------
 
   private async load(id: string) {
-    const session = await this.prisma.liveSession.findUnique({ where: { id }, select: SESSION_SELECT });
+    const session = await this.prisma.liveSession.findUnique({
+      where: { id },
+      select: SESSION_SELECT,
+    });
     if (!session) throw new NotFoundException('اللايف ده مش موجود');
     return session;
   }
 
   /** Students see only their own grade's lives; staff may observe any. */
-  private async assertCanView(user: AuthenticatedUser, session: Awaited<ReturnType<LiveService['load']>>) {
-    if (session.kickedUserIds.includes(user.id)) throw new ForbiddenException('المستر أخرجك من اللايف ده');
+  private async assertCanView(
+    user: AuthenticatedUser,
+    session: Awaited<ReturnType<LiveService['load']>>,
+  ) {
+    if (session.kickedUserIds.includes(user.id))
+      throw new ForbiddenException('المستر أخرجك من اللايف ده');
     if (user.role !== Role.STUDENT) return;
     const student = await this.prisma.user.findUnique({
       where: { id: user.id },
@@ -176,7 +199,13 @@ export class LiveService {
     const { roomName: _room, kickedUserIds: _kicked, grade, ...rest } = session;
     return {
       ...rest,
-      grade: { id: grade.id, nameAr: grade.nameAr, shortNameAr: grade.shortNameAr, slug: grade.slug, themeKey: grade.themeKey },
+      grade: {
+        id: grade.id,
+        nameAr: grade.nameAr,
+        shortNameAr: grade.shortNameAr,
+        slug: grade.slug,
+        themeKey: grade.themeKey,
+      },
     };
   }
 
@@ -193,7 +222,9 @@ export class LiveService {
         select: { educationSystem: true, gradeLevel: true },
       });
       if (!student?.educationSystem || !student.gradeLevel) return [];
-      gradeFilter = { grade: { educationSystem: student.educationSystem, level: student.gradeLevel } };
+      gradeFilter = {
+        grade: { educationSystem: student.educationSystem, level: student.gradeLevel },
+      };
     }
 
     const sessions = await this.prisma.liveSession.findMany({
@@ -201,7 +232,10 @@ export class LiveService {
         ...gradeFilter,
         OR: [
           { status: LiveSessionStatus.LIVE, startedAt: { gte: new Date(now - STALE_LIVE_MS) } },
-          { status: LiveSessionStatus.SCHEDULED, scheduledAt: { gte: new Date(now - SCHEDULE_GRACE_MS) } },
+          {
+            status: LiveSessionStatus.SCHEDULED,
+            scheduledAt: { gte: new Date(now - SCHEDULE_GRACE_MS) },
+          },
         ],
       },
       orderBy: { scheduledAt: 'asc' },
@@ -211,7 +245,10 @@ export class LiveService {
 
     // A class that is on air outranks anything merely scheduled.
     return sessions
-      .sort((a, b) => Number(b.status === LiveSessionStatus.LIVE) - Number(a.status === LiveSessionStatus.LIVE))
+      .sort(
+        (a, b) =>
+          Number(b.status === LiveSessionStatus.LIVE) - Number(a.status === LiveSessionStatus.LIVE),
+      )
       .map((session) => this.view(session));
   }
 
@@ -220,7 +257,9 @@ export class LiveService {
     await this.assertCanView(user, session);
     const isHost = LiveService.canHost(user.role);
     const recording = isHost
-      ? (await this.prisma.liveRecording.count({ where: { sessionId: id, status: LiveRecordingStatus.RECORDING } })) > 0
+      ? (await this.prisma.liveRecording.count({
+          where: { sessionId: id, status: LiveRecordingStatus.RECORDING },
+        })) > 0
       : false;
     return { ...this.view(session), isHost, recording, streamingReady: this.livekit().configured };
   }
@@ -231,13 +270,19 @@ export class LiveService {
 
     const session = await this.load(id);
     await this.assertCanView(user, session);
-    if (session.status === LiveSessionStatus.ENDED || session.status === LiveSessionStatus.CANCELLED) {
+    if (
+      session.status === LiveSessionStatus.ENDED ||
+      session.status === LiveSessionStatus.CANCELLED
+    ) {
       throw new GoneException('اللايف ده خلص');
     }
     if (session.status !== LiveSessionStatus.LIVE) throw new ConflictException('اللايف لسه مبدأش');
 
     const host = LiveService.canHost(user.role);
-    const person = await this.prisma.user.findUnique({ where: { id: user.id }, select: { fullName: true } });
+    const person = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { fullName: true },
+    });
 
     const token = new AccessToken(apiKey, apiSecret, {
       identity: user.id,
@@ -265,7 +310,12 @@ export class LiveService {
       where: { sessionId: id },
       orderBy: { createdAt: 'desc' },
       take: 200,
-      select: { id: true, body: true, createdAt: true, user: { select: { id: true, fullName: true, role: true } } },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        user: { select: { id: true, fullName: true, role: true } },
+      },
     });
     return rows.reverse().map((row) => ({
       id: row.id,
@@ -278,7 +328,8 @@ export class LiveService {
   async postChat(user: AuthenticatedUser, id: string, rawBody: string): Promise<LiveChatView> {
     const session = await this.load(id);
     await this.assertCanView(user, session);
-    if (session.status !== LiveSessionStatus.LIVE) throw new ConflictException('اللايف مش شغال دلوقتي');
+    if (session.status !== LiveSessionStatus.LIVE)
+      throw new ConflictException('اللايف مش شغال دلوقتي');
 
     const host = LiveService.canHost(user.role);
     if (!session.chatEnabled && !host) throw new ForbiddenException('المستر قافل الشات دلوقتي');
@@ -288,7 +339,12 @@ export class LiveService {
 
     const row = await this.prisma.liveChatMessage.create({
       data: { sessionId: id, userId: user.id, body },
-      select: { id: true, body: true, createdAt: true, user: { select: { id: true, fullName: true, role: true } } },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        user: { select: { id: true, fullName: true, role: true } },
+      },
     });
     const message: LiveChatView = {
       id: row.id,
@@ -303,11 +359,17 @@ export class LiveService {
   async react(user: AuthenticatedUser, id: string, emoji: string) {
     const session = await this.load(id);
     await this.assertCanView(user, session);
-    if (session.status !== LiveSessionStatus.LIVE) throw new ConflictException('اللايف مش شغال دلوقتي');
+    if (session.status !== LiveSessionStatus.LIVE)
+      throw new ConflictException('اللايف مش شغال دلوقتي');
 
     const row = await this.prisma.liveReaction.create({
       data: { sessionId: id, userId: user.id, emoji },
-      select: { id: true, emoji: true, createdAt: true, user: { select: { id: true, fullName: true } } },
+      select: {
+        id: true,
+        emoji: true,
+        createdAt: true,
+        user: { select: { id: true, fullName: true } },
+      },
     });
     const reaction = {
       id: row.id,
@@ -333,7 +395,15 @@ export class LiveService {
         _count: { select: { messages: true, reactions: true } },
         recordings: {
           orderBy: { startedAt: 'asc' },
-          select: { id: true, status: true, startedAt: true, endedAt: true, durationSeconds: true, sizeBytes: true, error: true },
+          select: {
+            id: true,
+            status: true,
+            startedAt: true,
+            endedAt: true,
+            durationSeconds: true,
+            sizeBytes: true,
+            error: true,
+          },
         },
       },
     });
@@ -342,13 +412,19 @@ export class LiveService {
       items: sessions.map(({ _count, recordings, ...session }) => ({
         ...this.view(session),
         counts: _count,
-        recordings: recordings.map((r) => ({ ...r, sizeBytes: r.sizeBytes === null ? null : Number(r.sizeBytes) })),
+        recordings: recordings.map((r) => ({
+          ...r,
+          sizeBytes: r.sizeBytes === null ? null : Number(r.sizeBytes),
+        })),
       })),
     };
   }
 
   private async notifyGrade(gradeId: string, title: string, body: string, href: string) {
-    const grade = await this.prisma.grade.findUnique({ where: { id: gradeId }, select: { educationSystem: true, level: true } });
+    const grade = await this.prisma.grade.findUnique({
+      where: { id: gradeId },
+      select: { educationSystem: true, level: true },
+    });
     if (!grade) return;
     const students = await this.prisma.user.findMany({
       where: {
@@ -361,12 +437,21 @@ export class LiveService {
     });
     if (!students.length) return;
     await this.prisma.notification.createMany({
-      data: students.map((student) => ({ userId: student.id, kind: NotificationKind.CONTENT, title, body, href })),
+      data: students.map((student) => ({
+        userId: student.id,
+        kind: NotificationKind.CONTENT,
+        title,
+        body,
+        href,
+      })),
     });
   }
 
   async create(actor: AuthenticatedUser, dto: CreateLiveSessionDto) {
-    const grade = await this.prisma.grade.findUnique({ where: { id: dto.gradeId }, select: { id: true } });
+    const grade = await this.prisma.grade.findUnique({
+      where: { id: dto.gradeId },
+      select: { id: true },
+    });
     if (!grade) throw new BadRequestException('اختار صف صحيح');
     const scheduledAt = new Date(dto.scheduledAt);
 
@@ -409,7 +494,10 @@ export class LiveService {
       throw new ConflictException('تقدر تعدّل اللايف قبل ما يبدأ بس');
     }
     if (dto.gradeId) {
-      const grade = await this.prisma.grade.findUnique({ where: { id: dto.gradeId }, select: { id: true } });
+      const grade = await this.prisma.grade.findUnique({
+        where: { id: dto.gradeId },
+        select: { id: true },
+      });
       if (!grade) throw new BadRequestException('اختار صف صحيح');
     }
     await this.prisma.$transaction(async (tx) => {
@@ -471,7 +559,13 @@ export class LiveService {
   async start(actor: AuthenticatedUser, id: string) {
     const { configured } = this.livekit();
     if (!configured) throw new ServiceUnavailableException('البث المباشر لسه مش متفعّل على المنصة');
-    const session = await this.transition(actor, id, [LiveSessionStatus.SCHEDULED], LiveSessionStatus.LIVE, 'اللايف ده مينفعش يبدأ');
+    const session = await this.transition(
+      actor,
+      id,
+      [LiveSessionStatus.SCHEDULED],
+      LiveSessionStatus.LIVE,
+      'اللايف ده مينفعش يبدأ',
+    );
     await this.notifyGrade(
       session.grade.id,
       `اللايف بدأ: ${session.title}`,
@@ -498,7 +592,12 @@ export class LiveService {
     const changed = await this.prisma.$transaction(async (tx) => {
       const result = await tx.liveSession.updateMany({
         where: { id, status: LiveSessionStatus.LIVE },
-        data: { status: LiveSessionStatus.ENDED, endedAt: new Date(), endReason: reason, hostAbsentSince: null },
+        data: {
+          status: LiveSessionStatus.ENDED,
+          endedAt: new Date(),
+          endReason: reason,
+          hostAbsentSince: null,
+        },
       });
       if (result.count) {
         await this.audit.record(tx, {
@@ -567,9 +666,16 @@ export class LiveService {
     });
     try {
       // "speaker" puts a shared screen front and centre with the camera beside it.
-      const info = await egress.startRoomCompositeEgress(session.roomName, output, { layout: 'speaker' });
+      const info = await egress.startRoomCompositeEgress(session.roomName, output, {
+        layout: 'speaker',
+      });
       await this.prisma.liveRecording.create({
-        data: { sessionId: session.id, egressId: info.egressId, objectKey, status: LiveRecordingStatus.RECORDING },
+        data: {
+          sessionId: session.id,
+          egressId: info.egressId,
+          objectKey,
+          status: LiveRecordingStatus.RECORDING,
+        },
       });
       await this.broadcast(session.roomName, { type: 'recording', active: true });
       this.logger.log(`recording started for ${session.id} (${info.egressId})`);
@@ -638,7 +744,10 @@ export class LiveService {
         }
         continue;
       }
-      if (info.status === EgressStatus.EGRESS_COMPLETE || info.status === EgressStatus.EGRESS_LIMIT_REACHED) {
+      if (
+        info.status === EgressStatus.EGRESS_COMPLETE ||
+        info.status === EgressStatus.EGRESS_LIMIT_REACHED
+      ) {
         const file = info.fileResults[0];
         await this.prisma.liveRecording.update({
           where: { id: recording.id },
@@ -650,7 +759,10 @@ export class LiveService {
             error: file ? null : info.error || 'التسجيل خلص من غير ملف',
           },
         });
-      } else if (info.status === EgressStatus.EGRESS_FAILED || info.status === EgressStatus.EGRESS_ABORTED) {
+      } else if (
+        info.status === EgressStatus.EGRESS_FAILED ||
+        info.status === EgressStatus.EGRESS_ABORTED
+      ) {
         await this.prisma.liveRecording.update({
           where: { id: recording.id },
           data: {
@@ -659,7 +771,10 @@ export class LiveService {
             error: (info.error || 'فشل التسجيل').slice(0, 500),
           },
         });
-      } else if (info.status === EgressStatus.EGRESS_ENDING && recording.status === LiveRecordingStatus.RECORDING) {
+      } else if (
+        info.status === EgressStatus.EGRESS_ENDING &&
+        recording.status === LiveRecordingStatus.RECORDING
+      ) {
         await this.prisma.liveRecording.update({
           where: { id: recording.id },
           data: { status: LiveRecordingStatus.PROCESSING, endedAt: new Date() },
@@ -719,14 +834,16 @@ export class LiveService {
     });
 
     for (const session of sessions) {
-      let participants: ParticipantInfo[] = [];
+      let participants: ParticipantInfo[];
       try {
         participants = await rooms.listParticipants(session.roomName);
       } catch (error) {
         // Only a confirmed missing room proves absence. Network/auth failures
         // must not stop recordings or close a class whose host is still online.
         if ((error as { code?: string })?.code !== 'not_found') {
-          this.logger.warn(`listParticipants ${session.roomName} failed: ${(error as Error).message}`);
+          this.logger.warn(
+            `listParticipants ${session.roomName} failed: ${(error as Error).message}`,
+          );
           continue;
         }
         participants = [];
@@ -734,21 +851,32 @@ export class LiveService {
       // Also catch joins already in flight when the teacher kicked the student.
       for (const participant of participants) {
         if (session.kickedUserIds.includes(participant.identity)) {
-          try { await rooms.removeParticipant(session.roomName, participant.identity, { revokeTokenTs: BigInt(Math.floor(Date.now() / 1000) + 1) }); }
-          catch (error) { this.logger.warn(`remove banned participant failed: ${(error as Error).message}`); }
+          try {
+            await rooms.removeParticipant(session.roomName, participant.identity, {
+              revokeTokenTs: BigInt(Math.floor(Date.now() / 1000) + 1),
+            });
+          } catch (error) {
+            this.logger.warn(`remove banned participant failed: ${(error as Error).message}`);
+          }
         }
       }
-      const presenter = participants.find((p) => !session.kickedUserIds.includes(p.identity) && LiveService.isPresenter(p));
+      const presenter = participants.find(
+        (p) => !session.kickedUserIds.includes(p.identity) && LiveService.isPresenter(p),
+      );
       const latest = session.recordings[0];
       const recording = latest?.status === LiveRecordingStatus.RECORDING;
 
       if (presenter) {
         if (session.hostAbsentSince) {
-          await this.prisma.liveSession.update({ where: { id: session.id }, data: { hostAbsentSince: null } });
+          await this.prisma.liveSession.update({
+            where: { id: session.id },
+            data: { hostAbsentSince: null },
+          });
         }
         const publishing = presenter.tracks.length > 0;
         const recentlyFailed =
-          latest?.status === LiveRecordingStatus.FAILED && Date.now() - latest.startedAt.getTime() < RECORDING_RETRY_MS;
+          latest?.status === LiveRecordingStatus.FAILED &&
+          Date.now() - latest.startedAt.getTime() < RECORDING_RETRY_MS;
         if (session.recordingEnabled && publishing && !recording && !recentlyFailed) {
           await this.startRecording(session);
         }
@@ -761,7 +889,10 @@ export class LiveService {
       const now = Date.now();
       const absentSince = session.hostAbsentSince ?? new Date(now);
       if (!session.hostAbsentSince) {
-        await this.prisma.liveSession.update({ where: { id: session.id }, data: { hostAbsentSince: absentSince } });
+        await this.prisma.liveSession.update({
+          where: { id: session.id },
+          data: { hostAbsentSince: absentSince },
+        });
       }
       const joinWindowOpen = now - (session.startedAt?.getTime() ?? now) < JOIN_GRACE_MS;
       if (!joinWindowOpen && now - absentSince.getTime() >= HOST_GRACE_MS) {
@@ -781,7 +912,8 @@ export class LiveService {
       select: { objectKey: true, status: true, session: { select: { title: true } } },
     });
     if (!recording) throw new NotFoundException('التسجيل ده مش موجود');
-    if (recording.status !== LiveRecordingStatus.READY) throw new ConflictException('التسجيل لسه مش جاهز');
+    if (recording.status !== LiveRecordingStatus.READY)
+      throw new ConflictException('التسجيل لسه مش جاهز');
     const bucket = this.config.get<string>('storage.videoBucket') ?? '';
     const filename = `${recording.session.title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'live'}.mp4`;
     const url = await this.storage.presignDownload(
@@ -789,7 +921,9 @@ export class LiveService {
       recording.objectKey,
       2 * 60 * 60,
       download
-        ? { 'response-content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}` }
+        ? {
+            'response-content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+          }
         : undefined,
     );
     return { url };
@@ -801,12 +935,18 @@ export class LiveService {
       select: { id: true, status: true, objectKey: true, sessionId: true },
     });
     if (!recording) throw new NotFoundException('التسجيل ده مش موجود');
-    if (recording.status === LiveRecordingStatus.RECORDING || recording.status === LiveRecordingStatus.PROCESSING) {
+    if (
+      recording.status === LiveRecordingStatus.RECORDING ||
+      recording.status === LiveRecordingStatus.PROCESSING
+    ) {
       throw new ConflictException('استنى لحد ما التسجيل يخلص وبعدين امسحه');
     }
     if (recording.status === LiveRecordingStatus.READY) {
       try {
-        await this.storage.removeObject(this.config.get<string>('storage.videoBucket') ?? '', recording.objectKey);
+        await this.storage.removeObject(
+          this.config.get<string>('storage.videoBucket') ?? '',
+          recording.objectKey,
+        );
       } catch (error) {
         this.logger.warn(`remove ${recording.objectKey}: ${(error as Error).message}`);
       }
@@ -858,9 +998,18 @@ export class LiveService {
         where: { sessionId: id },
         orderBy: { createdAt: 'desc' },
         take: 200,
-        select: { id: true, emoji: true, createdAt: true, user: { select: { id: true, fullName: true } } },
+        select: {
+          id: true,
+          emoji: true,
+          createdAt: true,
+          user: { select: { id: true, fullName: true } },
+        },
       }),
-      this.prisma.liveReaction.groupBy({ by: ['emoji'], where: { sessionId: id }, _count: { _all: true } }),
+      this.prisma.liveReaction.groupBy({
+        by: ['emoji'],
+        where: { sessionId: id },
+        _count: { _all: true },
+      }),
     ]);
     return {
       totals: grouped.map((row) => ({ emoji: row.emoji, count: row._count._all })),
@@ -879,8 +1028,9 @@ export class LiveService {
     const rooms = this.roomService();
     if (!rooms) throw new ServiceUnavailableException('البث مش متفعّل');
     let participants: ParticipantInfo[];
-    try { participants = await rooms.listParticipants(session.roomName); }
-    catch (error) {
+    try {
+      participants = await rooms.listParticipants(session.roomName);
+    } catch (error) {
       if ((error as { code?: string })?.code === 'not_found') participants = [];
       else throw new ServiceUnavailableException('مقدرناش نجيب الحاضرين، حاول تاني');
     }
@@ -890,26 +1040,59 @@ export class LiveService {
     });
     const items = participants.flatMap((participant) => {
       const user = users.find((u) => u.id === participant.identity);
-      return user ? [{ id: user.id, name: user.fullName, isHost: LiveService.canHost(user.role), canKick: user.role === Role.STUDENT }] : [];
+      return user
+        ? [
+            {
+              id: user.id,
+              name: user.fullName,
+              isHost: LiveService.canHost(user.role),
+              canKick: user.role === Role.STUDENT,
+            },
+          ]
+        : [];
     });
-    return { title: session.title, status: session.status, count: items.length, studentCount: items.filter((p) => p.canKick).length, items };
+    return {
+      title: session.title,
+      status: session.status,
+      count: items.length,
+      studentCount: items.filter((p) => p.canKick).length,
+      items,
+    };
   }
 
   async kickParticipant(actor: AuthenticatedUser, id: string, userId: string) {
     if (!LiveService.canHost(actor.role)) throw new ForbiddenException('غير مسموح');
     const session = await this.load(id);
     if (session.status !== LiveSessionStatus.LIVE) throw new ConflictException('اللايف مش شغال');
-    const target = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (!target || target.role !== Role.STUDENT || userId === actor.id) throw new BadRequestException('تقدر تطرد طالب بس');
+    const target = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (!target || target.role !== Role.STUDENT || userId === actor.id)
+      throw new BadRequestException('تقدر تطرد طالب بس');
     const rooms = this.roomService();
     if (!rooms) throw new ServiceUnavailableException('البث مش متفعّل');
     // Persist the ban before revoking tokens so no new join ticket is issued.
     await this.prisma.$transaction(async (tx) => {
-      await tx.liveSession.updateMany({ where: { id, NOT: { kickedUserIds: { has: userId } } }, data: { kickedUserIds: { push: userId } } });
-      await this.audit.record(tx, { actorId: actor.id, action: 'live.participant.kick', entityType: 'LiveSession', entityId: id, metadata: { userId } });
+      await tx.liveSession.updateMany({
+        where: { id, NOT: { kickedUserIds: { has: userId } } },
+        data: { kickedUserIds: { push: userId } },
+      });
+      await this.audit.record(tx, {
+        actorId: actor.id,
+        action: 'live.participant.kick',
+        entityType: 'LiveSession',
+        entityId: id,
+        metadata: { userId },
+      });
     });
-    try { await rooms.removeParticipant(session.roomName, userId, { revokeTokenTs: BigInt(Math.floor(Date.now() / 1000) + 1) }); }
-    catch { throw new ServiceUnavailableException('اتمنع دخوله، لكن فصل الاتصال فشل؛ اضغط طرد تاني'); }
+    try {
+      await rooms.removeParticipant(session.roomName, userId, {
+        revokeTokenTs: BigInt(Math.floor(Date.now() / 1000) + 1),
+      });
+    } catch {
+      throw new ServiceUnavailableException('اتمنع دخوله، لكن فصل الاتصال فشل؛ اضغط طرد تاني');
+    }
     return { kicked: true };
   }
 }

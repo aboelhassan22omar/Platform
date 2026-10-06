@@ -166,9 +166,7 @@ export function VideoUploader({ lessonId }: { lessonId: string }) {
       pollStatus();
     } catch (err) {
       setPhase('idle');
-      setError(
-        err instanceof Error ? err.message : 'حصل خطأ غير متوقع أثناء الرفع',
-      );
+      setError(err instanceof Error ? err.message : 'حصل خطأ غير متوقع أثناء الرفع');
     }
   };
 
@@ -207,8 +205,17 @@ export function VideoUploader({ lessonId }: { lessonId: string }) {
           className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white dark:bg-midnight-900 text-gold-600 dark:text-gold-400 shadow-card"
         >
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M12 16V4M7.5 8.5L12 4l4.5 4.5" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M4 15v3.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V15" strokeWidth="1.7" strokeLinecap="round" />
+            <path
+              d="M12 16V4M7.5 8.5L12 4l4.5 4.5"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M4 15v3.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V15"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
           </svg>
         </span>
 
@@ -239,7 +246,9 @@ export function VideoUploader({ lessonId }: { lessonId: string }) {
     <div className="rounded-2xl border border-gold-500/25 bg-white dark:bg-midnight-950/80 p-5 shadow-card transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-midnight-950 dark:text-ivory-50">{file?.name}</p>
+          <p className="truncate text-sm font-bold text-midnight-950 dark:text-ivory-50">
+            {file?.name}
+          </p>
           {file && (
             <p className="text-xs text-midnight-500 dark:text-ivory-300/60">
               {(file.size / 1024 / 1024).toFixed(1)} ميجا
@@ -344,4 +353,3 @@ export function VideoUploader({ lessonId }: { lessonId: string }) {
     </div>
   );
 }
-

@@ -52,10 +52,16 @@ export class MaintenanceService {
     const now = new Date();
     const where = { status: PublishStatus.SCHEDULED, scheduledAt: { lte: now } } as const;
     const [courses, units, chapters, lessons, assessments] = await this.prisma.$transaction([
-      this.prisma.course.updateMany({ where, data: { status: PublishStatus.PUBLISHED, publishedAt: now } }),
+      this.prisma.course.updateMany({
+        where,
+        data: { status: PublishStatus.PUBLISHED, publishedAt: now },
+      }),
       this.prisma.unit.updateMany({ where, data: { status: PublishStatus.PUBLISHED } }),
       this.prisma.chapter.updateMany({ where, data: { status: PublishStatus.PUBLISHED } }),
-      this.prisma.lesson.updateMany({ where, data: { status: PublishStatus.PUBLISHED, publishedAt: now } }),
+      this.prisma.lesson.updateMany({
+        where,
+        data: { status: PublishStatus.PUBLISHED, publishedAt: now },
+      }),
       this.prisma.assessment.updateMany({
         where: { status: PublishStatus.SCHEDULED, availableFrom: { lte: now } },
         data: { status: PublishStatus.PUBLISHED },

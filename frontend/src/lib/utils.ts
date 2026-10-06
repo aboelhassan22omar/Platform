@@ -33,7 +33,8 @@ export const formatDuration = (totalSeconds: number | null | undefined): string 
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = Math.floor(totalSeconds % 60);
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const latin = hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+  const latin =
+    hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
   return toArabicDigits(latin);
 };
 
@@ -108,4 +109,3 @@ export const initialsOf = (fullName: string): string => {
   if (parts.length === 1) return parts[0].slice(0, 2);
   return `${parts[0][0]}${parts[parts.length - 1][0]}`;
 };
-

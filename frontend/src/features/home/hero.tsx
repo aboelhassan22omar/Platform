@@ -6,10 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { ButtonLink } from '@/components/ui/button';
 import { EASE_ENTRANCE, springSnappy } from '@/lib/motion';
 import { GoldParticles } from '@/components/decor/gold-particles';
-import {
-  WingedSunOfHorus,
-  RoyalCartouche,
-} from '@/components/decor/egyptian-motifs';
+import { WingedSunOfHorus, RoyalCartouche } from '@/components/decor/egyptian-motifs';
 import { platformConfig } from '@/config/platform.config';
 
 interface EraSlide {
@@ -29,7 +26,8 @@ const HISTORICAL_ERAS: EraSlide[] = [
     name: 'العصر الفرعوني',
     badge: 'فجر الحضارة والخلود',
     title: 'حضارة مصر القديمة',
-    quote: 'التاريخ مش مجرد حفظ أسرار ومعارك.. التاريخ فهم حقيقي لإزاي أجدادك بنوا أول دولة منظمة في تاريخ البشرية.',
+    quote:
+      'التاريخ مش مجرد حفظ أسرار ومعارك.. التاريخ فهم حقيقي لإزاي أجدادك بنوا أول دولة منظمة في تاريخ البشرية.',
     image: '/images/eras/pharaonic-portrait.jpg',
     gradeLink: '/grades/first-secondary',
     accent: '#f59e0b',
@@ -69,7 +67,8 @@ const HISTORICAL_ERAS: EraSlide[] = [
     name: 'منهجية البكالوريا',
     badge: 'التفكير النقدي والمقارن',
     title: 'تحليل الوثائق والنقد التاريخي',
-    quote: 'ندربك على قراءة الوثائق التاريخية ونقد الروايات المتعددة وربط القرارات السياسية بسياقاتها الحقيقية.',
+    quote:
+      'ندربك على قراءة الوثائق التاريخية ونقد الروايات المتعددة وربط القرارات السياسية بسياقاتها الحقيقية.',
     image: '/images/eras/bacc-portrait.jpg',
     gradeLink: '/grades/first-baccalaureate',
     accent: '#6366f1',
@@ -103,7 +102,10 @@ export function Hero() {
       <GoldParticles count={48} className="opacity-75 z-0" />
 
       {/* ملمس البردي */}
-      <div className="texture-parchment pointer-events-none absolute inset-0 opacity-30 dark:opacity-40 z-0" aria-hidden />
+      <div
+        className="texture-parchment pointer-events-none absolute inset-0 opacity-30 dark:opacity-40 z-0"
+        aria-hidden
+      />
 
       {/* إضاءة محيطية ذهبية علوية ناعمة ومحايدة في خلفية الصفحة بعيداً عن وجه المستر */}
       <div
@@ -115,14 +117,16 @@ export function Hero() {
         {/* قرص الشمس المجنح والخرطوشة */}
         <div className="flex flex-col items-center justify-center mb-6">
           <WingedSunOfHorus className="h-10 sm:h-14 opacity-90 transition-transform duration-700 hover:scale-105" />
-          
+
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: EASE_ENTRANCE }}
             className="mt-2"
           >
-            <RoyalCartouche title={`${platformConfig.teacher.displayName} — ${platformConfig.teacher.tagline}`} />
+            <RoyalCartouche
+              title={`${platformConfig.teacher.displayName} — ${platformConfig.teacher.tagline}`}
+            />
           </motion.div>
         </div>
 
@@ -163,7 +167,6 @@ export function Hero() {
 
         {/* جسم الهيرو الرئيسي: نص العصر ووجه الأستاذ */}
         <div className="grid gap-12 lg:grid-cols-12 items-center">
-          
           {/* الجانب الأيمن: البيانات والتوجيه */}
           <div className="lg:col-span-7 text-center lg:text-right">
             <AnimatePresence mode="wait">
@@ -181,9 +184,7 @@ export function Hero() {
 
                 <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-midnight-950 dark:text-ivory-50 tracking-tight leading-[1.15]">
                   رحلة عبر الزمان:
-                  <span className="block mt-2 text-gradient-gold">
-                    {currentEra.title}
-                  </span>
+                  <span className="block mt-2 text-gradient-gold">{currentEra.title}</span>
                 </h1>
 
                 {/* اقتباس الأستاذ في هذا العصر */}
@@ -196,7 +197,9 @@ export function Hero() {
                   </p>
                   <div className="mt-3 flex items-center justify-between text-xs text-gold-700 dark:text-gold-300/80 font-bold border-t border-gold-500/20 pt-2">
                     <span>— {platformConfig.teacher.displayName}</span>
-                    <span className="text-midnight-500 dark:text-ivory-300/50">شرح تفصيلي للمنهج ونواتج التعلم</span>
+                    <span className="text-midnight-500 dark:text-ivory-300/50">
+                      شرح تفصيلي للمنهج ونواتج التعلم
+                    </span>
                   </div>
                 </div>
 
@@ -211,7 +214,12 @@ export function Hero() {
                     <span className="flex items-center gap-2">
                       <span>ادخل صرح التاريخ</span>
                       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-                        <path d="M11 4l-5 5 5 5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                        <path
+                          d="M11 4l-5 5 5 5"
+                          stroke="currentColor"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                        />
                       </svg>
                     </span>
                   </ButtonLink>
@@ -233,19 +241,25 @@ export function Hero() {
                 <span className="block font-display text-xl sm:text-2xl font-black text-gold-700 dark:text-gold-300">
                   ٣٠٠٠+
                 </span>
-                <span className="block text-xs text-midnight-600 dark:text-ivory-200/60 font-medium">سنة من الحضارة</span>
+                <span className="block text-xs text-midnight-600 dark:text-ivory-200/60 font-medium">
+                  سنة من الحضارة
+                </span>
               </div>
               <div className="text-center lg:text-right">
                 <span className="block font-display text-xl sm:text-2xl font-black text-gold-700 dark:text-gold-300">
                   ٥ حقب
                 </span>
-                <span className="block text-xs text-midnight-600 dark:text-ivory-200/60 font-medium">شاملة المنهج</span>
+                <span className="block text-xs text-midnight-600 dark:text-ivory-200/60 font-medium">
+                  شاملة المنهج
+                </span>
               </div>
               <div className="text-center lg:text-right">
                 <span className="block font-display text-xl sm:text-2xl font-black text-gold-700 dark:text-gold-300">
                   ١٠٠٪
                 </span>
-                <span className="block text-xs text-midnight-600 dark:text-ivory-200/60 font-medium">نواتج التعلم</span>
+                <span className="block text-xs text-midnight-600 dark:text-ivory-200/60 font-medium">
+                  نواتج التعلم
+                </span>
               </div>
             </div>
           </div>
@@ -299,7 +313,6 @@ export function Hero() {
               />
             </div>
           </div>
-
         </div>
       </div>
     </section>
@@ -307,4 +320,3 @@ export function Hero() {
 }
 
 export const HomeHero = Hero;
-

@@ -109,7 +109,9 @@ export function ThemeToggle({ className }: { className?: string }) {
         strokeLinejoin="round"
         className={cn(
           'h-4 w-4 transition-transform duration-500',
-          isDark ? 'scale-0 rotate-90 absolute opacity-0' : 'scale-100 rotate-0 opacity-100 text-amber-500',
+          isDark
+            ? 'scale-0 rotate-90 absolute opacity-0'
+            : 'scale-100 rotate-0 opacity-100 text-amber-500',
         )}
         aria-hidden
       >
@@ -134,7 +136,9 @@ export function ThemeToggle({ className }: { className?: string }) {
         strokeLinejoin="round"
         className={cn(
           'h-4 w-4 transition-transform duration-500',
-          isDark ? 'scale-100 rotate-0 opacity-100 text-gold-300' : 'scale-0 -rotate-90 absolute opacity-0',
+          isDark
+            ? 'scale-100 rotate-0 opacity-100 text-gold-300'
+            : 'scale-0 -rotate-90 absolute opacity-0',
         )}
         aria-hidden
       >

@@ -130,11 +130,7 @@ export class StorageService implements OnModuleInit {
   }
 
   /** Presigned PUT for a browser upload that bypasses the API process. */
-  async presignUpload(
-    bucket: string,
-    key: string,
-    expiresIn = 3600,
-  ): Promise<PresignedUpload> {
+  async presignUpload(bucket: string, key: string, expiresIn = 3600): Promise<PresignedUpload> {
     const url = await this.signingClient.presignedPutObject(bucket, key, expiresIn);
     return { url, key, expiresIn };
   }
@@ -164,12 +160,7 @@ export class StorageService implements OnModuleInit {
     return `${base}/${key.replace(/^\//, '')}`;
   }
 
-  async putObject(
-    bucket: string,
-    key: string,
-    body: Buffer,
-    contentType: string,
-  ): Promise<void> {
+  async putObject(bucket: string, key: string, body: Buffer, contentType: string): Promise<void> {
     await this.client.putObject(bucket, key, body, body.length, {
       'Content-Type': contentType,
     });

@@ -15,9 +15,18 @@ export function PageHero({
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-midnight-950 to-midnight-900 py-14 sm:py-20">
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-25 hidden md:block">
-        <Image src="/images/teacher-modern-egypt.png" alt="" fill sizes="100vw" className="object-cover object-left" />
+        <Image
+          src="/images/teacher-modern-egypt.png"
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover object-left"
+        />
       </div>
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-l from-midnight-950/95 via-midnight-950/80 to-midnight-950/35" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-l from-midnight-950/95 via-midnight-950/80 to-midnight-950/35"
+      />
       <div className="texture-parchment pointer-events-none absolute inset-0" aria-hidden />
 
       <div className="container-page relative">
@@ -31,9 +40,7 @@ export function PageHero({
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-ivory-200/75">
-              {subtitle}
-            </p>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-ivory-200/75">{subtitle}</p>
           )}
         </Reveal>
       </div>

@@ -96,7 +96,9 @@ export function MyLessons() {
       {/* --- Header + filters --- */}
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">حصصي</h1>
+          <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">
+            حصصي
+          </h1>
           <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
             عندك {pluralizeAr(lessons.length, ['حصة واحدة', 'حصتان', 'حصة'])} متاحة للمشاهدة
           </p>

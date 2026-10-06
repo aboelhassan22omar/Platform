@@ -20,8 +20,7 @@ export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: `المناهج والصفوف الدراسية — ${platformConfig.brand.shortPlatformName}`,
-  description:
-    `المناهج والصفوف الدراسية للثانوية العامة والبكالوريا المصرية مع ${platformConfig.teacher.displayName}`,
+  description: `المناهج والصفوف الدراسية للثانوية العامة والبكالوريا المصرية مع ${platformConfig.teacher.displayName}`,
 };
 
 export default async function GradesPage() {
@@ -36,7 +35,11 @@ export default async function GradesPage() {
         {/* خلفية الصرح التعليمي والبانوراما الرسمية المعتمدة للمنصة (ديسكتوب وتابلت فقط >= md) */}
         <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
           <Image
-            src="/images/teacher-bacc-foundations.png"
+            src={
+              platformConfig.subject.key === 'history'
+                ? '/images/teacher-bacc-foundations.png'
+                : platformConfig.assets.teacher
+            }
             alt={`${platformConfig.teacher.displayName} - الصفوف والمناهج الدراسية`}
             fill
             priority
@@ -55,7 +58,10 @@ export default async function GradesPage() {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#fbf8f0] dark:from-[#030712] via-transparent to-transparent"
         />
-        <div className="texture-parchment pointer-events-none absolute inset-0 opacity-15" aria-hidden />
+        <div
+          className="texture-parchment pointer-events-none absolute inset-0 opacity-15"
+          aria-hidden
+        />
 
         <div className="container-page relative z-10 w-full">
           <Reveal variants={fadeUp}>
@@ -71,7 +77,8 @@ export default async function GradesPage() {
 
               <p className="mt-4 text-base sm:text-lg leading-relaxed text-ivory-200/90 font-medium max-w-xl">
                 كل صف دراسي مصمم كصرح متكامل: دروس تفاعلية، نواتج تعلم مطابقة لمواصفات الوزارة،
-                ومتابعة مستمرة تصنع تفوقك في مادة {platformConfig.subject.name} مع {platformConfig.teacher.displayName}.
+                ومتابعة مستمرة تصنع تفوقك في مادة {platformConfig.subject.name} مع{' '}
+                {platformConfig.teacher.displayName}.
               </p>
 
               {/* شريط تعريف الأستاذ على الهاتف فقط (< md) */}
@@ -153,7 +160,7 @@ export default async function GradesPage() {
                   <Reveal as="li" key={grade.id} variants={fadeUp}>
                     <Link
                       href={`/grades/${grade.slug}`}
-                      data-theme={grade.themeKey}
+                      data-theme={theme.key}
                       className="group relative flex h-full flex-col overflow-hidden rounded-2xl border-2 border-gold-500/25 dark:border-gold-500/20 bg-white/95 dark:bg-midnight-950/85 shadow-card transition-all duration-300 hover:-translate-y-2 hover:border-gold-400 hover:shadow-[0_12px_35px_rgba(217,119,6,0.22)] dark:hover:shadow-[0_12px_35px_rgba(245,158,11,0.25)]"
                     >
                       <TempleCornerBrackets />

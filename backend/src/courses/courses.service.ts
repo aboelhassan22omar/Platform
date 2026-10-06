@@ -116,7 +116,12 @@ export class CoursesService {
           priceMinor: chapter.priceMinor,
           productId: chapter.products[0]?.id ?? null,
           lessons: chapter.lessons.map((lesson) =>
-            this.presentLesson(lesson, accessible.has(lesson.id), progress.get(lesson.id), studentType),
+            this.presentLesson(
+              lesson,
+              accessible.has(lesson.id),
+              progress.get(lesson.id),
+              studentType,
+            ),
           ),
         })),
       })),
@@ -192,7 +197,9 @@ export class CoursesService {
         OR: [
           // A free lesson joins "My lessons" only after the student starts it.
           { id: { in: watchedLessonIds }, isFreePreview: true },
-          ...(student?.studentType === StudentType.CENTER ? [{ id: { in: watchedLessonIds }, centerPriceMinor: 0 }] : []),
+          ...(student?.studentType === StudentType.CENTER
+            ? [{ id: { in: watchedLessonIds }, centerPriceMinor: 0 }]
+            : []),
           { id: { in: entitlements.map((e) => e.lessonId).filter(Boolean) as string[] } },
           {
             chapterId: {
@@ -421,7 +428,9 @@ export class CoursesService {
   }
 
   private async studentTypeFor(userId: string) {
-    return (await this.prisma.user.findUnique({ where: { id: userId }, select: { studentType: true } }))?.studentType;
+    return (
+      await this.prisma.user.findUnique({ where: { id: userId }, select: { studentType: true } })
+    )?.studentType;
   }
 
   private presentLesson(
@@ -459,7 +468,8 @@ export class CoursesService {
       sortOrder: lesson.sortOrder,
       status: lesson.status,
       priceMinor: lessonPriceFor(lesson, studentType),
-      productId: (lessonPriceFor(lesson, studentType) ?? 0) > 0 ? lesson.products?.[0]?.id ?? null : null,
+      productId:
+        (lessonPriceFor(lesson, studentType) ?? 0) > 0 ? (lesson.products?.[0]?.id ?? null) : null,
       isFreePreview: isLessonFreeFor(lesson, studentType),
       durationSeconds: lesson.videoAsset?.durationSeconds ?? lesson.durationSeconds,
       chapterId: lesson.chapterId,

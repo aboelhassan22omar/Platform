@@ -18,8 +18,7 @@ export const generateOrderReference = (): string => {
 };
 
 /** Cryptographically random opaque token (refresh tokens, playback tickets). */
-export const generateToken = (bytes = 48): string =>
-  randomBytes(bytes).toString('base64url');
+export const generateToken = (bytes = 48): string => randomBytes(bytes).toString('base64url');
 
 /**
  * Tokens are stored hashed so a database leak does not hand out live sessions.

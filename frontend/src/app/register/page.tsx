@@ -1,3 +1,4 @@
+import { platformConfig } from '@/config/platform.config';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { RegisterForm } from '@/features/auth/register-form';
@@ -8,7 +9,7 @@ export const metadata: Metadata = { title: 'إنشاء حساب' };
 export default function RegisterPage() {
   return (
     <AuthShell
-      title="ابدأ رحلتك مع التاريخ"
+      title={`ابدأ رحلتك مع ${platformConfig.subject.name}`}
       subtitle="اعمل حسابك في خطوات بسيطة، واختار نظامك وصفك علشان نجهز لك المحتوى المناسب."
       wide
       showSiteChrome
