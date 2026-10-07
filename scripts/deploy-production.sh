@@ -59,7 +59,7 @@ if "${compose[@]}" ps --status running --services | grep -qx postgres; then
 fi
 
 "${compose[@]}" up -d --no-build --wait --wait-timeout 240
-"${compose[@]}" --profile seed run --rm --no-build seed
+"${compose[@]}" --profile seed run --rm seed
 curl --fail --silent --show-error http://127.0.0.1:17080/api/health/ready | python3 -c '
 import json, sys
 result = json.load(sys.stdin)
