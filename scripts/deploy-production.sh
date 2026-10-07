@@ -30,9 +30,14 @@ config = json.load(sys.stdin)
 env = config["services"]["backend"]["environment"]
 assert env.get("NODE_ENV") == "production", "NODE_ENV must be production"
 assert env.get("COOKIE_SECURE") == "true", "HTTPS cookies are required"
-assert env.get("PAYMENT_PROVIDER") == "paymob", "A real payment provider is required"
-for key in ("PAYMOB_API_KEY", "PAYMOB_HMAC_SECRET", "PAYMOB_INTEGRATION_ID_CARD", "PAYMOB_IFRAME_ID"):
-    assert env.get(key), f"Missing production payment credential: {key}"
+provider = env.get("PAYMENT_PROVIDER")
+assert provider in ("paymob", "manual"), "A real payment provider is required"
+if provider == "paymob":
+    for key in ("PAYMOB_API_KEY", "PAYMOB_HMAC_SECRET", "PAYMOB_INTEGRATION_ID_CARD", "PAYMOB_IFRAME_ID"):
+        assert env.get(key), f"Missing production payment credential: {key}"
+else:
+    import re
+    assert re.fullmatch(r"(010|011|012|015)\d{8}", env.get("PAYMENT_TRANSFER_PHONE", "")), "Missing recipient wallet phone"
 '
 
 # Pull the complete tested release before touching running services.

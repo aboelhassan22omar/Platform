@@ -38,6 +38,7 @@ export interface VerifiedWebhook {
   method?: PaymentMethod;
   failureReason?: string;
   raw: unknown;
+  approvedBy?: string;
 }
 
 /**

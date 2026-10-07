@@ -9,7 +9,7 @@ import { resolvePlatformIdentity } from './platform-identity';
  * would be unsafe in production (default secrets, dev payment adapter, etc.).
  */
 
-export type PaymentProviderKey = 'dev' | 'paymob';
+export type PaymentProviderKey = 'dev' | 'paymob' | 'manual';
 export type PhoneVerificationMode = 'off' | 'console' | 'sms' | 'whatsapp';
 
 const bool = (value: string | undefined, fallback = false): boolean => {
@@ -113,6 +113,7 @@ export const configuration = () => ({
   },
 
   payments: {
+    transferPhone: process.env.PAYMENT_TRANSFER_PHONE ?? '',
     provider: (process.env.PAYMENT_PROVIDER ?? 'dev') as PaymentProviderKey,
     currency: process.env.PAYMENT_CURRENCY ?? 'EGP',
     allowDevInProd: bool(process.env.PAYMENT_ALLOW_DEV_IN_PROD, false),
@@ -250,6 +251,15 @@ export const validateEnv = (config: AppConfig): void => {
       if (!integrationIdCard) {
         errors.push('PAYMOB_INTEGRATION_ID_CARD is required when PAYMENT_PROVIDER=paymob.');
       }
+    }
+    if (!['dev', 'paymob', 'manual'].includes(config.payments.provider)) {
+      errors.push('Unknown PAYMENT_PROVIDER.');
+    }
+    if (
+      config.payments.provider === 'manual' &&
+      !/^(010|011|012|015)\d{8}$/.test(config.payments.transferPhone)
+    ) {
+      errors.push('PAYMENT_TRANSFER_PHONE is required for manual transfers.');
     }
     if (config.seedDemoData) {
       errors.push('SEED_DEMO_DATA must be false in production.');

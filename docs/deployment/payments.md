@@ -7,6 +7,21 @@ payments, and how to verify it before a student is ever charged.
 
 ## Two providers, one interface
 
+### Reviewed wallet and InstaPay transfers
+
+`PAYMENT_PROVIDER=manual` and `PAYMENT_TRANSFER_PHONE=01024066401` enable real
+transfers to the recipient's wallet. The student submits the sending phone and
+transaction reference from the order page. This submission never grants access.
+An administrator checks the actual recipient ledger, enters the received
+amount and transaction reference at `/admin/transfers`, and confirms receipt.
+Settlement, entitlements and the administrator audit entry commit together.
+An amount mismatch or reuse of a settled transaction for another order is rejected.
+This is manual receipt verification, not an automatic bank notification.
+
+Automatic receipt verification still requires an official provider integration
+and its merchant credentials. Do not enable development sandbox payments to
+simulate receipt of a real transfer.
+
 Everything downstream of checkout depends on
 [`IPaymentProvider`](../../backend/src/payments/providers/payment-provider.interface.ts),
 never on a specific processor. Swapping Paymob for another Egyptian gateway is

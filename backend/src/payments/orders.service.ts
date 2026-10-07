@@ -59,7 +59,10 @@ export class OrdersService {
         where: { idempotencyKey: params.idempotencyKey },
         include: { items: true, payments: true },
       });
-      if (existing) return this.presentOrder(existing, null);
+      if (existing) {
+        if (existing.userId !== userId) throw new BadRequestException('مفتاح الطلب غير صالح');
+        return this.presentOrder(existing, null);
+      }
     }
 
     const storedProducts = await this.prisma.product.findMany({
@@ -271,6 +274,8 @@ export class OrdersService {
    */
   async settleOrder(orderId: string, event: VerifiedWebhook): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      // Serialize approvals/callbacks so concurrent retries cannot double grant.
+      await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
       const order = await tx.order.findUnique({
         where: { id: orderId },
         include: { items: { include: { product: { include: { plan: true } } } } },
@@ -308,6 +313,30 @@ export class OrdersService {
       }
 
       const paidAt = new Date();
+      const existingPayment = await tx.payment.findUnique({
+        where: {
+          provider_providerRef: { provider: this.provider.key, providerRef: event.providerRef },
+        },
+      });
+      if (existingPayment && existingPayment.orderId !== order.id) {
+        throw new BadRequestException('رقم التحويل مستخدم لطلب آخر');
+      }
+      if (event.approvedBy) {
+        await tx.auditLog.create({
+          data: {
+            actorId: event.approvedBy,
+            action: 'payment.transfer.approved',
+            entityType: 'Order',
+            entityId: order.id,
+            targetUserId: order.userId,
+            metadata: { providerRef: event.providerRef, amountMinor: order.totalMinor },
+          },
+        });
+        await tx.payment.updateMany({
+          where: { orderId: order.id, provider: 'MANUAL', status: 'PENDING' },
+          data: { providerRef: event.providerRef },
+        });
+      }
 
       await tx.order.update({
         where: { id: order.id },
@@ -469,6 +498,15 @@ export class OrdersService {
       })),
       redirectUrl,
       payment: {
+        ...(this.provider.key === 'MANUAL'
+          ? {
+              transfer: {
+                phone: this.config.get<string>('payments.transferPhone'),
+                method: order.payments[0]?.method === 'CARD' ? 'INSTAPAY' : 'VODAFONE_CASH',
+                submitted: Boolean(order.payments.find((p) => p.providerPayload)),
+              },
+            }
+          : {}),
         provider: this.provider.key,
         isSandbox,
         ...(isSandbox

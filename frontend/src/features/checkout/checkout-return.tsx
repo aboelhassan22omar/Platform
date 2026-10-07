@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { formatEgp } from '@/lib/utils';
 import { EASE_ENTRANCE } from '@/lib/motion';
 import type { Order } from '@/types/api';
+import { TransferForm } from './transfer-form';
 
 /**
  * Landing page after returning from the payment provider.
@@ -138,6 +139,14 @@ export function CheckoutReturn() {
   }
 
   // ---- Still pending ----------------------------------------------------
+  if (order.payment.transfer) {
+    return (
+      <Shell>
+        <TransferForm order={order} />
+        <OrderSummary order={order} />
+      </Shell>
+    );
+  }
   return (
     <Shell>
       <span className="h-12 w-12 animate-spin rounded-full border-[3px] border-gold-500 border-t-transparent" />

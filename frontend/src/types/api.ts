@@ -242,7 +242,12 @@ export interface Order {
   paidAt: string | null;
   items: Array<{ id: string; title: string; kind: ProductKind; totalMinor: number }>;
   redirectUrl: string | null;
-  payment: { provider: string; isSandbox: boolean; notice?: string };
+  payment: {
+    provider: string;
+    isSandbox: boolean;
+    notice?: string;
+    transfer?: { phone: string; method: string; submitted: boolean };
+  };
 }
 
 export interface Subscription {
