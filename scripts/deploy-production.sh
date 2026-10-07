@@ -14,6 +14,16 @@ flock -n 9 || { echo 'Another production deployment is running'; exit 1; }
 ln -sfn "$deployment_root/shared/.env" .env
 compose=(docker compose -p amr-production -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.host.yml)
 "${compose[@]}" config --quiet
+"${compose[@]}" config --format json | python3 -c '
+import json, sys
+config = json.load(sys.stdin)
+env = config["services"]["backend"]["environment"]
+assert env.get("NODE_ENV") == "production", "NODE_ENV must be production"
+assert env.get("COOKIE_SECURE") == "true", "HTTPS cookies are required"
+assert env.get("PAYMENT_PROVIDER") == "paymob", "A real payment provider is required"
+for key in ("PAYMOB_API_KEY", "PAYMOB_HMAC_SECRET", "PAYMOB_INTEGRATION_ID_CARD", "PAYMOB_IFRAME_ID"):
+    assert env.get(key), f"Missing production payment credential: {key}"
+'
 
 # Build before touching running services. The current production stays up if
 # compilation fails. Keep all prior images and releases available for recovery.
@@ -26,7 +36,12 @@ fi
 
 "${compose[@]}" up -d --wait --wait-timeout 240
 "${compose[@]}" --profile seed run --rm seed
-curl --fail --silent --show-error http://127.0.0.1:17080/api/health/ready
+curl --fail --silent --show-error http://127.0.0.1:17080/api/health/ready | python3 -c '
+import json, sys
+result = json.load(sys.stdin)
+assert result.get("status") == "ok", f"Production dependencies are unhealthy: {result}"
+print("Database, Redis and storage readiness verified")
+'
 curl --fail --silent --show-error http://127.0.0.1:17080/healthz
 
 # Keep the active release pointer unchanged until all checks pass.
