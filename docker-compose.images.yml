@@ -1,0 +1,20 @@
+# Release images are built on GitHub Actions, never on the production host.
+services:
+  backend:
+    build: !reset null
+    image: ${IMAGE_PREFIX:?IMAGE_PREFIX is required}/backend:${RELEASE_SHA:?RELEASE_SHA is required}
+  migrate:
+    build: !reset null
+    image: ${IMAGE_PREFIX}/backend:${RELEASE_SHA}
+  seed:
+    build: !reset null
+    image: ${IMAGE_PREFIX}/backend:${RELEASE_SHA}
+  bootstrap-admin:
+    build: !reset null
+    image: ${IMAGE_PREFIX}/backend:${RELEASE_SHA}
+  frontend:
+    build: !reset null
+    image: ${IMAGE_PREFIX}/frontend:${RELEASE_SHA}
+  worker:
+    build: !reset null
+    image: ${IMAGE_PREFIX}/worker:${RELEASE_SHA}
