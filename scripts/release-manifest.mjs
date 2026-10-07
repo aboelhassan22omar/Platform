@@ -15,7 +15,7 @@ const files =
 const shared = files.some((file) =>
   /^(package.*json|docker-compose.*yml|\.github\/|docker\/|scripts\/)/.test(file),
 );
-const services = ['backend', 'frontend', 'worker'].map((service) => ({
+const services = ['backend', 'frontend', 'worker', 'minio'].map((service) => ({
   service,
   changed:
     shared ||
@@ -34,7 +34,7 @@ if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `prefix
 if (process.env.GITHUB_STEP_SUMMARY) {
   appendFileSync(
     process.env.GITHUB_STEP_SUMMARY,
-    `| Service | Changed | Release image |\n| --- | --- | --- |\n${services.map((s) => `| ${s.service} | ${s.changed ? 'Yes' : 'No'} | \`${s.image}\` |`).join('\n')}\n\nEvery release publishes all three images under the same commit; unchanged layers use the build cache.\n`,
+    `| Service | Changed | Release image |\n| --- | --- | --- |\n${services.map((s) => `| ${s.service} | ${s.changed ? 'Yes' : 'No'} | \`${s.image}\` |`).join('\n')}\n\nEvery release publishes all four images under the same commit; unchanged layers use the build cache.\n`,
   );
 }
 console.log(JSON.stringify(services));

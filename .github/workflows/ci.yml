@@ -42,6 +42,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - service: minio
+            context: docker/minio
+            dockerfile: docker/minio/Dockerfile
           - service: backend
             context: backend
             dockerfile: backend/Dockerfile
@@ -77,6 +80,9 @@ jobs:
           SERVICE: ${{ matrix.service }}
         run: |
           case "$SERVICE" in
+            minio)
+              docker run --rm platform-minio:ci --version
+              ;;
             backend)
               docker run --rm -e DATABASE_URL=postgresql://build:build@localhost:5432/build platform-backend:ci node_modules/.bin/prisma --version
               docker run --rm platform-backend:ci node --check dist/src/main.js

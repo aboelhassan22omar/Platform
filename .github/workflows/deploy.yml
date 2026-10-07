@@ -68,6 +68,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - service: minio
+            context: docker/minio
+            dockerfile: docker/minio/Dockerfile
           - service: backend
             context: backend
             dockerfile: backend/Dockerfile
@@ -122,7 +125,7 @@ jobs:
         env:
           PREFIX: ${{ needs.changes.outputs.prefix }}
         run: |
-          for service in backend frontend worker; do
+          for service in backend frontend worker minio; do
             docker manifest inspect "$PREFIX/$service:$GITHUB_SHA" > /dev/null
           done
           echo 'Images ready. Production requires an owner-approved manual run.' >> "$GITHUB_STEP_SUMMARY"
