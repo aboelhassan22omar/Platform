@@ -82,6 +82,16 @@ jobs:
           case "$SERVICE" in
             minio)
               docker run --rm platform-minio:ci --version
+              docker run -d --name minio-smoke -e MINIO_ROOT_USER=ci-storage-user -e MINIO_ROOT_PASSWORD=ci-storage-password platform-minio:ci
+              trap 'docker rm -f minio-smoke' EXIT
+              for attempt in $(seq 1 30); do
+                if docker exec minio-smoke curl --fail --silent http://127.0.0.1:9000/minio/health/ready; then
+                  exit 0
+                fi
+                sleep 2
+              done
+              docker logs minio-smoke
+              exit 1
               ;;
             backend)
               docker run --rm -e DATABASE_URL=postgresql://build:build@localhost:5432/build platform-backend:ci node_modules/.bin/prisma --version

@@ -41,7 +41,17 @@ else:
 '
 
 # Pull the complete tested release before touching running services.
-"${compose[@]}" --profile seed --profile bootstrap pull
+for attempt in 1 2 3; do
+  if "${compose[@]}" --profile seed --profile bootstrap pull --quiet; then
+    break
+  fi
+  if [ "$attempt" = 3 ]; then
+    echo 'Image download failed after three attempts; production was not changed.' >&2
+    exit 1
+  fi
+  echo "Image download interrupted; retrying ($attempt/3)."
+  sleep $((attempt * 10))
+done
 mkdir -p "$deployment_root/backups"
 if "${compose[@]}" ps --status running --services | grep -qx postgres; then
   "${compose[@]}" exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
