@@ -22,8 +22,10 @@ The graph in `deploy.yml` has four stages:
 
 Set the repository variable `PRODUCTION_SITE_URL` to the confirmed HTTPS
 origin before building the release; it defaults to `https://amr.aurexis.cc`.
-Frontend contact and brand overrides can be added to the workflow build args
-before publishing a teacher-specific release.
+Contact build args use `PRODUCTION_CONTACT_PHONE` and
+`PRODUCTION_CONTACT_PHONE_LABEL`, defaulting to the requested `01024066401`.
+Brand overrides can be added to the workflow build args before publishing a
+teacher-specific release.
 
 This manual gate works with private repositories without paid environment
 reviewers. Repository administrators can change workflows and secrets, so they

@@ -91,9 +91,18 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ${{ needs.changes.outputs.prefix }}/${{ matrix.service }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_API_URL=/api
             NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+            NEXT_PUBLIC_CONTACT_PHONE=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_CONTACT_PHONE_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+            NEXT_PUBLIC_SUPPORT_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_SUPPORT_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+            NEXT_PUBLIC_FOLLOWUP_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_FOLLOWUP_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
   release-ready:
