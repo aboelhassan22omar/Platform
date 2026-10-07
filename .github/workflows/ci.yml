@@ -58,6 +58,8 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          load: true
+          tags: platform-${{ matrix.service }}:ci
           build-args: |
             NEXT_PUBLIC_API_URL=/api
             NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
@@ -69,6 +71,34 @@ jobs:
             NEXT_PUBLIC_FOLLOWUP_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: Verify runtime image
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: |
+          case "$SERVICE" in
+            backend)
+              docker run --rm -e DATABASE_URL=postgresql://build:build@localhost:5432/build platform-backend:ci node_modules/.bin/prisma --version
+              docker run --rm platform-backend:ci node --check dist/src/main.js
+              docker run --rm platform-backend:ci node --check dist/prisma/seed.js
+              ;;
+            frontend)
+              docker run -d --name frontend-smoke platform-frontend:ci
+              trap 'docker rm -f frontend-smoke' EXIT
+              for attempt in $(seq 1 30); do
+                if docker exec frontend-smoke node -e "fetch('http://127.0.0.1:3000/api/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+                  exit 0
+                fi
+                sleep 2
+              done
+              docker logs frontend-smoke
+              exit 1
+              ;;
+            worker)
+              docker run --rm platform-worker:ci ffmpeg -version
+              docker run --rm platform-worker:ci node --check dist/transcode.worker.js
+              ;;
+            *) exit 1 ;;
+          esac
   compose:
     name: CI - Production Compose validation
     runs-on: ubuntu-latest
