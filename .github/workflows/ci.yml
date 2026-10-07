@@ -1,0 +1,114 @@
+name: Stage 1 - CI and image build
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  checks:
+    name: CI - ${{ matrix.task }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [lint, typecheck, backend-tests, frontend-tests, asset-audit]
+    env:
+      DATABASE_URL: postgresql://build:build@localhost:5432/build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm --workspace backend run prisma:generate
+      - name: Run check
+        env:
+          TASK: ${{ matrix.task }}
+        run: |
+          case "$TASK" in
+            lint) npm run lint ;;
+            typecheck) npm run typecheck ;;
+            backend-tests) npm --workspace backend test -- --runInBand ;;
+            frontend-tests) npm run test:models ;;
+            asset-audit) npm run audit:assets ;;
+            *) exit 1 ;;
+          esac
+  image-build:
+    name: CI - Build ${{ matrix.service }} image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            context: backend
+            dockerfile: backend/Dockerfile
+          - service: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
+          - service: worker
+            context: .
+            dockerfile: workers/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          load: true
+          tags: platform-${{ matrix.service }}:ci
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api
+            NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+            NEXT_PUBLIC_CONTACT_PHONE=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_CONTACT_PHONE_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+            NEXT_PUBLIC_SUPPORT_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_SUPPORT_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+            NEXT_PUBLIC_FOLLOWUP_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_FOLLOWUP_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: Verify runtime image
+        env:
+          SERVICE: ${{ matrix.service }}
+        run: |
+          case "$SERVICE" in
+            backend)
+              docker run --rm -e DATABASE_URL=postgresql://build:build@localhost:5432/build platform-backend:ci node_modules/.bin/prisma --version
+              docker run --rm platform-backend:ci node --check dist/src/main.js
+              docker run --rm platform-backend:ci node --check dist/prisma/seed.js
+              ;;
+            frontend)
+              docker run -d --name frontend-smoke platform-frontend:ci
+              trap 'docker rm -f frontend-smoke' EXIT
+              for attempt in $(seq 1 30); do
+                if docker exec frontend-smoke node -e "fetch('http://127.0.0.1:3000/api/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then
+                  exit 0
+                fi
+                sleep 2
+              done
+              docker logs frontend-smoke
+              exit 1
+              ;;
+            worker)
+              docker run --rm platform-worker:ci ffmpeg -version
+              docker run --rm platform-worker:ci node --check dist/transcode.worker.js
+              ;;
+            *) exit 1 ;;
+          esac
+  compose:
+    name: CI - Production Compose validation
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_PREFIX: ghcr.io/aboelhassan22omar/platform
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          cp .env.example .env
+          bash -n scripts/deploy-production.sh
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.host.yml -f docker-compose.images.yml config --quiet

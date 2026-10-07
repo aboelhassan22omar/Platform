@@ -1,0 +1,190 @@
+name: Platform CI-CD
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      approval:
+        description: 'Type DEPLOY to approve publishing this main commit to production'
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: pipeline-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  authorize:
+    name: Validate trigger and approval
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate owner approval
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          APPROVAL: ${{ inputs.approval }}
+          ACTOR: ${{ github.actor }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          OWNER: ${{ github.repository_owner }}
+          REF: ${{ github.ref }}
+        run: |
+          test "$APPROVAL" = DEPLOY
+          test "$ACTOR" = "$OWNER"
+          test "$TRIGGERING_ACTOR" = "$OWNER"
+          test "$REF" = refs/heads/main
+  ci:
+    name: Stage 1 - CI and image build
+    needs: authorize
+    uses: ./.github/workflows/ci.yml
+  changes:
+    name: Stage 2 - Detect changed services
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      prefix: ${{ steps.changes.outputs.prefix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect service changes
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.before || github.event.pull_request.base.sha }}
+        run: node scripts/release-manifest.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-plan-${{ github.sha }}
+          path: release-manifest.json
+  publish:
+    name: CD - Publish ${{ matrix.service }} image
+    needs: changes
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            context: backend
+            dockerfile: backend/Dockerfile
+          - service: frontend
+            context: frontend
+            dockerfile: frontend/Dockerfile
+          - service: worker
+            context: .
+            dockerfile: workers/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ needs.changes.outputs.prefix }}/${{ matrix.service }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api
+            NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+            NEXT_PUBLIC_CONTACT_PHONE=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_CONTACT_PHONE_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+            NEXT_PUBLIC_SUPPORT_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_SUPPORT_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+            NEXT_PUBLIC_FOLLOWUP_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
+            NEXT_PUBLIC_FOLLOWUP_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+  release-ready:
+    name: CD - All release images published
+    needs: [changes, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify all release images exist
+        env:
+          PREFIX: ${{ needs.changes.outputs.prefix }}
+        run: |
+          for service in backend frontend worker; do
+            docker manifest inspect "$PREFIX/$service:$GITHUB_SHA" > /dev/null
+          done
+          echo 'Images ready. Production requires an owner-approved manual run.' >> "$GITHUB_STEP_SUMMARY"
+  deploy:
+    name: Stage 3 - Deploy production (owner approved)
+    needs: [changes, release-ready]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure pinned SSH connection
+        env:
+          SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+        run: |
+          test -n "$SSH_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Deploy the published release over SSH
+        env:
+          HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          PREFIX: ${{ needs.changes.outputs.prefix }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          test -n "$HOST"
+          test -n "$DEPLOY_USER"
+          release="/opt/amr-platform/releases/$GITHUB_SHA"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" "mkdir -p '$release'"
+          git archive --format=tar.gz -o release.tar.gz HEAD
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes release.tar.gz "$DEPLOY_USER@$HOST:$release/source.tar.gz"
+          printf '%s\n' "$REGISTRY_TOKEN" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" \
+            "cd '$release' && tar -xzf source.tar.gz && bash scripts/deploy-production.sh '$GITHUB_SHA' '$PREFIX' '$REGISTRY_USER'"
+      - name: Remove runner credentials
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
+  record:
+    name: Stage 4 - Record successfully deployed release
+    needs: [changes, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record release
+        env:
+          PREFIX: ${{ needs.changes.outputs.prefix }}
+        run: |
+          jq -n --arg sha "$GITHUB_SHA" --arg prefix "$PREFIX" \
+            --arg actor "$GITHUB_ACTOR" --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{commit: $sha, imagePrefix: $prefix, approvedBy: $actor, workflow: $run, status: "deployed", recordedAt: (now | todate)}' > deployed-release.json
+          echo "Production release: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deployed-release-${{ github.sha }}
+          path: deployed-release.json
