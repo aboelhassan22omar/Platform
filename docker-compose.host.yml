@@ -1,0 +1,13 @@
+# The existing host nginx owns 80/443 and TLS. All container ports stay private.
+# Apply AFTER docker-compose.prod.yml.
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  minio:
+    ports: !override
+      - '127.0.0.1:17900:9000'
+  proxy:
+    ports: !override
+      - '127.0.0.1:17080:80'
