@@ -166,6 +166,8 @@ export function AdminContent() {
                 <div key={index} className="skeleton h-16 rounded-xl" />
               ))}
             </div>
+          ) : coursesQuery.error ? (
+            <ErrorBox error={coursesQuery.error} onRetry={() => void coursesQuery.refetch()} />
           ) : coursesQuery.data?.length ? (
             <nav aria-label="اختيار الكورس" className="space-y-1.5">
               {coursesQuery.data.map((item) => (

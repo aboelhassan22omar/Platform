@@ -9,5 +9,12 @@ services:
     ports: !override
       - '127.0.0.1:17900:9000'
   proxy:
+    tmpfs:
+      - /etc/nginx/production:size=1m
+    environment:
+      TRUSTED_HOST_PROXY: ${TRUSTED_HOST_PROXY:?Set the production Docker network gateway}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/production
+    volumes:
+      - ./docker/nginx/host-realip.conf.template:/etc/nginx/templates/host-realip.conf.template:ro
     ports: !override
       - '127.0.0.1:17080:80'

@@ -59,7 +59,13 @@ if "${compose[@]}" ps --status running --services | grep -qx postgres; then
 fi
 
 "${compose[@]}" up -d --no-build --wait --wait-timeout 240
-"${compose[@]}" --profile seed run --rm seed
+course_count=$("${compose[@]}" exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT COUNT(*) FROM courses"' | tr -d '[:space:]')
+[[ "$course_count" =~ ^[0-9]+$ ]] || { echo 'Cannot verify existing content'; exit 1; }
+if [ "$course_count" = 0 ]; then
+  "${compose[@]}" --profile seed run --rm seed
+else
+  echo 'Existing teaching content and prices preserved; automatic seed skipped.'
+fi
 curl --fail --silent --show-error http://127.0.0.1:17080/api/health/ready | python3 -c '
 import json, sys
 result = json.load(sys.stdin)

@@ -4,8 +4,9 @@ import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from './auth-provider';
+import { presenceIntervalSeconds } from './presence-interval';
 
-const HEARTBEAT_SECONDS = Number(process.env.NEXT_PUBLIC_PRESENCE_HEARTBEAT_SECONDS ?? 45);
+const HEARTBEAT_SECONDS = presenceIntervalSeconds(process.env.NEXT_PUBLIC_PRESENCE_HEARTBEAT_SECONDS);
 
 /**
  * Sends an authenticated heartbeat so the admin dashboard can report who is
@@ -22,12 +23,13 @@ const HEARTBEAT_SECONDS = Number(process.env.NEXT_PUBLIC_PRESENCE_HEARTBEAT_SECO
  */
 export function PresenceReporter() {
   const { user } = useAuth();
+  const userId = user?.id;
   const pathname = usePathname();
   const pathRef = useRef(pathname);
   pathRef.current = pathname;
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     let cancelled = false;
 
@@ -47,7 +49,7 @@ export function PresenceReporter() {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', beat);
     };
-  }, [user]);
+  }, [userId]);
 
   return null;
 }

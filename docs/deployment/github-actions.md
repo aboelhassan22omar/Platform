@@ -48,6 +48,11 @@ Host nginx owns HTTPS; the application edge binds `127.0.0.1:17080`, and the
 object storage API binds `127.0.0.1:17900`. Databases have no host ports.
 Use a dedicated storage hostname for presigned browser uploads and preserve
 its Host header when proxying to MinIO.
+Set `TRUSTED_HOST_PROXY` to the gateway of `amr-production_backplane` before
+deploying. Only that address may supply the client IP to the container nginx;
+limits then apply to each visitor instead of all users sharing the host proxy.
+Automatic seeding runs only on an empty content database, preserving imported
+teaching content and administrator pricing on later deployments.
 
 Deployment pulls the tested images before changing services, backs up an existing database,
 applies migrations through Compose, checks readiness and only then records
