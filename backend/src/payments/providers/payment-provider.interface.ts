@@ -34,7 +34,17 @@ export interface VerifiedWebhook {
   providerRef: string;
   orderReference?: string;
   succeeded: boolean;
+  /**
+   * The provider is still waiting on the payer (e.g. an InstaPay request not
+   * yet approved). Recorded, but neither grants nor fails the order.
+   */
+  pending?: boolean;
   amountMinor?: number;
+  /**
+   * For providers whose documented amount unit is ambiguous: every reading of
+   * the signed amount, in minor units. Settlement requires one to match.
+   */
+  amountCandidatesMinor?: number[];
   method?: PaymentMethod;
   failureReason?: string;
   raw: unknown;

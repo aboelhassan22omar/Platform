@@ -11,23 +11,25 @@ interface Transfer {
   providerPayload: { senderPhone?: string; transactionReference?: string } | null;
   order: { id: string; reference: string; user: { fullName: string; phone: string } };
 }
-export function AdminTransfers() {
-  const { data, isLoading, error } = useQuery({
+/**
+ * Manual transfers still awaiting confirmation. Only relevant while
+ * PAYMENT_PROVIDER=manual; with an automatic gateway the endpoint refuses and
+ * this renders nothing, so the payments log stays a plain ledger.
+ */
+export function PendingTransfers() {
+  const { data } = useQuery({
     queryKey: ['admin-transfers'],
     queryFn: () => api.get<Transfer[]>('/admin/transfers'),
     refetchInterval: 30000,
+    retry: false,
   });
+  if (!data?.length) return null;
   return (
-    <section className="space-y-4">
-      <h1 className="text-2xl font-bold">مراجعة التحويلات</h1>
-      <p>
-        راجع وصول المبلغ فعليًا في المحفظة أو الحساب البنكي قبل تأكيد أي طلب. بيانات الطالب وحدها لا
-        تثبت الدفع.
-      </p>
-      {isLoading && <p role="status">جارٍ تحميل الطلبات…</p>}
-      {error && <p role="alert">{error.message}</p>}
-      {data?.length === 0 && <p>لا توجد تحويلات معلّقة.</p>}
-      {data?.map((t) => (
+    <section className="space-y-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
+      <h2 className="font-bold text-amber-900 dark:text-amber-200">
+        تحويلات يدوية مستنية تأكيد ({data.length})
+      </h2>
+      {data.map((t) => (
         <Review key={t.id} transfer={t} />
       ))}
     </section>

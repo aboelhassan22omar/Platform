@@ -116,6 +116,24 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+/**
+ * Fire-and-forget POST that survives the page closing (navigator.sendBeacon).
+ * Cookies are sent, so the request is authenticated like any other.
+ */
+export function apiBeacon(path: string): void {
+  if (typeof navigator === 'undefined') return;
+  try {
+    if (navigator.sendBeacon?.(`${BROWSER_BASE}${path}`)) return;
+  } catch {
+    // Fall through to keepalive fetch.
+  }
+  void fetch(`${BROWSER_BASE}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 export const api = {
   get: <T>(path: string, options?: RequestOptions) =>
     apiFetch<T>(path, { ...options, method: 'GET' }),

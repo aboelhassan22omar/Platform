@@ -249,6 +249,19 @@ a student may have paid without receiving access.
 2. **Transcoding CPU.** One ffmpeg process saturates several cores.
 3. **Database connections.** `connection_limit=10` per API instance.
 
+### Streaming capacity (built in)
+
+`STREAM_MAX_CONCURRENT` caps how many students stream recorded lessons at
+once. The next student sees a waiting room with their place in line and an
+estimated wait (from what the current viewers have left to watch), and the
+player starts by itself when a seat frees. Seats are leases renewed by the
+open player; closing the tab frees one immediately, a paused player yields
+its seat after `STREAM_PAUSE_GRACE_SECONDS`, and staff never take a seat. If
+Redis is unreachable the limit fails open rather than blocking every lesson.
+
+Size it from the server's upload bandwidth: one 720p viewer needs about
+3 Mbps, so `(upload Mbps × 0.7) ÷ 3` leaves headroom for the rest of the site.
+
 ### What to do
 
 **Video → CDN (do this first).** Keep the private bucket as origin, put a CDN in

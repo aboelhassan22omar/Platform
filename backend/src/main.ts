@@ -30,6 +30,7 @@ async function bootstrap(): Promise<void> {
     whatsapp: config.get('whatsapp'),
     corsOrigins: config.get('corsOrigins'),
     rateLimit: config.get('rateLimit'),
+    streaming: config.get('streaming'),
     seedDemoData: config.get('seedDemoData'),
   } as AppConfig;
 

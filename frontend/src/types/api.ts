@@ -220,6 +220,7 @@ export interface LessonDetail extends LessonSummary {
 }
 
 export interface PlaybackTicket {
+  status: 'ADMITTED';
   ticket: string;
   expiresIn: number;
   manifestUrl: string;
@@ -228,7 +229,23 @@ export interface PlaybackTicket {
   renditions: string[];
   accessReason: AccessReason;
   resumeAtSeconds: number;
+  /** 0 when the platform has no viewer limit: no heartbeat is needed. */
+  heartbeatSeconds: number;
 }
+
+/** The platform is at its viewer limit; the student waits their turn. */
+export interface PlaybackQueue {
+  admitted: false;
+  /** 1-based place in line; 0 when even the waiting room is full. */
+  position: number;
+  etaSeconds: number;
+  retryAfterSeconds: number;
+  capacity: number;
+}
+
+export type PlaybackResponse = PlaybackTicket | { status: 'QUEUED'; queue: PlaybackQueue };
+
+export type PlaybackHeartbeat = { admitted: true } | PlaybackQueue;
 
 export interface Order {
   id: string;
