@@ -7,30 +7,48 @@ import { SandboxController } from './sandbox.controller';
 import { PAYMENT_PROVIDER } from './payments.constants';
 import { DevSandboxProvider } from './providers/dev-sandbox.provider';
 import { PaymobProvider } from './providers/paymob.provider';
+import { KashierProvider } from './providers/kashier.provider';
 import { ManualTransferProvider } from './providers/manual-transfer.provider';
 import { ManualTransfersController } from './manual-transfers.controller';
+import { PaymentsLogController } from './payments-log.controller';
 
 @Module({
   imports: [EntitlementsModule],
-  controllers: [PaymentsController, SandboxController, ManualTransfersController],
+  controllers: [
+    PaymentsController,
+    SandboxController,
+    ManualTransfersController,
+    PaymentsLogController,
+  ],
   providers: [
     OrdersService,
     DevSandboxProvider,
     PaymobProvider,
+    KashierProvider,
     ManualTransferProvider,
     {
       // One provider is active per deployment, selected by PAYMENT_PROVIDER.
       // Everything downstream depends on the interface, not the adapter.
       provide: PAYMENT_PROVIDER,
-      inject: [ConfigService, DevSandboxProvider, PaymobProvider, ManualTransferProvider],
+      inject: [
+        ConfigService,
+        DevSandboxProvider,
+        PaymobProvider,
+        KashierProvider,
+        ManualTransferProvider,
+      ],
       useFactory: (
         config: ConfigService,
         dev: DevSandboxProvider,
         paymob: PaymobProvider,
+        kashier: KashierProvider,
         manual: ManualTransferProvider,
       ) => {
         const key = config.get<string>('payments.provider');
-        return key === 'manual' ? manual : key === 'paymob' ? paymob : dev;
+        if (key === 'manual') return manual;
+        if (key === 'paymob') return paymob;
+        if (key === 'kashier') return kashier;
+        return dev;
       },
     },
   ],

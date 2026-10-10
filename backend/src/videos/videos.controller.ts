@@ -1,10 +1,41 @@
-import { Controller, ForbiddenException, Get, Param, Post, Query, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsInt, Max, Min } from 'class-validator';
 import { ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { Role } from '../generated/prisma/enums';
 import { CurrentUser, Public } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
 import { VideosService } from './videos.service';
+
+class PlaybackHeartbeatDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(86_400)
+  positionSeconds!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(86_400)
+  durationSeconds!: number;
+
+  @IsBoolean()
+  playing!: boolean;
+}
 
 @ApiTags('videos')
 @Controller('videos')
@@ -24,6 +55,22 @@ export class VideosController {
     });
   }
 
+  @Post(':lessonId/heartbeat')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'الحفاظ على مكان المشاهدة أثناء تشغيل الفيديو' })
+  heartbeat(@CurrentUser() user: AuthenticatedUser, @Body() dto: PlaybackHeartbeatDto) {
+    if (user.role !== Role.STUDENT) return { admitted: true };
+    return this.videos.heartbeat(user.id, dto);
+  }
+
+  /** Sent with navigator.sendBeacon when the player closes. */
+  @Post(':lessonId/release')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiExcludeEndpoint()
+  async release(@CurrentUser() user: AuthenticatedUser) {
+    if (user.role === Role.STUDENT) await this.videos.release(user.id);
+  }
+
   /**
    * Manifest and segments.
    *
@@ -40,7 +87,7 @@ export class VideosController {
     @Res() res: Response,
   ) {
     if (!ticket) throw new ForbiddenException('رابط المشاهدة غير صالح');
-    await this.videos.resolveTicket(lessonId, ticket);
+    await this.videos.authorizeStream(lessonId, ticket);
 
     const { stream, contentType } = await this.videos.streamObject(lessonId, 'master.m3u8');
 
@@ -68,7 +115,7 @@ export class VideosController {
     @Res() res: Response,
   ) {
     if (!ticket) throw new ForbiddenException('رابط المشاهدة غير صالح');
-    await this.videos.resolveTicket(lessonId, ticket);
+    await this.videos.authorizeStream(lessonId, ticket);
 
     const relative = Array.isArray(path) ? path.join('/') : path;
     const { stream, contentType } = await this.videos.streamObject(lessonId, relative);

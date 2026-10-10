@@ -27,10 +27,57 @@ Everything downstream of checkout depends on
 never on a specific processor. Swapping Paymob for another Egyptian gateway is
 a new adapter class plus a config value — not a rewrite of the order pipeline.
 
-| `PAYMENT_PROVIDER` | Adapter              | Real money? |
-| ------------------ | -------------------- | ----------- |
-| `dev` _(default)_  | `DevSandboxProvider` | **No**      |
-| `paymob`           | `PaymobProvider`     | Yes         |
+| `PAYMENT_PROVIDER` | Adapter                  | Real money? |
+| ------------------ | ------------------------ | ----------- | ------------------------ |
+| `PAYMENT_PROVIDER` | Adapter                  | Real money? | Unlocks                  |
+| ------------------ | ------------------------ | ----------- | ------------------------ |
+| `dev` _(default)_  | `DevSandboxProvider`     | **No**      | sandbox webhook          |
+| `kashier`          | `KashierProvider`        | Yes         | **automatically**        |
+| `paymob`           | `PaymobProvider`         | Yes         | automatically            |
+| `manual`           | `ManualTransferProvider` | Yes         | by an administrator      |
+
+---
+
+## Enabling Kashier (wallets + InstaPay, automatic unlock)
+
+A transfer to a personal Vodafone Cash or InstaPay number cannot be detected by
+software — neither service offers individuals an API or notification. Automatic
+unlocking therefore goes through a licensed gateway: the student pays the
+merchant account on Kashier's page, Kashier calls the platform with a signed
+webhook, and the order is settled and its lessons granted in one transaction.
+Nobody approves anything.
+
+1. Open a Kashier merchant account and enable **Mobile wallets** and
+   **InstaPay** on it (InstaPay is enabled by Kashier per account).
+2. From **Integrations**, copy the merchant ID, Payment API key and secret key.
+3. Set on the server:
+
+   ```bash
+   PAYMENT_PROVIDER=kashier
+   KASHIER_MERCHANT_ID=MID-xxxx-xxxx
+   KASHIER_API_KEY=<payment API key — also verifies webhooks>
+   KASHIER_SECRET_KEY=<secret key>
+   KASHIER_MODE=live
+   KASHIER_WALLET_METHODS=wallet
+   KASHIER_INSTAPAY_METHODS=
+   ```
+
+   Each checkout button maps to `allowedMethods`. An empty value shows every
+   method enabled on the account; once Kashier confirms the exact InstaPay key
+   for hosted sessions, put it in `KASHIER_INSTAPAY_METHODS` so that button
+   opens straight on InstaPay.
+
+4. Restart the backend. The webhook URL is sent with every session
+   (`https://<site>/api/webhooks/payments`), so nothing has to be registered.
+
+Verification: `x-kashier-signature` must equal HMAC-SHA256, keyed with the
+Payment API key, over the alphabetically sorted `signatureKeys` as
+`key=value` pairs joined by `&` with URL-encoded values. A `PENDING` InstaPay
+request is recorded but neither grants nor fails the order; refunds and voids
+never grant. The webhook amount must match the order total.
+
+Kashier's sandbox only exercises card and wallet. Make one small live wallet
+payment and one InstaPay payment before announcing the change.
 
 ---
 

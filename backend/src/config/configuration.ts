@@ -9,7 +9,7 @@ import { resolvePlatformIdentity } from './platform-identity';
  * would be unsafe in production (default secrets, dev payment adapter, etc.).
  */
 
-export type PaymentProviderKey = 'dev' | 'paymob' | 'manual';
+export type PaymentProviderKey = 'dev' | 'paymob' | 'kashier' | 'manual';
 export type PhoneVerificationMode = 'off' | 'console' | 'sms' | 'whatsapp';
 
 const bool = (value: string | undefined, fallback = false): boolean => {
@@ -127,6 +127,39 @@ export const configuration = () => ({
       iframeId: process.env.PAYMOB_IFRAME_ID ?? '',
       baseUrl: process.env.PAYMOB_BASE_URL ?? 'https://accept.paymob.com',
     },
+    kashier: {
+      merchantId: process.env.KASHIER_MERCHANT_ID?.trim() ?? '',
+      /** Payment API key: sent on session creation and signs every webhook. */
+      apiKey: process.env.KASHIER_API_KEY?.trim() ?? '',
+      /** Secret key: the Authorization header for session creation only. */
+      secretKey: process.env.KASHIER_SECRET_KEY?.trim() ?? '',
+      mode: (process.env.KASHIER_MODE === 'live' ? 'live' : 'test') as 'live' | 'test',
+      /**
+       * Comma-separated `allowedMethods` for each button in the checkout
+       * dialog. Empty shows every method enabled on the merchant account,
+       * which is the safe fallback while a method key is being confirmed.
+       */
+      walletMethods: process.env.KASHIER_WALLET_METHODS ?? 'wallet',
+      instapayMethods: process.env.KASHIER_INSTAPAY_METHODS ?? '',
+    },
+  },
+
+  /**
+   * Admission control for recorded-lesson streaming. Every segment is served
+   * through the API, so concurrent viewers are what exhausts the host. Past
+   * STREAM_MAX_CONCURRENT, students wait in a fair queue instead of everyone
+   * getting a broken player. 0 disables the limit.
+   */
+  streaming: {
+    maxConcurrent: int(process.env.STREAM_MAX_CONCURRENT, 0),
+    /** A viewer keeps their slot only while the player keeps renewing it. */
+    leaseSeconds: int(process.env.STREAM_LEASE_SECONDS, 75),
+    heartbeatSeconds: int(process.env.STREAM_HEARTBEAT_SECONDS, 25),
+    /** A paused player keeps its slot this long, then yields it. */
+    pauseGraceSeconds: int(process.env.STREAM_PAUSE_GRACE_SECONDS, 600),
+    /** Waiting students poll this often; one that stops polling leaves the queue. */
+    queuePollSeconds: int(process.env.STREAM_QUEUE_POLL_SECONDS, 10),
+    queueMax: int(process.env.STREAM_QUEUE_MAX, 2000),
   },
 
   phoneVerification: (process.env.PHONE_VERIFICATION ?? 'off') as PhoneVerificationMode,
@@ -232,6 +265,12 @@ export const validateEnv = (config: AppConfig): void => {
     errors.push('AUTH_LOCK_SECONDS must be at least 60 seconds.');
   }
 
+  const { streaming } = config;
+  if (streaming.maxConcurrent < 0) errors.push('STREAM_MAX_CONCURRENT cannot be negative.');
+  if (streaming.heartbeatSeconds * 2 > streaming.leaseSeconds) {
+    errors.push('STREAM_LEASE_SECONDS must be at least twice STREAM_HEARTBEAT_SECONDS.');
+  }
+
   if (config.isProduction) {
     if (!config.auth.cookieSecure) {
       errors.push('COOKIE_SECURE must be true in production.');
@@ -252,7 +291,22 @@ export const validateEnv = (config: AppConfig): void => {
         errors.push('PAYMOB_INTEGRATION_ID_CARD is required when PAYMENT_PROVIDER=paymob.');
       }
     }
-    if (!['dev', 'paymob', 'manual'].includes(config.payments.provider)) {
+    if (config.payments.provider === 'kashier') {
+      const { merchantId, apiKey, secretKey, mode } = config.payments.kashier;
+      if (!merchantId)
+        errors.push('KASHIER_MERCHANT_ID is required when PAYMENT_PROVIDER=kashier.');
+      if (!apiKey) {
+        errors.push('KASHIER_API_KEY is required — webhooks cannot be verified without it.');
+      }
+      if (!secretKey) errors.push('KASHIER_SECRET_KEY is required when PAYMENT_PROVIDER=kashier.');
+      if (mode !== 'live' && !config.payments.allowDevInProd) {
+        errors.push(
+          'KASHIER_MODE=test moves no real money. Set KASHIER_MODE=live, or ' +
+            'PAYMENT_ALLOW_DEV_IN_PROD=true to override deliberately.',
+        );
+      }
+    }
+    if (!['dev', 'paymob', 'kashier', 'manual'].includes(config.payments.provider)) {
       errors.push('Unknown PAYMENT_PROVIDER.');
     }
     if (

@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
@@ -12,6 +13,14 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
 import { EntitlementsService, ACCESS_MESSAGES } from '../entitlements/entitlements.service';
 import { generateToken, hashToken } from '../common/utils';
+import { StreamAdmissionService } from './stream-admission.service';
+
+/**
+ * Staff tickets carry this prefix so the per-segment admission check can skip
+ * them without a database lookup. A student cannot forge it: the ticket is
+ * looked up by the hash of the whole string.
+ */
+const STAFF_TICKET_PREFIX = 'staff.';
 
 export const VIDEO_QUEUE = 'video-transcode';
 
@@ -34,6 +43,7 @@ export class VideosService {
     private readonly storage: StorageService,
     private readonly entitlements: EntitlementsService,
     private readonly config: ConfigService,
+    private readonly admission: StreamAdmissionService,
   ) {
     const url = new URL(config.get<string>('redis.url')!);
     this.queue = new Queue(VIDEO_QUEUE, {
@@ -234,8 +244,25 @@ export class VideosService {
       throw new NotFoundException('الفيديو لسه بيتجهز، جرّب بعد شوية');
     }
 
+    const progress = await this.prisma.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId, lessonId } },
+      select: { positionSeconds: true, percent: true, completed: true },
+    });
+    const resumeAtSeconds = progress?.completed ? 0 : (progress?.positionSeconds ?? 0);
+
+    // Staff preview never takes a student's seat.
+    if (!opts.isStaff) {
+      const admission = await this.admission.acquire(
+        userId,
+        (asset.durationSeconds ?? 0) - resumeAtSeconds,
+      );
+      if (!admission.admitted) {
+        return { status: 'QUEUED' as const, queue: admission };
+      }
+    }
+
     const ttl = this.config.get<number>('playback.ttl')!;
-    const token = generateToken(32);
+    const token = `${opts.isStaff ? STAFF_TICKET_PREFIX : ''}${generateToken(32)}`;
 
     await this.prisma.playbackTicket.create({
       data: {
@@ -247,12 +274,8 @@ export class VideosService {
       },
     });
 
-    const progress = await this.prisma.lessonProgress.findUnique({
-      where: { userId_lessonId: { userId, lessonId } },
-      select: { positionSeconds: true, percent: true, completed: true },
-    });
-
     return {
+      status: 'ADMITTED' as const,
       ticket: token,
       expiresIn: ttl,
       // The player appends `?ticket=` to every segment request.
@@ -261,8 +284,40 @@ export class VideosService {
       durationSeconds: asset.durationSeconds ?? 0,
       renditions: asset.renditions,
       accessReason: decision.reason,
-      resumeAtSeconds: progress?.completed ? 0 : (progress?.positionSeconds ?? 0),
+      resumeAtSeconds,
+      /** 0 when no limit is configured: the player then skips heartbeats. */
+      heartbeatSeconds:
+        this.admission.enabled && !opts.isStaff ? this.admission.heartbeatSeconds : 0,
     };
+  }
+
+  /** Keeps a viewer's seat while their player is open. */
+  heartbeat(
+    userId: string,
+    input: { positionSeconds: number; durationSeconds: number; playing: boolean },
+  ) {
+    return this.admission.heartbeat(userId, input);
+  }
+
+  /** Frees a viewer's seat as soon as their player closes. */
+  release(userId: string) {
+    return this.admission.release(userId);
+  }
+
+  /**
+   * Ticket check plus admission, for every manifest and segment request. A
+   * student whose seat lapsed (and cannot get one back right now) is refused
+   * with 503 so the player can show the waiting room instead of a dead video.
+   */
+  async authorizeStream(lessonId: string, token: string) {
+    const ticket = await this.resolveTicket(lessonId, token);
+    if (!token.startsWith(STAFF_TICKET_PREFIX) && !(await this.admission.touch(ticket.userId))) {
+      throw new ServiceUnavailableException({
+        message: 'المنصة على آخرها دلوقتي، استنى دورك وهتكمل تلقائيًا',
+        code: 'PLATFORM_BUSY',
+      });
+    }
+    return ticket;
   }
 
   /** Validates a ticket on every manifest/segment request. */

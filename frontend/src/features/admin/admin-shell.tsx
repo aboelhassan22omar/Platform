@@ -8,7 +8,6 @@ import { springSnappy } from '@/lib/motion';
 import { useAuth } from '@/components/providers/auth-provider';
 
 const TABS = [
-  { href: '/admin/transfers', label: 'مراجعة التحويلات' },
   { href: '/admin', label: 'نظرة عامة', exact: true },
   { href: '/admin/students', label: 'الطلاب' },
   { href: '/admin/content', label: 'المحتوى ورفع الفيديوهات' },
@@ -16,6 +15,7 @@ const TABS = [
   { href: '/admin/assessments', label: 'الواجبات والامتحانات' },
   { href: '/admin/live', label: 'اللايف' },
   { href: '/admin/pricing', label: 'الأسعار' },
+  { href: '/admin/payments', label: 'سجل المدفوعات' },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

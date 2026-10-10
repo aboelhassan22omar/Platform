@@ -155,6 +155,11 @@ export class PaymentsController {
       return { received: true, matched: false };
     }
 
+    if (event.pending) {
+      await this.markProcessed(event.eventId);
+      return { received: true, matched: true, pending: true };
+    }
+
     try {
       await this.orders.settleOrder(order.id, event);
       await this.markProcessed(event.eventId);

@@ -305,9 +305,15 @@ export class OrdersService {
 
       // The provider must have charged what we asked for. A mismatch means
       // either tampering or a provider bug; either way, do not grant access.
-      if (typeof event.amountMinor === 'number' && event.amountMinor !== order.totalMinor) {
+      const amountMismatch =
+        (typeof event.amountMinor === 'number' && event.amountMinor !== order.totalMinor) ||
+        (event.amountCandidatesMinor !== undefined &&
+          !event.amountCandidatesMinor.includes(order.totalMinor));
+      if (amountMismatch) {
         this.logger.error(
-          `Amount mismatch on ${order.reference}: expected ${order.totalMinor}, got ${event.amountMinor}`,
+          `Amount mismatch on ${order.reference}: expected ${order.totalMinor}, got ${
+            event.amountMinor ?? event.amountCandidatesMinor?.join('|')
+          }`,
         );
         throw new BadRequestException('قيمة الدفع لا تطابق قيمة الطلب');
       }

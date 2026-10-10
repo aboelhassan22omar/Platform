@@ -3,9 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type Hls from 'hls.js';
-import { api } from '@/lib/api';
+import { api, apiBeacon } from '@/lib/api';
 import { cn, formatDuration } from '@/lib/utils';
-import type { PlaybackTicket } from '@/types/api';
+import type {
+  PlaybackHeartbeat,
+  PlaybackQueue,
+  PlaybackResponse,
+  PlaybackTicket,
+} from '@/types/api';
+import { WaitingRoom } from './waiting-room';
 
 /** How often playback position is written to the server. */
 const PROGRESS_SYNC_SECONDS = 15;
@@ -50,6 +56,12 @@ function switchHlsQuality(hls: Hls, requestedHeight: number): number | null {
  *   2. hls.js (or native HLS on Safari/iOS) plays the ticketed manifest.
  *   3. Position is synced every 15s and on pause/unload — never per frame.
  *
+ * When the platform is at its viewer limit, step 1 answers QUEUED instead of
+ * a ticket: the player shows the waiting room and retries on the server's
+ * schedule. Once admitted, a heartbeat keeps the seat and closing the player
+ * releases it, so the next student in line gets in without waiting for a
+ * timeout.
+ *
  * Nothing here grants access. If the student is not entitled, step 1 fails
  * with 403 and no media URL is ever produced.
  */
@@ -59,6 +71,9 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [ticket, setTicket] = useState<PlaybackTicket | null>(null);
+  const [queue, setQueue] = useState<PlaybackQueue | null>(null);
+  /** The seat lapsed during a long pause; pressing play asks for a new one. */
+  const [seatLapsed, setSeatLapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -82,6 +97,9 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   const hideTimerRef = useRef<number | null>(null);
   const pendingQualityHeightRef = useRef<number | null>(null);
   const usesNativeHlsRef = useRef(false);
+  const retryTimerRef = useRef<number | null>(null);
+  const unmountedRef = useRef(false);
+  const readmissionsRef = useRef(0);
   const localProgressKey = `lesson-playback-position:${lessonId}`;
 
   // --------------------------------------------------------------------------
@@ -142,25 +160,94 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   // Ticket + HLS setup
   // --------------------------------------------------------------------------
 
-  useEffect(() => {
-    let cancelled = false;
+  const requestTicket = useCallback(async () => {
+    if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = null;
+    try {
+      const issued = await api.post<PlaybackResponse>(`/videos/${lessonId}/playback`);
+      if (unmountedRef.current) return;
+      if (issued.status === 'QUEUED') {
+        setTicket(null);
+        setQueue(issued.queue);
+        retryTimerRef.current = window.setTimeout(
+          () => void requestTicket(),
+          Math.max(3, issued.queue.retryAfterSeconds) * 1000,
+        );
+        return;
+      }
+      setQueue(null);
+      setSeatLapsed(false);
+      setIsReady(false);
+      setTicket(issued);
+    } catch (err) {
+      if (!unmountedRef.current) {
+        setError((err as { message?: string }).message ?? 'مش قادرين نشغّل الفيديو دلوقتي');
+      }
+    }
+  }, [lessonId]);
 
-    const start = async () => {
+  /**
+   * The server refused a segment because this student's seat is gone (it
+   * lapsed and someone was waiting). Go back through admission, which either
+   * re-seats them at once or puts them in line; playback resumes from the
+   * locally saved position either way.
+   */
+  const rejoin = useCallback(() => {
+    saveLocalProgress();
+    readmissionsRef.current += 1;
+    if (readmissionsRef.current > 20) {
+      setError('الاتصال بالسيرفر مش مستقر، حدّث الصفحة');
+      return;
+    }
+    setTicket(null);
+    void requestTicket();
+  }, [requestTicket, saveLocalProgress]);
+
+  useEffect(() => {
+    unmountedRef.current = false;
+    void requestTicket();
+    return () => {
+      unmountedRef.current = true;
+      if (retryTimerRef.current) window.clearTimeout(retryTimerRef.current);
+    };
+  }, [requestTicket]);
+
+  // Keep the seat while the player is open; free it the moment it closes.
+  useEffect(() => {
+    if (!ticket?.heartbeatSeconds) return;
+
+    const beat = async () => {
+      const video = videoRef.current;
+      if (!video) return;
       try {
-        const issued = await api.post<PlaybackTicket>(`/videos/${lessonId}/playback`);
-        if (cancelled) return;
-        setTicket(issued);
-      } catch (err) {
-        if (!cancelled) {
-          setError((err as { message?: string }).message ?? 'مش قادرين نشغّل الفيديو دلوقتي');
+        const result = await api.post<PlaybackHeartbeat>(`/videos/${lessonId}/heartbeat`, {
+          positionSeconds: Math.floor(video.currentTime || 0),
+          durationSeconds: Math.floor(Number.isFinite(video.duration) ? video.duration : 0),
+          playing: !video.paused,
+        });
+        if (!result.admitted && video.paused) {
+          // Paused past the grace period: the seat went to someone waiting.
+          saveLocalProgress();
+          setSeatLapsed(true);
+          setTicket(null);
         }
+      } catch {
+        // A missed heartbeat is covered by the lease; segments renew it too.
       }
     };
 
-    void start();
+    const timer = window.setInterval(() => void beat(), ticket.heartbeatSeconds * 1000);
+    const release = () => apiBeacon(`/videos/${lessonId}/release`);
+    window.addEventListener('pagehide', release);
     return () => {
-      cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener('pagehide', release);
     };
+  }, [lessonId, saveLocalProgress, ticket]);
+
+  useEffect(() => {
+    // Release on leaving the lesson, not on every ticket change.
+    return () => apiBeacon(`/videos/${lessonId}/release`);
   }, [lessonId]);
 
   useEffect(() => {
@@ -232,6 +319,10 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       hls.on(HlsCtor.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
         if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR) {
+          if (data.response?.code === 503) {
+            rejoin();
+            return;
+          }
           // A ticket expiring mid-lesson is the common cause here.
           setError('انتهت صلاحية رابط المشاهدة، حدّث الصفحة عشان تكمل');
         } else {
@@ -247,7 +338,18 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       hlsRef.current?.destroy();
       hlsRef.current = null;
     };
-  }, [ticket]);
+  }, [rejoin, ticket]);
+
+  // Native HLS (Safari/iOS) reports a refused segment only as a media error.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !ticket?.heartbeatSeconds) return;
+    const onError = () => {
+      if (usesNativeHlsRef.current) rejoin();
+    };
+    video.addEventListener('error', onError);
+    return () => video.removeEventListener('error', onError);
+  }, [rejoin, ticket]);
 
   // --------------------------------------------------------------------------
   // Media events
@@ -536,6 +638,26 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   // --------------------------------------------------------------------------
   // Render
   // --------------------------------------------------------------------------
+
+  if (queue && !ticket) return <WaitingRoom queue={queue} />;
+
+  if (seatLapsed && !ticket) {
+    return (
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-2xl bg-midnight-950 p-8 text-center">
+        <p className="font-display text-base font-bold text-ivory-50">
+          الفيديو كان واقف فترة طويلة، فإدّينا مكانك لطالب كان مستني
+        </p>
+        <p className="text-sm text-ivory-200/70">هتكمل من نفس المكان اللي وقفت عنده.</p>
+        <button
+          type="button"
+          onClick={() => void requestTicket()}
+          className="mt-1 rounded-lg bg-gold-400 px-5 py-2.5 text-sm font-black text-midnight-950 transition-colors hover:bg-gold-300"
+        >
+          كمّل المشاهدة
+        </button>
+      </div>
+    );
+  }
 
   if (error) {
     return (
