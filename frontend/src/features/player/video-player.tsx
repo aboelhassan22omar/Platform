@@ -128,12 +128,17 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   // --------------------------------------------------------------------------
 
   const syncProgress = useCallback(
-    (force = false, keepalive = false) => {
+    (force = false, keepalive = false, atEnd = false) => {
       const video = videoRef.current;
       if (!video || !video.duration || Number.isNaN(video.duration)) return;
 
-      const position = Math.floor(video.currentTime);
-      const watchedSeconds = Math.min(120, Math.floor(watchedSinceSyncRef.current));
+      // At the end, report the whole video and the final fraction of a second
+      // too: flooring both left every lesson one second short of the end.
+      const position = atEnd ? Math.ceil(video.duration) : Math.floor(video.currentTime);
+      const watchedSeconds = Math.min(
+        120,
+        atEnd ? Math.ceil(watchedSinceSyncRef.current) : Math.floor(watchedSinceSyncRef.current),
+      );
       if (!force && watchedSeconds < PROGRESS_SYNC_SECONDS) {
         return;
       }
@@ -449,7 +454,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       } catch {
         // Ignore unavailable storage.
       }
-      syncProgress(true);
+      syncProgress(true, false, true);
     };
     const onVolume = () => {
       setVolume(video.volume);
