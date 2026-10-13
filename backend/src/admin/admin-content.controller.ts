@@ -6,6 +6,7 @@ import { CurrentUser, Roles } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
 import {
   CompleteAttachmentDto,
+  PublishLiveRecordingDto,
   UploadTicketDto,
   UpsertChapterDto,
   UpsertCourseDto,
@@ -188,6 +189,21 @@ export class AdminContentController {
     id: string,
   ) {
     return this.lessons.deleteAttachment(id);
+  }
+
+  @Post('live-recordings/:id/publish')
+  @ApiOperation({ summary: 'نشر تسجيل لايف كفيديو حصة' })
+  publishLiveRecording(
+    @CurrentUser()
+    actor: AuthenticatedUser,
+    @Param('id')
+    id: string,
+    @Body()
+    dto: PublishLiveRecordingDto,
+    @Req()
+    req: Request,
+  ) {
+    return this.lessons.publishLiveRecording(actor, id, dto, req.ip);
   }
 
   @Post('chapters/:chapterId/lessons')

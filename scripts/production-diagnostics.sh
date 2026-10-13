@@ -70,5 +70,11 @@ psql_q "select provider, \"eventType\", \"processedAt\" is not null as processed
 section 'API logs about payments (last 3 days)'
 docker logs --since 72h "$p-backend-1" 2>&1 | grep -E 'Kashier|Paymob|webhook|Webhook|Amount mismatch|checkout|Order ' | sed -E 's/[0-9]{1,3}(\.[0-9]{1,3}){3}/<ip>/g' | tail -60
 
+section 'Live recordings (latest 10)'
+psql_q "select left(s.title, 30) as live, s.\"recordingEnabled\" as rec_on, r.status, r.\"durationSeconds\" as secs, r.\"publishedLessonId\" is not null as published, left(coalesce(r.error, ''), 140) as error, r.\"startedAt\" from live_recordings r join live_sessions s on s.id = r.\"sessionId\" order by r.\"startedAt\" desc limit 10;"
+echo "LIVEKIT_URL host: $(grep -E '^LIVEKIT_URL=' "$root/shared/.env" | cut -d= -f2- | sed -E 's#^(wss?://)?([^/]+).*#\2#')"
+echo "RECORDING_S3_ENDPOINT: $(grep -E '^RECORDING_S3_ENDPOINT=' "$root/shared/.env" | cut -d= -f2- || true)"
+docker logs --since 72h "$p-backend-1" 2>&1 | grep -E 'recording|egress|Egress' | sed -E 's/[0-9]{1,3}(\.[0-9]{1,3}){3}/<ip>/g' | tail -20
+
 section 'Disk'
 df -h / /var/lib/docker 2>/dev/null | sort -u

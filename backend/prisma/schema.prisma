@@ -209,23 +209,23 @@ enum AssessmentKind {
 // ----------------------------------------------------------------------------
 
 model User {
-  id           String     @id @default(cuid())
-  username     String     @unique
+  id           String      @id @default(cuid())
+  username     String      @unique
   fullName     String
   passwordHash String
-  role         Role       @default(STUDENT)
-  status       UserStatus @default(ACTIVE)
+  role         Role        @default(STUDENT)
+  status       UserStatus  @default(ACTIVE)
   studentType  StudentType @default(ONLINE)
 
   /// Student phone. Egyptian format, stored normalised as 01XXXXXXXXX.
-  phone String @unique
+  phone       String @unique
   /// Parent / guardian phone. Not unique — siblings legitimately share one.
   parentPhone String
 
   phoneVerifiedAt DateTime?
   lastLoginAt     DateTime?
   /// Bumped on password change / forced logout to invalidate refresh tokens.
-  tokenVersion Int @default(0)
+  tokenVersion    Int       @default(0)
 
   /// Academic placement. Nullable only for staff accounts.
   educationSystem EducationSystem?
@@ -236,20 +236,20 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  refreshTokens     RefreshToken[]
-  passwordResets    PasswordReset[]
-  orders            Order[]
-  entitlements      Entitlement[]
-  subscriptions     Subscription[]
-  progress          LessonProgress[]
-  presence          PresenceRecord?
-  notifications     Notification[]
-  auditLogsActed    AuditLog[]         @relation("AuditActor")
-  auditLogsTarget   AuditLog[]         @relation("AuditTarget")
-  playbackTickets   PlaybackTicket[]
-  couponRedemptions CouponRedemption[]
-  assessmentAttempts AssessmentAttempt[]
-  liveSessionsCreated LiveSession[]     @relation("LiveSessionCreator")
+  refreshTokens       RefreshToken[]
+  passwordResets      PasswordReset[]
+  orders              Order[]
+  entitlements        Entitlement[]
+  subscriptions       Subscription[]
+  progress            LessonProgress[]
+  presence            PresenceRecord?
+  notifications       Notification[]
+  auditLogsActed      AuditLog[]          @relation("AuditActor")
+  auditLogsTarget     AuditLog[]          @relation("AuditTarget")
+  playbackTickets     PlaybackTicket[]
+  couponRedemptions   CouponRedemption[]
+  assessmentAttempts  AssessmentAttempt[]
+  liveSessionsCreated LiveSession[]       @relation("LiveSessionCreator")
   liveChatMessages    LiveChatMessage[]
   liveReactions       LiveReaction[]
 
@@ -322,20 +322,20 @@ model Grade {
   level           GradeLevel
 
   /// Arabic display name, e.g. "الصف الثالث الثانوي".
-  nameAr String
+  nameAr        String
   /// English display name used when the interface locale is English.
-  nameEn String?
+  nameEn        String?
   /// Short label used on compact cards, e.g. "تالتة ثانوي".
-  shortNameAr String
-  shortNameEn String?
+  shortNameAr   String
+  shortNameEn   String?
   /// URL segment, e.g. "third-secondary".
-  slug String @unique
+  slug          String  @unique
   /// Theme key resolved by the frontend theme registry.
-  themeKey    String
-  description String?
+  themeKey      String
+  description   String?
   descriptionEn String?
-  sortOrder   Int     @default(0)
-  isActive    Boolean @default(true)
+  sortOrder     Int     @default(0)
+  isActive      Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -357,15 +357,15 @@ model Course {
   academicYearId String
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
 
-  title        String
-  titleEn      String?
-  slug         String
-  description  String?
+  title         String
+  titleEn       String?
+  slug          String
+  description   String?
   descriptionEn String?
-  thumbnailKey String?
-  coverKey     String?
-  status       PublishStatus @default(DRAFT)
-  sortOrder    Int           @default(0)
+  thumbnailKey  String?
+  coverKey      String?
+  status        PublishStatus @default(DRAFT)
+  sortOrder     Int           @default(0)
 
   /// Price when the whole course is sold as one product, in piastres.
   priceMinor Int?
@@ -393,18 +393,18 @@ model Unit {
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  title       String
-  titleEn     String?
-  description String?
+  title         String
+  titleEn       String?
+  description   String?
   descriptionEn String?
-  sortOrder   Int           @default(0)
-  status      PublishStatus @default(DRAFT)
-  scheduledAt DateTime?
+  sortOrder     Int           @default(0)
+  status        PublishStatus @default(DRAFT)
+  scheduledAt   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  chapters Chapter[]
+  chapters    Chapter[]
   assessments Assessment[]
 
   @@index([courseId, sortOrder])
@@ -416,13 +416,13 @@ model Chapter {
   unitId String
   unit   Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  title       String
-  titleEn     String?
-  description String?
+  title         String
+  titleEn       String?
+  description   String?
   descriptionEn String?
-  sortOrder   Int           @default(0)
-  status      PublishStatus @default(DRAFT)
-  scheduledAt DateTime?
+  sortOrder     Int           @default(0)
+  status        PublishStatus @default(DRAFT)
+  scheduledAt   DateTime?
 
   /// Price when the chapter is sold as a bundle, in piastres.
   priceMinor Int?
@@ -442,19 +442,19 @@ model Lesson {
   chapterId String
   chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
-  title        String
-  titleEn      String?
-  slug         String
-  description  String?
+  title         String
+  titleEn       String?
+  slug          String
+  description   String?
   descriptionEn String?
-  thumbnailKey String?
-  sortOrder    Int           @default(0)
-  status       PublishStatus @default(DRAFT)
+  thumbnailKey  String?
+  sortOrder     Int           @default(0)
+  status        PublishStatus @default(DRAFT)
 
   /// Price for an individual lesson purchase, in piastres.
-  priceMinor Int?
+  priceMinor       Int?
   /// Free lessons are playable by any authenticated student.
-  isFreePreview Boolean @default(false)
+  isFreePreview    Boolean @default(false)
   /// Null keeps the online price; zero grants free access to center students.
   centerPriceMinor Int?
 
@@ -466,12 +466,14 @@ model Lesson {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  videoAsset  VideoAsset?
-  attachments Attachment[]
-  progress    LessonProgress[]
-  products    Product[]
-  tickets     PlaybackTicket[]
-  assessments Assessment[]
+  videoAsset     VideoAsset?
+  attachments    Attachment[]
+  progress       LessonProgress[]
+  products       Product[]
+  tickets        PlaybackTicket[]
+  assessments    Assessment[]
+  /// Live recordings published as this lesson's video.
+  liveRecordings LiveRecording[]
 
   @@unique([chapterId, slug])
   @@index([chapterId, sortOrder])
@@ -507,9 +509,9 @@ model VideoAsset {
   status VideoStatus @default(AWAITING_UPLOAD)
 
   /// Key of the original uploaded file in private object storage.
-  sourceKey    String?
-  originalName String?
-  sizeBytes    BigInt?
+  sourceKey      String?
+  originalName   String?
+  sizeBytes      BigInt?
   /// Prefix under which the HLS ladder is written, e.g. "hls/<assetId>/".
   hlsPrefix      String?
   masterPlaylist String?
@@ -519,7 +521,7 @@ model VideoAsset {
   width           Int?
   height          Int?
   /// Renditions actually produced, e.g. ["360p","480p","720p"].
-  renditions String[] @default([])
+  renditions      String[] @default([])
 
   /// Multipart upload bookkeeping, so uploads survive a page refresh.
   uploadId String?
@@ -586,24 +588,24 @@ model Product {
   id   String      @id @default(cuid())
   kind ProductKind
 
-  title       String
-  titleEn     String?
-  description String?
+  title         String
+  titleEn       String?
+  description   String?
   descriptionEn String?
   /// Price in piastres. Copied onto the order line at purchase time so later
   /// price edits never rewrite historical orders.
-  priceMinor Int
-  currency   String  @default("EGP")
-  isActive   Boolean @default(true)
+  priceMinor    Int
+  currency      String  @default("EGP")
+  isActive      Boolean @default(true)
 
-  lessonId  String?
-  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  chapterId String?
-  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  courseId  String?
-  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  planId    String?
-  plan      Plan?    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  lessonId     String?
+  lesson       Lesson?     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  chapterId    String?
+  chapter      Chapter?    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  courseId     String?
+  course       Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  planId       String?
+  plan         Plan?       @relation(fields: [planId], references: [id], onDelete: Cascade)
   assessmentId String?
   assessment   Assessment? @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
@@ -630,24 +632,24 @@ model Plan {
   academicYearId String
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
 
-  kind        ProductKind
-  title       String
-  titleEn     String?
-  description String?
+  kind          ProductKind
+  title         String
+  titleEn       String?
+  description   String?
   descriptionEn String?
-  priceMinor  Int
-  currency    String      @default("EGP")
+  priceMinor    Int
+  currency      String      @default("EGP")
 
   /// Access window length. Monthly plans typically 30; yearly plans use
   /// accessUntil instead when the academic year has a fixed end date.
   durationDays Int?
   accessUntil  DateTime?
 
-  isActive  Boolean  @default(false)
-  autoRenew Boolean  @default(false)
-  sortOrder Int      @default(0)
+  isActive     Boolean  @default(false)
+  autoRenew    Boolean  @default(false)
+  sortOrder    Int      @default(0)
   /// Marketing bullet points shown on the pricing card.
-  highlights String[] @default([])
+  highlights   String[] @default([])
   highlightsEn String[] @default([])
 
   createdAt DateTime @default(now())
@@ -664,7 +666,7 @@ model Coupon {
   id   String @id @default(cuid())
   code String @unique
 
-  discountType DiscountType
+  discountType  DiscountType
   /// Percent (1-100) or fixed amount in piastres, per discountType.
   discountValue Int
 
@@ -781,7 +783,7 @@ model Payment {
 
   /// Provider-side transaction id. Unique per provider so a replayed webhook
   /// cannot create a second payment row.
-  providerRef String?
+  providerRef     String?
   /// Opaque provider payload kept for reconciliation and dispute handling.
   /// Never contains card data — only provider-returned metadata.
   providerPayload Json?
@@ -805,8 +807,8 @@ model WebhookEvent {
   eventId   String
   eventType String?
 
-  payload   Json
-  signature String?
+  payload     Json
+  signature   String?
   /// Null until successfully handled; set once the transaction commits.
   processedAt DateTime?
   error       String?
@@ -841,20 +843,20 @@ model Entitlement {
   courseId       String?
   gradeId        String?
   academicYearId String?
-  assessmentId String?
-  assessment Assessment? @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessmentId   String?
+  assessment     Assessment? @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
   orderId String?
   order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
-  startsAt DateTime @default(now())
+  startsAt  DateTime  @default(now())
   /// Null = perpetual (individual lesson / chapter / course purchases).
   expiresAt DateTime?
 
   revokedAt     DateTime?
   revokedReason String?
   /// Staff member who granted or revoked manually.
-  grantedById String?
+  grantedById   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -910,12 +912,12 @@ model LessonProgress {
   /// Duration observed by the player, used to compute the percentage.
   durationSeconds Int @default(0)
   /// 0-100, derived server-side — never trusted from the client.
-  percent Int @default(0)
+  percent         Int @default(0)
 
-  completed   Boolean   @default(false)
-  completedAt DateTime?
+  completed      Boolean   @default(false)
+  completedAt    DateTime?
   /// Legacy mirror of the furthest position; rewatching does not increase it.
-  watchedSeconds Int @default(0)
+  watchedSeconds Int       @default(0)
 
   lastWatchedAt DateTime @default(now())
   createdAt     DateTime @default(now())
@@ -932,31 +934,31 @@ model LessonProgress {
 // ----------------------------------------------------------------------------
 
 model Assessment {
-  id          String         @id @default(cuid())
-  title       String
-  titleEn     String?
-  description String?
-  descriptionEn String?
-  kind        AssessmentKind
-  status      PublishStatus  @default(DRAFT)
+  id               String         @id @default(cuid())
+  title            String
+  titleEn          String?
+  description      String?
+  descriptionEn    String?
+  kind             AssessmentKind
+  status           PublishStatus  @default(DRAFT)
   timeLimitMinutes Int?
-  passingScore Int           @default(50)
-  maxAttempts  Int           @default(1)
-  shuffleQuestions Boolean   @default(false)
-  shuffleOptions   Boolean   @default(false)
-  availableFrom DateTime?
-  dueAt        DateTime?
-  isFree       Boolean        @default(true)
-  priceMinor   Int?
+  passingScore     Int            @default(50)
+  maxAttempts      Int            @default(1)
+  shuffleQuestions Boolean        @default(false)
+  shuffleOptions   Boolean        @default(false)
+  availableFrom    DateTime?
+  dueAt            DateTime?
+  isFree           Boolean        @default(true)
+  priceMinor       Int?
 
   lessonId String?
   lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   unitId   String?
   unit     Unit?   @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
-  questions AssessmentQuestion[]
-  attempts  AssessmentAttempt[]
-  products  Product[]
+  questions    AssessmentQuestion[]
+  attempts     AssessmentAttempt[]
+  products     Product[]
   entitlements Entitlement[]
 
   createdAt DateTime @default(now())
@@ -969,30 +971,30 @@ model Assessment {
 }
 
 model AssessmentQuestion {
-  id           String @id @default(cuid())
-  assessmentId String
-  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  prompt       String
-  promptEn     String?
-  explanation  String?
+  id            String             @id @default(cuid())
+  assessmentId  String
+  assessment    Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  prompt        String
+  promptEn      String?
+  explanation   String?
   explanationEn String?
-  points       Int @default(1)
-  sortOrder    Int @default(0)
-  options      AssessmentOption[]
-  answers      AssessmentAnswer[]
+  points        Int                @default(1)
+  sortOrder     Int                @default(0)
+  options       AssessmentOption[]
+  answers       AssessmentAnswer[]
 
   @@index([assessmentId, sortOrder])
   @@map("assessment_questions")
 }
 
 model AssessmentOption {
-  id         String @id @default(cuid())
+  id         String             @id @default(cuid())
   questionId String
   question   AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
   text       String
   textEn     String?
-  isCorrect  Boolean @default(false)
-  sortOrder  Int @default(0)
+  isCorrect  Boolean            @default(false)
+  sortOrder  Int                @default(0)
   answers    AssessmentAnswer[]
 
   @@index([questionId, sortOrder])
@@ -1000,17 +1002,17 @@ model AssessmentOption {
 }
 
 model AssessmentAttempt {
-  id           String @id @default(cuid())
+  id           String                  @id @default(cuid())
   assessmentId String
-  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessment   Assessment              @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   userId       String
-  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   status       AssessmentAttemptStatus @default(IN_PROGRESS)
-  score        Int @default(0)
-  maxScore     Int @default(0)
-  percentage   Int @default(0)
-  passed       Boolean @default(false)
-  startedAt    DateTime @default(now())
+  score        Int                     @default(0)
+  maxScore     Int                     @default(0)
+  percentage   Int                     @default(0)
+  passed       Boolean                 @default(false)
+  startedAt    DateTime                @default(now())
   expiresAt    DateTime?
   submittedAt  DateTime?
   answers      AssessmentAnswer[]
@@ -1021,15 +1023,15 @@ model AssessmentAttempt {
 }
 
 model AssessmentAnswer {
-  id         String @id @default(cuid())
-  attemptId  String
-  attempt    AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId String
-  question   AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  optionId   String?
-  option     AssessmentOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
-  isCorrect  Boolean
-  pointsAwarded Int @default(0)
+  id            String             @id @default(cuid())
+  attemptId     String
+  attempt       AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionId      String?
+  option        AssessmentOption?  @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  isCorrect     Boolean
+  pointsAwarded Int                @default(0)
 
   @@unique([attemptId, questionId])
   @@index([questionId])
@@ -1045,8 +1047,8 @@ model PresenceRecord {
 
   lastSeenAt DateTime @default(now())
   /// Coarse location, e.g. "lesson:<id>" or "dashboard".
-  lastRoute String?
-  userAgent String?
+  lastRoute  String?
+  userAgent  String?
 
   @@index([lastSeenAt])
   @@map("presence_records")
@@ -1061,13 +1063,13 @@ model Notification {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  kind   NotificationKind @default(SYSTEM)
-  title  String
+  kind    NotificationKind @default(SYSTEM)
+  title   String
   titleEn String?
-  body   String
-  bodyEn String?
-  href   String?
-  readAt DateTime?
+  body    String
+  bodyEn  String?
+  href    String?
+  readAt  DateTime?
 
   createdAt DateTime @default(now())
 
@@ -1113,27 +1115,27 @@ model SiteSetting {
 
 /// A live class streamed through LiveKit, visible to the students of one grade.
 model LiveSession {
-  id          String            @id @default(cuid())
-  title       String
-  description String?
-  gradeId     String
-  grade       Grade             @relation(fields: [gradeId], references: [id], onDelete: Cascade)
-  scheduledAt DateTime
-  startedAt   DateTime?
-  endedAt     DateTime?
-  status      LiveSessionStatus @default(SCHEDULED)
+  id               String            @id @default(cuid())
+  title            String
+  description      String?
+  gradeId          String
+  grade            Grade             @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  scheduledAt      DateTime
+  startedAt        DateTime?
+  endedAt          DateTime?
+  status           LiveSessionStatus @default(SCHEDULED)
   /// The teacher can close the chat mid-session.
-  chatEnabled Boolean           @default(true)
-  kickedUserIds String[]        @default([])
+  chatEnabled      Boolean           @default(true)
+  kickedUserIds    String[]          @default([])
   /// Chosen by the teacher when scheduling: record the class to the video bucket.
-  recordingEnabled Boolean      @default(false)
+  recordingEnabled Boolean           @default(false)
   /// Set while the presenter is missing from the room; the class auto-ends after a grace period.
   hostAbsentSince  DateTime?
   endReason        LiveEndReason?
   /// LiveKit room name. Generated server-side, never taken from input.
-  roomName    String            @unique
-  createdById String?
-  createdBy   User?             @relation("LiveSessionCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  roomName         String            @unique
+  createdById      String?
+  createdBy        User?             @relation("LiveSessionCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1176,18 +1178,22 @@ model LiveReaction {
 /// One recorded segment of a live class. A teacher who drops out and rejoins
 /// produces a new segment, so each file ends exactly where the stream stopped.
 model LiveRecording {
-  id              String              @id @default(cuid())
-  sessionId       String
-  session         LiveSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  egressId        String              @unique
-  status          LiveRecordingStatus @default(RECORDING)
+  id                String              @id @default(cuid())
+  sessionId         String
+  session           LiveSession         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  egressId          String              @unique
+  status            LiveRecordingStatus @default(RECORDING)
   /// Object key inside the private video bucket.
-  objectKey       String
-  startedAt       DateTime            @default(now())
-  endedAt         DateTime?
-  durationSeconds Int?
-  sizeBytes       BigInt?
-  error           String?
+  objectKey         String
+  startedAt         DateTime            @default(now())
+  endedAt           DateTime?
+  durationSeconds   Int?
+  sizeBytes         BigInt?
+  error             String?
+  /// The lesson this recording was published to (its video is a copy).
+  publishedLessonId String?
+  publishedLesson   Lesson?             @relation(fields: [publishedLessonId], references: [id], onDelete: SetNull)
+  publishedAt       DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

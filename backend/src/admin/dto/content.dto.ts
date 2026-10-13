@@ -69,3 +69,13 @@ export class CompleteAttachmentDto extends UploadTicketDto {
   @IsString() @MinLength(1) @MaxLength(200) title!: string;
   @IsOptional() @IsString() @MaxLength(200) titleEn?: string;
 }
+
+/** Publish a live recording as a lesson video: an existing lesson, or a new one in a chapter. */
+export class PublishLiveRecordingDto {
+  @IsOptional() @IsString() lessonId?: string;
+  @IsOptional() @IsString() chapterId?: string;
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(200) title?: string;
+  @IsOptional() @IsInt() @Min(0) priceMinor?: number | null;
+  @IsOptional() @IsBoolean() isFreePreview?: boolean;
+  @IsOptional() @IsEnum(PublishStatus) status?: PublishStatus;
+}
