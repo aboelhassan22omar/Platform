@@ -51,6 +51,25 @@ Required production environment Actions secrets:
 - `PRODUCTION_SSH_KEY`: dedicated private deployment key, never the root password
 - `PRODUCTION_KNOWN_HOSTS`: host key verified during server setup
 
+WhatsApp OTP settings are also production environment secrets. Each deploy
+merges the ones that are set into `shared/.env` (backing it up first under
+`/opt/amr-platform/backups/env-*`), and a deploy fails if OTP then still
+answers "unavailable":
+
+- `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_TOKEN` (System User token)
+- `WHATSAPP_NUMBER`: the business number in international digits, e.g. `2010…`
+- `WHATSAPP_VERIFY_TOKEN`: the verify token entered in Meta's webhook settings
+- `WHATSAPP_APP_SECRET`: Meta App settings → Basic → App Secret
+
+Meta's webhook must point at `https://<domain>/api/auth/whatsapp/webhook`,
+subscribed to `messages`, with the Meta app in Live mode. After changing only
+secrets, run **Production pipeline** manually to apply them.
+
+**Production diagnostics** (manual, owner-approved) prints a read-only report:
+container state, which OTP settings are present (never their values), video
+assets and transcode jobs, worker logs, and a browser-style upload through the
+public storage host.
+
 Production configuration lives only at `/opt/amr-platform/shared/.env`, mode
 600. Source releases are under `/opt/amr-platform/releases/<commit SHA>`.
 Host nginx owns HTTPS; the application edge binds `127.0.0.1:17080`, and the

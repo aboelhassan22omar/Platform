@@ -278,7 +278,7 @@ jobs:
       always() &&
       needs.authorize.result == 'success' &&
       needs.published.result == 'success' &&
-      needs.changes.outputs.any == 'true'
+      (needs.changes.outputs.any == 'true' || github.event_name == 'workflow_dispatch')
     environment:
       name: production
       url: ${{ vars.PRODUCTION_SITE_URL }}
@@ -310,6 +310,13 @@ jobs:
           SERVICES: ${{ needs.changes.outputs.services }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY_USER: ${{ github.actor }}
+          # WhatsApp OTP settings, kept as production environment secrets and
+          # merged into the server's shared/.env by deploy-production.sh.
+          WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.WHATSAPP_PHONE_NUMBER_ID }}
+          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          WHATSAPP_NUMBER: ${{ secrets.WHATSAPP_NUMBER }}
+          WHATSAPP_VERIFY_TOKEN: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
+          WHATSAPP_APP_SECRET: ${{ secrets.WHATSAPP_APP_SECRET }}
         run: |
           set -euo pipefail
           test -n "$HOST"
@@ -318,6 +325,16 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" "mkdir -p '$release'"
           git archive --format=tar.gz -o release.tar.gz HEAD
           scp -o BatchMode=yes -o StrictHostKeyChecking=yes release.tar.gz "$DEPLOY_USER@$HOST:$release/source.tar.gz"
+          managed=""
+          for key in WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TOKEN WHATSAPP_NUMBER WHATSAPP_VERIFY_TOKEN WHATSAPP_APP_SECRET; do
+            value="${!key}"
+            if [ -n "$value" ]; then managed+="$key=$value"$'\n'; fi
+          done
+          if [ -n "$managed" ]; then
+            # Over stdin, never as an argument or a file on the runner.
+            printf '%s' "$managed" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" \
+              "umask 077 && cat > '$release/managed.env'"
+          fi
           printf '%s\n' "$REGISTRY_TOKEN" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" \
             "cd '$release' && tar -xzf source.tar.gz && bash scripts/deploy-production.sh '$GITHUB_SHA' '$PREFIX' '$REGISTRY_USER' '$SERVICES'"
       - name: Remove runner credentials
@@ -334,6 +351,36 @@ jobs:
             curl --fail --silent --show-error --retry 5 --retry-delay 5 --output /dev/null "$SITE_URL$path"
             echo "$path -> 200"
           done
+      - name: Verify WhatsApp OTP works
+        env:
+          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+          WHATSAPP_VERIFY_TOKEN: ${{ secrets.WHATSAPP_VERIFY_TOKEN }}
+        run: |
+          set -euo pipefail
+          # An unregistered, never-used number: no message is sent to anyone,
+          # but the API must hand out a challenge instead of "unavailable".
+          phone="0109$(printf '%07d' $(( (RANDOM * 32768 + RANDOM) % 10000000 )))"
+          body="$(curl --silent --show-error -X POST "$SITE_URL/api/auth/password/reset/request" \
+            -H 'Content-Type: application/json' -d "{\"phone\":\"$phone\"}" -w '\n%{http_code}')"
+          code="${body##*$'\n'}"; json="${body%$'\n'*}"
+          echo "OTP request -> $code"
+          if [ "$code" = 503 ]; then
+            echo "::error::WhatsApp OTP is not configured on the server. Set the WHATSAPP_* secrets in the production environment, then run this workflow manually."
+            exit 1
+          fi
+          [ "$code" = 200 ] || { echo "::error::OTP request returned $code"; exit 1; }
+          mode="$(python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print(d.get("delivery") or ("template" if d.get("challengeId") else "none"))' "$json")"
+          echo "OTP delivery: $mode"
+          [ "$mode" != none ] || { echo "::error::OTP request returned no challenge"; exit 1; }
+          if [ "$mode" = whatsapp-link ]; then
+            test -n "$WHATSAPP_VERIFY_TOKEN" || { echo "::error::WHATSAPP_VERIFY_TOKEN secret is missing"; exit 1; }
+            echo_back="$(curl --silent --get "$SITE_URL/api/auth/whatsapp/webhook" \
+              --data-urlencode 'hub.mode=subscribe' --data-urlencode "hub.verify_token=$WHATSAPP_VERIFY_TOKEN" \
+              --data-urlencode 'hub.challenge=otp-check-42')"
+            [ "$echo_back" = otp-check-42 ] || { echo "::error::Webhook verify token on the server does not match the secret"; exit 1; }
+            echo "Webhook handshake OK. Meta must use $SITE_URL/api/auth/whatsapp/webhook with this verify token."
+          fi
+          echo "### WhatsApp OTP: working ($mode)" >> "$GITHUB_STEP_SUMMARY"
 
   record:
     name: Stage 4 - Record this as the last successful deploy
