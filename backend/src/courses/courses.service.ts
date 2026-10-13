@@ -4,6 +4,7 @@ import { isLessonFreeFor, lessonPriceFor } from '../common/utils/lesson-pricing'
 import { PrismaService } from '../common/prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
+import { hasPlayableVersion } from '../videos/playable';
 
 /**
  * Read model for the public catalogue and the student's own library.
@@ -55,7 +56,14 @@ export class CoursesService {
                   orderBy: { sortOrder: 'asc' },
                   include: {
                     products: { where: { isActive: true }, select: { id: true } },
-                    videoAsset: { select: { status: true, durationSeconds: true } },
+                    videoAsset: {
+                      select: {
+                        status: true,
+                        durationSeconds: true,
+                        hlsPrefix: true,
+                        processedAt: true,
+                      },
+                    },
                   },
                 },
               },
@@ -235,7 +243,9 @@ export class CoursesService {
         ],
       },
       include: {
-        videoAsset: { select: { status: true, durationSeconds: true } },
+        videoAsset: {
+          select: { status: true, durationSeconds: true, hlsPrefix: true, processedAt: true },
+        },
         chapter: {
           include: {
             unit: { include: { course: { include: { grade: true } } } },
@@ -310,7 +320,9 @@ export class CoursesService {
       include: {
         lesson: {
           include: {
-            videoAsset: { select: { status: true, durationSeconds: true } },
+            videoAsset: {
+              select: { status: true, durationSeconds: true, hlsPrefix: true, processedAt: true },
+            },
             chapter: {
               include: { unit: { include: { course: { include: { grade: true } } } } },
             },
@@ -350,7 +362,9 @@ export class CoursesService {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
       include: {
-        videoAsset: { select: { status: true, durationSeconds: true } },
+        videoAsset: {
+          select: { status: true, durationSeconds: true, hlsPrefix: true, processedAt: true },
+        },
         attachments: true,
         chapter: {
           include: { unit: { include: { course: { include: { grade: true } } } } },
@@ -447,7 +461,12 @@ export class CoursesService {
       isFreePreview: boolean;
       durationSeconds: number;
       chapterId: string;
-      videoAsset?: { status: VideoStatus; durationSeconds: number | null } | null;
+      videoAsset?: {
+        status: VideoStatus;
+        durationSeconds: number | null;
+        hlsPrefix: string | null;
+        processedAt: Date | null;
+      } | null;
       products?: Array<{ id: string }>;
     },
     isAccessible: boolean,
@@ -474,7 +493,7 @@ export class CoursesService {
       durationSeconds: lesson.videoAsset?.durationSeconds ?? lesson.durationSeconds,
       chapterId: lesson.chapterId,
       videoStatus: lesson.videoAsset?.status ?? VideoStatus.AWAITING_UPLOAD,
-      isPlayable: lesson.videoAsset?.status === VideoStatus.READY,
+      isPlayable: hasPlayableVersion(lesson.videoAsset),
       isAccessible,
       progress: progress
         ? {

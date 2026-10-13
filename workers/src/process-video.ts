@@ -6,7 +6,7 @@ import type { Job } from 'bullmq';
 import { prisma, storage, log } from './infrastructure';
 import { VIDEO_BUCKET, PUBLIC_BUCKET, RENDITIONS, SEGMENT_SECONDS } from './config';
 import { probe, transcodeToHls, extractPoster } from './media/ffmpeg';
-import { downloadToFile, uploadDirectory } from './storage/transfers';
+import { downloadToFile, removePrefix, uploadDirectory } from './storage/transfers';
 
 export interface TranscodeJobData {
   videoAssetId: string;
@@ -22,6 +22,8 @@ export async function processJob(job: Job<TranscodeJobData>): Promise<void> {
   const sourcePath = path.join(workDir, 'source');
   const outputDir = path.join(workDir, 'hls');
   const posterPath = path.join(workDir, 'poster.jpg');
+  const hlsPrefix = `hls/${videoAssetId}.${jobId}/`;
+  let published = false;
 
   try {
     await prisma.$transaction([
@@ -61,7 +63,10 @@ export async function processJob(job: Job<TranscodeJobData>): Promise<void> {
       log('poster extraction failed; continuing without one');
     });
 
-    const hlsPrefix = `hls/${videoAssetId}/`;
+    // A fresh prefix per job: students keep streaming the published version
+    // untouched until the swap below, instead of segments being overwritten
+    // under them while the replacement uploads. Sibling (not nested) of the
+    // legacy `hls/<asset>/` prefix so removing one never touches the other.
     await uploadDirectory(storage, outputDir, VIDEO_BUCKET, hlsPrefix);
 
     // The poster goes to the PUBLIC bucket — a thumbnail is not paid content
@@ -69,13 +74,19 @@ export async function processJob(job: Job<TranscodeJobData>): Promise<void> {
     let posterKey: string | null = null;
     try {
       const { size } = await stat(posterPath);
-      posterKey = `posters/${videoAssetId}.jpg`;
+      // Versioned so browsers and caches never keep showing the replaced poster.
+      posterKey = `posters/${videoAssetId}.${jobId}.jpg`;
       await storage.putObject(PUBLIC_BUCKET, posterKey, createReadStream(posterPath), size, {
         'Content-Type': 'image/jpeg',
       });
     } catch {
       posterKey = null;
     }
+
+    const previous = await prisma.videoAsset.findUnique({
+      where: { id: videoAssetId },
+      select: { hlsPrefix: true, posterKey: true },
+    });
 
     await prisma.$transaction(async (tx) => {
       const asset = await tx.videoAsset.update({
@@ -106,11 +117,25 @@ export async function processJob(job: Job<TranscodeJobData>): Promise<void> {
         data: { status: 'COMPLETED', progress: 100, finishedAt: new Date() },
       });
     });
+    published = true;
+
+    // The swap is committed; the superseded version is now unreferenced.
+    if (previous?.hlsPrefix && previous.hlsPrefix !== hlsPrefix) {
+      await removePrefix(storage, VIDEO_BUCKET, previous.hlsPrefix).catch((error: Error) =>
+        log(`could not remove superseded ${previous.hlsPrefix}: ${error.message}`),
+      );
+    }
+
+    if (previous?.posterKey && previous.posterKey !== posterKey) {
+      await storage.removeObject(PUBLIC_BUCKET, previous.posterKey).catch(() => undefined);
+    }
 
     log(`done asset=${videoAssetId} renditions=${ladder.map((r) => r.name).join(',')}`);
   } catch (error) {
     const message = (error as Error).message.slice(0, 1000);
     log(`FAILED asset=${videoAssetId}: ${message}`);
+    // Partial output of an unpublished attempt is never referenced; drop it.
+    if (!published) await removePrefix(storage, VIDEO_BUCKET, hlsPrefix).catch(() => undefined);
 
     await prisma
       .$transaction([

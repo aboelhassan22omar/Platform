@@ -24,6 +24,7 @@ interface ProcessingStatus {
   error?: string | null;
   jobStatus?: string | null;
   attempts?: number;
+  hasPublishedVersion?: boolean;
 }
 
 type Phase = 'idle' | 'uploading' | 'processing' | 'ready' | 'failed';
@@ -48,13 +49,25 @@ export function VideoUploader({ lessonId }: { lessonId: string }) {
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const pollRef = useRef<number | null>(null);
 
+  // Closing the dialog must not kill an upload in flight: the XHR keeps going
+  // and still calls /complete. Only polling stops with the component.
   useEffect(
     () => () => {
-      xhrRef.current?.abort();
       if (pollRef.current) window.clearInterval(pollRef.current);
     },
     [],
   );
+
+  // Leaving the page would abort the upload; ask first.
+  useEffect(() => {
+    if (phase !== 'uploading') return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [phase]);
 
   const pollStatus = useCallback(() => {
     if (pollRef.current) window.clearInterval(pollRef.current);
@@ -90,6 +103,7 @@ export function VideoUploader({ lessonId }: { lessonId: string }) {
       .get<ProcessingStatus>(`/admin/content/lessons/${lessonId}/video/status`)
       .then((existing) => {
         if (cancelled) return;
+        setStatus(existing);
         if (existing.status === 'READY') {
           setStatus(existing);
           setPhase('ready');
@@ -181,63 +195,78 @@ export function VideoUploader({ lessonId }: { lessonId: string }) {
 
   if (phase === 'idle') {
     return (
-      <div
-        onDragOver={(event) => {
-          event.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setIsDragging(false);
-          const dropped = event.dataTransfer.files[0];
-          if (dropped) void upload(dropped);
-        }}
-        className={cn(
-          'rounded-2xl border-2 border-dashed p-8 text-center transition-colors',
-          isDragging
-            ? 'border-gold-500 bg-gold-50/70 dark:bg-gold-500/10'
-            : 'border-gold-500/30 bg-ivory-50/70 dark:bg-midnight-950/60',
+      <div className="space-y-3">
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-500/20 bg-red-50 p-3 text-xs font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-400"
+          >
+            {error}
+          </p>
         )}
-      >
-        <span
-          aria-hidden
-          className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white dark:bg-midnight-900 text-gold-600 dark:text-gold-400 shadow-card"
+        {status?.hasPublishedVersion && (
+          <p className="rounded-xl border border-emerald-500/20 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+            الطلاب بيشوفوا الفيديو الحالي لحد ما الفيديو الجديد يخلص تجهيز.
+          </p>
+        )}
+        <div
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDragging(false);
+            const dropped = event.dataTransfer.files[0];
+            if (dropped) void upload(dropped);
+          }}
+          className={cn(
+            'rounded-2xl border-2 border-dashed p-8 text-center transition-colors',
+            isDragging
+              ? 'border-gold-500 bg-gold-50/70 dark:bg-gold-500/10'
+              : 'border-gold-500/30 bg-ivory-50/70 dark:bg-midnight-950/60',
+          )}
         >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path
-              d="M12 16V4M7.5 8.5L12 4l4.5 4.5"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M4 15v3.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V15"
-              strokeWidth="1.7"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
+          <span
+            aria-hidden
+            className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white dark:bg-midnight-900 text-gold-600 dark:text-gold-400 shadow-card"
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                d="M12 16V4M7.5 8.5L12 4l4.5 4.5"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M4 15v3.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V15"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+          </span>
 
-        <p className="mt-4 font-display text-base font-bold text-midnight-950 dark:text-ivory-50">
-          اسحب ملف الفيديو هنا
-        </p>
-        <p className="mt-1 text-xs text-midnight-500 dark:text-ivory-300/70">
-          MP4 أو MOV أو MKV أو WEBM — حتى ٥ جيجا
-        </p>
+          <p className="mt-4 font-display text-base font-bold text-midnight-950 dark:text-ivory-50">
+            اسحب ملف الفيديو هنا
+          </p>
+          <p className="mt-1 text-xs text-midnight-500 dark:text-ivory-300/70">
+            MP4 أو MOV أو MKV أو WEBM — حتى ٥ جيجا
+          </p>
 
-        <label className="mt-5 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl bg-midnight-900 dark:bg-gold-500 dark:text-midnight-950 px-6 text-sm font-bold text-ivory-50 transition-colors hover:bg-midnight-800 dark:hover:bg-gold-400 shadow-md">
-          اختار ملف
-          <input
-            type="file"
-            accept="video/mp4,video/quicktime,video/x-matroska,video/webm"
-            className="sr-only"
-            onChange={(event) => {
-              const selected = event.target.files?.[0];
-              if (selected) void upload(selected);
-            }}
-          />
-        </label>
+          <label className="mt-5 inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl bg-midnight-900 dark:bg-gold-500 dark:text-midnight-950 px-6 text-sm font-bold text-ivory-50 transition-colors hover:bg-midnight-800 dark:hover:bg-gold-400 shadow-md">
+            اختار ملف
+            <input
+              type="file"
+              accept="video/mp4,video/quicktime,video/x-matroska,video/webm"
+              className="sr-only"
+              onChange={(event) => {
+                const selected = event.target.files?.[0];
+                if (selected) void upload(selected);
+              }}
+            />
+          </label>
+        </div>
       </div>
     );
   }
