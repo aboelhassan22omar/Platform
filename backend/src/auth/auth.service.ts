@@ -30,7 +30,8 @@ import type {
 } from './dto/auth.dto';
 import type { AccessTokenPayload } from './strategies/jwt.strategy';
 import { LoginLockedException } from './login-locked.exception';
-import { OtpService } from './otp.service';
+import { OtpService, type OtpPayload } from './otp.service';
+import { WhatsAppService } from './whatsapp.service';
 
 export interface IssuedTokens {
   accessToken: string;
@@ -55,13 +56,28 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly redis: RedisService,
     private readonly otp: OtpService,
+    private readonly whatsapp: WhatsAppService,
   ) {}
 
   // --------------------------------------------------------------------------
   // Registration
   // --------------------------------------------------------------------------
 
-  async register(dto: RegisterDto) {
+  /**
+   * WhatsApp OTP is enforced only when PHONE_VERIFICATION=whatsapp and the Meta
+   * credentials and template are all present. Otherwise the student is created
+   * straight away (phone unverified) instead of every sign-up failing.
+   */
+  private registrationNeedsOtp(): boolean {
+    if (this.config.get<string>('phoneVerification') !== 'whatsapp') return false;
+    if (this.whatsapp.isConfigured()) return true;
+    this.logger.error(
+      'PHONE_VERIFICATION=whatsapp but WhatsApp OTP is not fully configured; registering without phone verification',
+    );
+    return false;
+  }
+
+  async register(dto: RegisterDto, ctx: SessionContext) {
     const phone = normalizeEgyptianPhone(dto.phone)!;
     const parentPhone = normalizeEgyptianPhone(dto.parentPhone)!;
 
@@ -83,7 +99,7 @@ export class AuthService {
     }
 
     const passwordHash = await this.passwords.hash(dto.password);
-    return this.otp.create('register', {
+    const payload: OtpPayload = {
       phone,
       registration: {
         fullName: dto.fullName,
@@ -94,11 +110,20 @@ export class AuthService {
         gradeLevel: dto.gradeLevel,
         studentType: dto.studentType,
       },
-    });
+    };
+    if (!this.registrationNeedsOtp()) {
+      const session = await this.createStudent(payload, false, ctx);
+      return { verificationRequired: false as const, ...session };
+    }
+    return { verificationRequired: true as const, ...(await this.otp.create('register', payload)) };
   }
 
   async verifyRegistration(challengeId: string, code: string, ctx: SessionContext) {
     const payload = await this.otp.verify(challengeId, code, 'register');
+    return this.createStudent(payload, true, ctx);
+  }
+
+  private async createStudent(payload: OtpPayload, phoneVerified: boolean, ctx: SessionContext) {
     const dto = payload.registration;
     if (!dto) throw new BadRequestException('جلسة التسجيل غير صالحة');
     const currentYear = await this.prisma.academicYear.findFirst({
@@ -114,7 +139,7 @@ export class AuthService {
           passwordHash: dto.passwordHash,
           phone: payload.phone,
           parentPhone: dto.parentPhone,
-          phoneVerifiedAt: new Date(),
+          phoneVerifiedAt: phoneVerified ? new Date() : null,
           educationSystem: dto.educationSystem as EducationSystem,
           gradeLevel: dto.gradeLevel as GradeLevel,
           studentType: dto.studentType as StudentType | undefined,

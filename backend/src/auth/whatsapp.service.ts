@@ -7,12 +7,16 @@ export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
   constructor(private readonly config: ConfigService) {}
 
+  isConfigured(): boolean {
+    return Boolean(
+      this.config.get<string>('whatsapp.phoneNumberId') &&
+        this.config.get<string>('whatsapp.token') &&
+        this.config.get<string>('whatsapp.otpTemplate'),
+    );
+  }
+
   ensureConfigured(): void {
-    if (
-      !this.config.get<string>('whatsapp.phoneNumberId') ||
-      !this.config.get<string>('whatsapp.token') ||
-      !this.config.get<string>('whatsapp.otpTemplate')
-    ) {
+    if (!this.isConfigured()) {
       throw new ServiceUnavailableException(
         'إرسال كود واتساب غير متاح حاليًا، حاول لاحقًا أو تواصل مع الدعم.',
       );
@@ -57,16 +61,19 @@ export class WhatsAppService {
       );
       const result = (await response.json()) as {
         messages?: { id: string }[];
-        error?: { code?: number };
+        error?: { code?: number; message?: string };
       };
       if (!response.ok || !result.messages?.[0]?.id) {
+        // Meta's error text names the cause (template, token, number) and carries no secrets.
         this.logger.warn(
-          `WhatsApp OTP rejected: status=${response.status} code=${result.error?.code ?? 'unknown'}`,
+          `WhatsApp OTP rejected: status=${response.status} code=${result.error?.code ?? 'unknown'} message=${result.error?.message ?? 'none'}`,
         );
         throw new Error('provider rejected');
       }
-    } catch {
+    } catch (error) {
       // Never log the request, token, phone or OTP, and never claim delivery on failure.
+      if (!(error instanceof Error && error.message === 'provider rejected'))
+        this.logger.warn(`WhatsApp OTP request failed: ${(error as Error)?.name ?? 'unknown'}`);
       throw new ServiceUnavailableException(
         'تعذر إرسال كود واتساب. تأكد أن الرقم عليه واتساب وحاول مرة أخرى.',
       );

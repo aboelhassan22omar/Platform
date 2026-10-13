@@ -36,7 +36,7 @@ interface AuthContextValue {
    */
   isSigningOut: boolean;
   login: (identifier: string, password: string) => Promise<AuthUser>;
-  register: (input: RegisterInput) => Promise<OtpChallenge>;
+  register: (input: RegisterInput) => Promise<RegisterResult>;
   verifyRegistration: (challengeId: string, code: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -58,6 +58,10 @@ export interface OtpChallenge {
   expiresIn: number;
   resendAfterSeconds: number;
 }
+
+export type RegisterResult =
+  | ({ verificationRequired: true } & OtpChallenge)
+  | { verificationRequired: false; user: AuthUser };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -113,8 +117,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const register = useCallback(
-    (input: RegisterInput) => api.post<OtpChallenge>('/auth/register', input),
-    [],
+    async (input: RegisterInput): Promise<RegisterResult> => {
+      const result = await api.post<RegisterResult>('/auth/register', input);
+      if (result.verificationRequired === false) {
+        // No phone verification on this deployment: the account is already signed in.
+        setUser(result.user);
+        router.refresh();
+      }
+      return result;
+    },
+    [router],
   );
 
   const verifyRegistration = useCallback(
