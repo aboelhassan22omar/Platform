@@ -1,6 +1,8 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import { AdminTransfers } from '@/features/admin/admin-transfers';
 
-/** The transfer review page became the payments log. */
+export const metadata: Metadata = { title: 'مراجعة التحويلات' };
+
 export default function TransfersPage() {
-  redirect('/admin/payments');
+  return <AdminTransfers />;
 }
