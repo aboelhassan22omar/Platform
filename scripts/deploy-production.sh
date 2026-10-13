@@ -20,39 +20,6 @@ test -s "$deployment_root/shared/.env" || { echo 'Production .env is not configu
 
 exec 9>"$deployment_root/deploy.lock"
 flock -n 9 || { echo 'Another production deployment is running'; exit 1; }
-
-# Settings managed as GitHub environment secrets (WhatsApp OTP) arrive in
-# managed.env; merge them into shared/.env, backing it up first.
-if [ -s "$release_dir/managed.env" ]; then
-  mkdir -p "$deployment_root/backups"
-  cp -p "$deployment_root/shared/.env" "$deployment_root/backups/env-$(date -u +%Y%m%dT%H%M%SZ)"
-  python3 - "$release_dir/managed.env" "$deployment_root/shared/.env" <<'PY'
-import os, re, sys
-managed_path, env_path = sys.argv[1], sys.argv[2]
-allowed = {"WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TOKEN", "WHATSAPP_NUMBER",
-           "WHATSAPP_VERIFY_TOKEN", "WHATSAPP_APP_SECRET"}
-updates = {}
-for line in open(managed_path, encoding="utf-8").read().splitlines():
-    if not line.strip():
-        continue
-    key, _, value = line.partition("=")
-    if key not in allowed:
-        sys.exit(f"Refusing unmanaged setting {key}")
-    if not re.fullmatch(r"[A-Za-z0-9+._:/=-]{1,1024}", value):
-        sys.exit(f"Refusing {key}: unexpected characters")
-    updates[key] = value
-lines = open(env_path, encoding="utf-8").read().splitlines()
-kept = [l for l in lines if l.partition("=")[0].strip() not in updates]
-kept += [f"{k}={v}" for k, v in updates.items()]
-tmp = env_path + ".next"
-with open(tmp, "w", encoding="utf-8") as f:
-    f.write("\n".join(kept) + "\n")
-os.chmod(tmp, 0o600)
-os.replace(tmp, env_path)
-print("Applied managed settings:", ", ".join(sorted(updates)))
-PY
-  rm -f "$release_dir/managed.env"
-fi
 ln -sfn "$deployment_root/shared/.env" .env
 
 # Image tag per service: this release for what changed, the running tag for the

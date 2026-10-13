@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Read-only production health report for WhatsApp OTP and lesson videos.
+# Read-only production health report for lesson videos.
 # Runs on the server through .github/workflows/production-diagnostics.yml.
 # The repository is public, so this prints NO secret values, phone numbers or
-# IP addresses: settings are reported as set/empty only.
+# IP addresses.
 set -uo pipefail
 root=/opt/amr-platform
 p=amr-production
@@ -15,19 +15,6 @@ cat "$root/service-tags.env" 2>/dev/null || echo 'service-tags.env: none yet'
 
 section 'Containers'
 docker ps -a --filter "label=com.docker.compose.project=$p" --format '{{.Names}}  {{.Status}}  {{.Image}}'
-
-section 'WhatsApp OTP settings in shared/.env (presence only)'
-for key in PHONE_VERIFICATION WHATSAPP_PHONE_NUMBER_ID WHATSAPP_TOKEN WHATSAPP_NUMBER WHATSAPP_VERIFY_TOKEN WHATSAPP_APP_SECRET WHATSAPP_OTP_TEMPLATE WHATSAPP_GRAPH_VERSION; do
-  value="$(grep -E "^$key=" "$root/shared/.env" | tail -1 | cut -d= -f2- | tr -d '"'"'")"
-  case "$key" in
-    PHONE_VERIFICATION|WHATSAPP_GRAPH_VERSION) echo "$key=${value:-<empty>}" ;;
-    *) if [ -n "$value" ]; then echo "$key: set (${#value} chars)"; else echo "$key: EMPTY"; fi ;;
-  esac
-done
-echo "Backend container sees:"
-docker exec "$p-backend-1" node -e '
-  for (const k of ["PHONE_VERIFICATION","WHATSAPP_PHONE_NUMBER_ID","WHATSAPP_TOKEN","WHATSAPP_NUMBER","WHATSAPP_VERIFY_TOKEN","WHATSAPP_APP_SECRET","WHATSAPP_OTP_TEMPLATE"])
-    console.log(" ", k, k === "PHONE_VERIFICATION" ? process.env[k] : (process.env[k] ? "set" : "EMPTY"));'
 
 section 'Object storage endpoint used for browser uploads'
 grep -E '^(S3_PUBLIC_ENDPOINT|S3_PUBLIC_PORT|S3_PUBLIC_USE_SSL|S3_FORCE_PATH_STYLE|MAX_UPLOAD_BYTES|S3_BUCKET_VIDEOS)=' "$root/shared/.env"
@@ -60,8 +47,8 @@ psql_q "select left(id, 10) as job, status, attempts, progress, left(coalesce(er
 section 'Worker logs (last 80 lines)'
 docker logs --tail 80 "$p-worker-1" 2>&1
 
-section 'API logs about WhatsApp and videos (last 3 days)'
-docker logs --since 72h "$p-backend-1" 2>&1 | grep -E 'WhatsApp|OTP|transcode|upload|Video|storage' | sed -E 's/[0-9]{1,3}(\.[0-9]{1,3}){3}/<ip>/g' | tail -60
+section 'API logs about videos (last 3 days)'
+docker logs --since 72h "$p-backend-1" 2>&1 | grep -E 'transcode|upload|Video|storage' | sed -E 's/[0-9]{1,3}(\.[0-9]{1,3}){3}/<ip>/g' | tail -60
 
 section 'Disk'
 df -h / /var/lib/docker 2>/dev/null | sort -u

@@ -1,6 +1,6 @@
 name: Production diagnostics
 
-# Read-only health report for WhatsApp OTP and lesson videos on the server.
+# Read-only health report for lesson videos on the server.
 # Uses the production environment, so it waits for the owner's approval.
 on:
   workflow_dispatch:
@@ -50,18 +50,6 @@ jobs:
           [ "$code" = 200 ] || { echo 'Storage answered:'; head -c 400 put.txt; echo; }
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" "bash -s -- '$key'" \
             < scripts/production-upload-check.sh
-      - name: Check WhatsApp OTP from outside
-        env:
-          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
-        run: |
-          phone="0109$(printf '%07d' $(( (RANDOM * 32768 + RANDOM) % 10000000 )))"
-          curl --silent --show-error -X POST "$SITE_URL/api/auth/password/reset/request" \
-            -H 'Content-Type: application/json' -d "{\"phone\":\"$phone\"}" -w '\n%{http_code}' \
-            | python3 -c '
-          import json, sys
-          body, _, code = sys.stdin.read().rpartition("\n")
-          data = json.loads(body or "{}")
-          print("HTTP", code, "| delivery:", data.get("delivery") or ("template" if data.get("challengeId") else "-"), "| message:", data.get("message"))'
       - name: Remove runner credentials
         if: always()
         run: rm -f ~/.ssh/id_ed25519
