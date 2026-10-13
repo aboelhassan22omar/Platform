@@ -1,14 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LiveKitRoom } from '@livekit/components-react';
 import { api, ApiError } from '@/lib/api';
 import { Button, ButtonLink } from '@/components/ui/button';
+import type { RoomOptions } from 'livekit-client';
 import type { LiveSessionDetail } from '@/types/api';
 import { CountdownDisplay, formatLiveDate, useCountdown } from './countdown';
 import { LiveStage } from './live-stage';
+import { readPreferredDevices } from './device-settings';
 
 interface Ticket {
   url: string;
@@ -153,6 +155,20 @@ function Connect({ session, onEnded }: { session: LiveSessionDetail; onEnded: ()
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // The teacher starts on the camera / mic / speaker they picked last time. A
+  // device that is no longer plugged in falls back to the default (an
+  // "ideal" constraint, not an exact one).
+  const roomOptions = useMemo<RoomOptions>(() => {
+    const preferred = typeof window === 'undefined' ? {} : readPreferredDevices();
+    return {
+      adaptiveStream: true,
+      dynacast: true,
+      ...(preferred.videoinput ? { videoCaptureDefaults: { deviceId: preferred.videoinput } } : {}),
+      ...(preferred.audioinput ? { audioCaptureDefaults: { deviceId: preferred.audioinput } } : {}),
+      ...(preferred.audiooutput ? { audioOutput: { deviceId: preferred.audiooutput } } : {}),
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     api
@@ -205,7 +221,7 @@ function Connect({ session, onEnded }: { session: LiveSessionDetail; onEnded: ()
       connect
       audio={ticket.isHost}
       video={ticket.isHost}
-      options={{ adaptiveStream: true, dynacast: true }}
+      options={roomOptions}
       onDisconnected={() => {
         api
           .get<LiveSessionDetail>(`/live/${session.id}`)
