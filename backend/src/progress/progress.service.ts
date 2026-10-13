@@ -18,6 +18,12 @@ const COMPLETION_THRESHOLD_PERCENT = 99;
  * up to this close to the end counts as reaching it.
  */
 const END_TOLERANCE_SECONDS = 1.5;
+/**
+ * Reaching the end counts once this share of the video was really watched,
+ * even if some seconds never reached the server (a lost request, a resume
+ * from a local position, a throttled tab). Skipping to the end still fails.
+ */
+const WATCHED_SHARE_FOR_END = 0.9;
 
 @Injectable()
 export class ProgressService {
@@ -59,67 +65,80 @@ export class ProgressService {
       duration || Number.MAX_SAFE_INTEGER,
     );
 
-    const existing = await this.prisma.lessonProgress.findUnique({
-      where: { userId_lessonId: { userId, lessonId } },
-      select: {
-        positionSeconds: true,
-        durationSeconds: true,
-        completed: true,
-        lastWatchedAt: true,
-      },
-    });
+    // "pause" and "ended" arrive together at the end of a video; without the
+    // lock both read the same row and the later write drops the other's seconds.
+    const lockKey = `progress:${userId}:${lessonId}`;
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+      const existing = await tx.lessonProgress.findUnique({
+        where: { userId_lessonId: { userId, lessonId } },
+        select: {
+          positionSeconds: true,
+          durationSeconds: true,
+          watchedSeconds: true,
+          completed: true,
+          lastWatchedAt: true,
+        },
+      });
 
-    // Study time is the furthest point reached in each video. Rewatching or
-    // rewinding never adds time and never moves the saved position backwards.
-    const previousPosition = existing?.positionSeconds ?? 0;
-    const now = new Date();
-    const elapsedSeconds = existing?.lastWatchedAt
-      ? Math.max(0, (now.getTime() - existing.lastWatchedAt.getTime()) / 1000)
-      : 0;
-    const reportedWatched = Math.max(0, Math.min(input.watchedSeconds ?? 0, 120));
-    // A seek/forged position cannot award progress. Allow real playback up to
-    // 2x speed, plus a small event/timer tolerance.
-    const verifiedAdvance = existing
-      ? Math.min(reportedWatched, elapsedSeconds * 2.15 + 3)
-      : Math.min(reportedWatched, 33);
-    const verifiedPosition = Math.min(position, previousPosition + verifiedAdvance);
-    // Seeking to the end and letting it run still fails this: the verified
-    // advance has to carry the student to within the tolerance themselves.
-    const reachedEnd =
-      duration > 0 &&
-      position >= duration - END_TOLERANCE_SECONDS &&
-      verifiedPosition >= duration - END_TOLERANCE_SECONDS;
-    const furthestPosition = reachedEnd
-      ? duration
-      : Math.min(duration || position, Math.max(previousPosition, verifiedPosition));
-    const knownDuration = Math.max(existing?.durationSeconds ?? 0, duration);
-    const furthestPercent =
-      knownDuration > 0 ? Math.min(100, Math.round((furthestPosition / knownDuration) * 100)) : 0;
-    const isCompleted = existing?.completed || furthestPercent >= COMPLETION_THRESHOLD_PERCENT;
+      // Study time is the furthest point reached in each video. Rewatching or
+      // rewinding never adds time and never moves the saved position backwards.
+      const previousPosition = existing?.positionSeconds ?? 0;
+      const now = new Date();
+      const elapsedSeconds = existing?.lastWatchedAt
+        ? Math.max(0, (now.getTime() - existing.lastWatchedAt.getTime()) / 1000)
+        : 0;
+      const reportedWatched = Math.max(0, Math.min(input.watchedSeconds ?? 0, 120));
+      // A seek/forged position cannot award progress. Allow real playback up to
+      // 2x speed, plus a small event/timer tolerance.
+      const verifiedAdvance = existing
+        ? Math.min(reportedWatched, elapsedSeconds * 2.15 + 3)
+        : Math.min(reportedWatched, 33);
+      const verifiedPosition = Math.min(position, previousPosition + verifiedAdvance);
+      // Verified seconds actually played, wherever in the video they were.
+      const watchedTotal = Math.min(
+        duration || Number.MAX_SAFE_INTEGER,
+        Math.floor((existing?.watchedSeconds ?? 0) + verifiedAdvance),
+      );
+      // Seeking to the end and letting it run still fails this: the student has
+      // to have played their way there, or have played most of the video.
+      const reachedEnd =
+        duration > 0 &&
+        position >= duration - END_TOLERANCE_SECONDS &&
+        (verifiedPosition >= duration - END_TOLERANCE_SECONDS ||
+          watchedTotal >= duration * WATCHED_SHARE_FOR_END);
+      const furthestPosition = reachedEnd
+        ? duration
+        : Math.min(duration || position, Math.max(previousPosition, verifiedPosition));
+      const knownDuration = Math.max(existing?.durationSeconds ?? 0, duration);
+      const furthestPercent =
+        knownDuration > 0 ? Math.min(100, Math.round((furthestPosition / knownDuration) * 100)) : 0;
+      const isCompleted = existing?.completed || furthestPercent >= COMPLETION_THRESHOLD_PERCENT;
 
-    return this.prisma.lessonProgress.upsert({
-      where: { userId_lessonId: { userId, lessonId } },
-      create: {
-        userId,
-        lessonId,
-        positionSeconds: furthestPosition,
-        durationSeconds: knownDuration,
-        percent: furthestPercent,
-        completed: isCompleted,
-        completedAt: isCompleted ? new Date() : null,
-        watchedSeconds: furthestPosition,
-        lastWatchedAt: now,
-      },
-      update: {
-        positionSeconds: furthestPosition,
-        durationSeconds: knownDuration || undefined,
-        percent: existing?.completed ? 100 : furthestPercent,
-        // Once finished, a lesson stays finished even if the student rewinds.
-        completed: isCompleted,
-        ...(isCompleted && !existing?.completed ? { completedAt: new Date() } : {}),
-        watchedSeconds: furthestPosition,
-        lastWatchedAt: now,
-      },
+      return tx.lessonProgress.upsert({
+        where: { userId_lessonId: { userId, lessonId } },
+        create: {
+          userId,
+          lessonId,
+          positionSeconds: furthestPosition,
+          durationSeconds: knownDuration,
+          percent: furthestPercent,
+          completed: isCompleted,
+          completedAt: isCompleted ? new Date() : null,
+          watchedSeconds: watchedTotal,
+          lastWatchedAt: now,
+        },
+        update: {
+          positionSeconds: furthestPosition,
+          durationSeconds: knownDuration || undefined,
+          percent: existing?.completed ? 100 : furthestPercent,
+          // Once finished, a lesson stays finished even if the student rewinds.
+          completed: isCompleted,
+          ...(isCompleted && !existing?.completed ? { completedAt: new Date() } : {}),
+          watchedSeconds: watchedTotal,
+          lastWatchedAt: now,
+        },
+      });
     });
   }
 

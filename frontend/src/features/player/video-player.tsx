@@ -15,6 +15,8 @@ import { WaitingRoom } from './waiting-room';
 
 /** How often playback position is written to the server. */
 const PROGRESS_SYNC_SECONDS = 15;
+/** Playing to within this much of the end reports the video as finished. */
+const END_REPORT_SECONDS = 0.75;
 const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2] as const;
 const PLAYBACK_RATE_STORAGE_KEY = 'video-playback-rate';
 
@@ -115,6 +117,8 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   const watchedSinceSyncRef = useRef(0);
   const lastPlaybackPositionRef = useRef<number | null>(null);
   const lastLocalSaveSecondRef = useRef(-1);
+  /** Set once the end of the video has been reported, until the student rewinds. */
+  const endReportedRef = useRef(false);
   const hideTimerRef = useRef<number | null>(null);
   const pendingQualityHeightRef = useRef<number | null>(null);
   const usesNativeHlsRef = useRef(false);
@@ -431,6 +435,16 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
         lastLocalSaveSecondRef.current = currentSecond;
         saveLocalProgress();
       }
+      // HLS often stops a fraction of a second short and never fires "ended",
+      // which left students dragging the bar to the end to finish a lesson.
+      const remaining = video.duration - video.currentTime;
+      if (remaining > END_REPORT_SECONDS) {
+        endReportedRef.current = false;
+      } else if (!endReportedRef.current && !video.paused && video.duration > 0) {
+        endReportedRef.current = true;
+        syncProgress(true, false, true);
+        return;
+      }
       syncProgress();
     };
 
@@ -443,6 +457,9 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
     const onPause = () => {
       setIsPlaying(false);
       lastPlaybackPositionRef.current = null;
+      // The pause the browser fires right before "ended" is not reported on its
+      // own: "ended" reports the end with every watched second in one request.
+      if (video.ended) return;
       saveLocalProgress();
       syncProgress(true);
     };
@@ -454,6 +471,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       } catch {
         // Ignore unavailable storage.
       }
+      endReportedRef.current = true;
       syncProgress(true, false, true);
     };
     const onVolume = () => {
