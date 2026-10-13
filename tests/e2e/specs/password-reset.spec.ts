@@ -11,6 +11,9 @@ test.describe('password reset page', () => {
     await link.click();
     await page.waitForURL('**/forgot-password');
     await expect(page.getByRole('heading', { name: 'نسيت كلمة السر؟', level: 1 })).toBeVisible();
-    await expect(page.getByLabel('رقم الموبايل المسجل')).toBeVisible();
+    // No self-service reset: the page sends the student to support on WhatsApp.
+    const support = page.getByRole('link', { name: 'كلّم الدعم على واتساب' });
+    await expect(support).toBeVisible();
+    await expect(support).toHaveAttribute('href', /^https:\/\/wa\.me\/\d+\?text=/);
   });
 });

@@ -5,7 +5,6 @@ import {
   type APIRequestContext,
 } from '@playwright/test';
 import { API_BASE_URL } from '../playwright.config';
-import { registrationChallenge } from '../helpers/otp-fixture';
 
 /**
  * API-level contract and security tests.
@@ -55,11 +54,9 @@ async function newSession(_baseURL?: string): Promise<APIRequestContext> {
 }
 
 async function registerStudent(ctx: APIRequestContext, student = newStudent()) {
-  const challenge = registrationChallenge(student);
-  const response = await ctx.post(`${API}/auth/register/verify`, {
-    data: { challengeId: challenge.challengeId, code: challenge.code },
-  });
-  expect(response.status(), await response.text()).toBe(200);
+  // Registration creates the account and signs in directly (no OTP).
+  const response = await ctx.post(`${API}/auth/register`, { data: student });
+  expect(response.status(), await response.text()).toBe(201);
   return student;
 }
 

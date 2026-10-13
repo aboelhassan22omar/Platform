@@ -140,42 +140,13 @@ export class ChangePasswordDto {
   newPassword!: string;
 }
 
-export class RequestPasswordResetDto {
-  @ApiProperty({ example: '01012345678' })
-  @NormalizePhone()
-  @Validate(IsEgyptianPhoneConstraint)
-  phone!: string;
-}
-
-export class ConfirmPasswordResetDto {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty({ message: 'كود إعادة التعيين مطلوب' })
-  @Matches(/^[A-Za-z0-9_-]{43}$/, { message: 'جلسة إعادة التعيين غير صالحة' })
-  token!: string;
-
+/** An administrator setting a new password for someone who asked support. */
+export class AdminSetPasswordDto {
   @ApiProperty({ minLength: 6 })
   @IsString()
   @MinLength(6, { message: 'كلمة السر لازم تكون 6 خانات على الأقل' })
-  @MaxLength(128)
+  @MaxLength(128, { message: 'كلمة السر طويلة أوي' })
   newPassword!: string;
-}
-
-export class OtpChallengeDto {
-  @IsString()
-  @Matches(/^[A-Za-z0-9_-]{43}$/, { message: 'جلسة التحقق غير صالحة' })
-  challengeId!: string;
-}
-
-export class VerifyOtpDto extends OtpChallengeDto {
-  @IsString()
-  @Transform(({ value }) =>
-    typeof value === 'string'
-      ? value.trim().replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632))
-      : value,
-  )
-  @Matches(/^\d{6}$/, { message: 'اكتب كود التحقق المكوّن من ٦ أرقام' })
-  code!: string;
 }
 
 export class UpdateProfileDto {

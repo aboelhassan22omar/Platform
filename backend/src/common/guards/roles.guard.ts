@@ -9,7 +9,7 @@ import type { AuthenticatedUser } from '../decorators/current-user.decorator';
  * an ADMIN satisfies @Roles(Role.CONTENT_MANAGER), and so on. Students sit at
  * the bottom and inherit nothing.
  */
-const RANK: Record<Role, number> = {
+export const ROLE_RANK: Record<Role, number> = {
   STUDENT: 0,
   SUPPORT: 10,
   CONTENT_MANAGER: 20,
@@ -31,8 +31,8 @@ export class RolesGuard implements CanActivate {
     const user = context.switchToHttp().getRequest().user as AuthenticatedUser | undefined;
     if (!user) throw new ForbiddenException('يجب تسجيل الدخول أولاً');
 
-    const actorRank = RANK[user.role] ?? -1;
-    const needed = Math.min(...required.map((role) => RANK[role] ?? Number.MAX_SAFE_INTEGER));
+    const actorRank = ROLE_RANK[user.role] ?? -1;
+    const needed = Math.min(...required.map((role) => ROLE_RANK[role] ?? Number.MAX_SAFE_INTEGER));
 
     if (actorRank < needed) {
       throw new ForbiddenException('لا تملك صلاحية الوصول لهذه الصفحة');

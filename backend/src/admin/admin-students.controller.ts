@@ -2,7 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   Patch,
@@ -30,6 +33,9 @@ import type { AuthenticatedUser } from '../common/decorators';
 import { AuditService } from '../common/audit/audit.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
 import { lessonPriceFor } from '../common/utils/lesson-pricing';
+import { ROLE_RANK } from '../common/guards/roles.guard';
+import { PasswordService } from '../auth/password.service';
+import { AdminSetPasswordDto } from '../auth/dto/auth.dto';
 
 class UpdateStudentStatusDto {
   @IsEnum(UserStatus)
@@ -75,7 +81,62 @@ export class AdminStudentsController {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly entitlements: EntitlementsService,
+    private readonly passwords: PasswordService,
   ) {}
+
+  /**
+   * Sets a new password for someone who asked support (there is no
+   * self-service reset). Signs the account out everywhere and is audited;
+   * the password itself is never stored or logged in plain text.
+   *
+   * An administrator may only reset accounts ranked below their own, so an
+   * ADMIN cannot take over another ADMIN or a SUPER_ADMIN.
+   */
+  @Patch(':id/password')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'تعيين كلمة سر جديدة لحساب (بطلب من الدعم)' })
+  async setPassword(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: AdminSetPasswordDto,
+    @Req() req: Request,
+  ) {
+    if (id === actor.id) {
+      throw new BadRequestException('غيّر كلمة السر بتاعتك من صفحة حسابك');
+    }
+    const target = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true },
+    });
+    if (!target) throw new NotFoundException('الحساب غير موجود');
+    if (ROLE_RANK[target.role] >= ROLE_RANK[actor.role]) {
+      throw new ForbiddenException('مش مسموح تغيّر كلمة سر حساب بنفس صلاحيتك أو أعلى');
+    }
+
+    const passwordHash = await this.passwords.hash(dto.newPassword);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id },
+        // tokenVersion invalidates every access token already issued.
+        data: { passwordHash, tokenVersion: { increment: 1 } },
+      });
+      await tx.refreshToken.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      await this.audit.record(tx, {
+        actorId: actor.id,
+        action: 'user.password.set_by_admin',
+        entityType: 'User',
+        entityId: id,
+        targetUserId: id,
+        metadata: { targetRole: target.role },
+        ip: req.ip,
+      });
+    });
+    return { ok: true, message: 'تم تغيير كلمة السر، والحساب اتسجّل خروجه من كل الأجهزة' };
+  }
 
   @Get()
   @ApiOperation({ summary: 'قائمة الطلاب مع بحث وفلاتر' })

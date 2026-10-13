@@ -67,7 +67,7 @@ if (values.write) {
   }
   fs.writeFileSync(target, contents.endsWith('\n') ? contents : `${contents}\n`, 'utf8');
   console.log(
-    `Updated ${Object.keys(settings).length} public identity fields in ${target}. Payment/database/OTP credentials were preserved.`,
+    `Updated ${Object.keys(settings).length} public identity fields in ${target}. Payment/database credentials were preserved.`,
   );
 } else {
   console.log('# Preview only. Add --write to update the chosen env file.');

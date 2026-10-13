@@ -10,7 +10,6 @@ import { resolvePlatformIdentity } from './platform-identity';
  */
 
 export type PaymentProviderKey = 'dev' | 'paymob' | 'kashier' | 'manual';
-export type PhoneVerificationMode = 'off' | 'console' | 'sms' | 'whatsapp';
 
 const bool = (value: string | undefined, fallback = false): boolean => {
   if (value === undefined || value === '') return fallback;
@@ -162,25 +161,6 @@ export const configuration = () => ({
     queueMax: int(process.env.STREAM_QUEUE_MAX, 2000),
   },
 
-  phoneVerification: (process.env.PHONE_VERIFICATION ?? 'off') as PhoneVerificationMode,
-  whatsapp: {
-    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? '',
-    token: process.env.WHATSAPP_TOKEN ?? '',
-    graphVersion: process.env.WHATSAPP_GRAPH_VERSION ?? 'v22.0',
-    otpTemplate: process.env.WHATSAPP_OTP_TEMPLATE ?? '',
-    otpLanguage: process.env.WHATSAPP_OTP_LANGUAGE ?? 'ar',
-    /**
-     * The business number in international digits (2010…). When set, OTPs use
-     * the click-to-chat flow: the student messages this number first and the
-     * code is replied as plain text, so no approved template is needed.
-     */
-    businessNumber: (process.env.WHATSAPP_NUMBER ?? '').replace(/\D/g, ''),
-    /** Meta webhook subscription handshake token (any random string). */
-    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? '',
-    /** App Secret used to verify X-Hub-Signature-256 on inbound webhooks. */
-    appSecret: process.env.WHATSAPP_APP_SECRET ?? '',
-  },
-
   presence: {
     /** A heartbeat older than this means the student is no longer "online". */
     ttlSeconds: int(process.env.PRESENCE_TTL_SECONDS, 120),
@@ -233,10 +213,6 @@ export const validateEnv = (config: AppConfig): void => {
   const errors: string[] = [];
 
   if (!config.database.url) errors.push('DATABASE_URL is required.');
-  if (!/^v\d+\.\d+$/.test(config.whatsapp.graphVersion))
-    errors.push('WHATSAPP_GRAPH_VERSION must be a pinned API version.');
-  if (config.whatsapp.businessNumber && config.whatsapp.businessNumber.startsWith('0'))
-    errors.push('WHATSAPP_NUMBER must be in international form, for example 201012345678.');
 
   if (!config.platform.name) errors.push('PLATFORM_NAME is required.');
   if (!config.platform.teacherName) errors.push('TEACHER_NAME is required.');

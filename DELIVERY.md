@@ -159,16 +159,12 @@ none were available.
 account. The API refuses to boot in production with the sandbox adapter unless
 explicitly overridden.
 
-### SMS / phone verification
+### Phone verification and password reset
 
-**Status:** not integrated. `PHONE_VERIFICATION=off` by default.
-
-Password-reset tokens are logged server-side and returned in the API response
-**in development only**, always accompanied by a notice stating no SMS was
-sent. The platform never claims to have sent a message it did not send.
-
-**To enable:** implement a provider behind the existing seam and set
-`PHONE_VERIFICATION=sms`.
+**Status:** removed by decision. There is no OTP: registration creates the
+account directly. A student who forgets their password contacts support on
+WhatsApp, and an administrator sets a new one from the students page
+(`PATCH /admin/students/:id/password`, audited, signs the account out).
 
 ---
 
