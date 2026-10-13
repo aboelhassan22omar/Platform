@@ -5,6 +5,7 @@ const record = async (
   existing: {
     positionSeconds: number;
     durationSeconds: number;
+    watchedSeconds?: number;
     completed?: boolean;
     secondsAgo: number;
   } | null,
@@ -12,13 +13,15 @@ const record = async (
   canonicalDuration = 90,
 ) => {
   const upsert = jest.fn(async (args: { create: Record<string, unknown> }) => args.create);
-  const prisma = {
+  const prisma: Record<string, unknown> = {
+    $executeRaw: jest.fn(),
     videoAsset: { findUnique: jest.fn().mockResolvedValue({ durationSeconds: canonicalDuration }) },
     lessonProgress: {
       findUnique: jest.fn().mockResolvedValue(
         existing && {
           positionSeconds: existing.positionSeconds,
           durationSeconds: existing.durationSeconds,
+          watchedSeconds: existing.watchedSeconds ?? existing.positionSeconds,
           completed: existing.completed ?? false,
           lastWatchedAt: new Date(Date.now() - existing.secondsAgo * 1000),
         },
@@ -26,9 +29,11 @@ const record = async (
       upsert,
     },
   };
+  prisma.$transaction = jest.fn((fn: (tx: typeof prisma) => unknown) => fn(prisma));
   const entitlements = { checkLessonAccess: jest.fn().mockResolvedValue({ allowed: true }) };
   const service = new ProgressService(prisma as never, entitlements as never);
   await service.record('student', 'lesson', report);
+  expect(prisma.$executeRaw).toHaveBeenCalled();
   const call = upsert.mock.calls[0][0] as unknown as {
     create: { positionSeconds: number; percent: number; completed: boolean };
     update: { positionSeconds: number; completed: boolean };
@@ -74,5 +79,26 @@ describe('Lesson completion', () => {
     );
     expect(result.completed).toBe(false);
     expect(result.positionSeconds).toBeLessThan(90);
+  });
+
+  it('finishes on the first watch even when some seconds never reached the server', async () => {
+    // Resumed from a local position ahead of the server, or a request was
+    // lost: the saved position lags 50 s behind the playhead at the end.
+    const result = await record(
+      { positionSeconds: 535, durationSeconds: 600, secondsAgo: 8 },
+      { positionSeconds: 600, durationSeconds: 600, watchedSeconds: 14 },
+      600,
+    );
+    expect(result).toMatchObject({ positionSeconds: 600, percent: 100, completed: true });
+  });
+
+  it('does not finish a video whose second half was skipped', async () => {
+    const result = await record(
+      { positionSeconds: 300, durationSeconds: 600, secondsAgo: 8 },
+      { positionSeconds: 600, durationSeconds: 600, watchedSeconds: 14 },
+      600,
+    );
+    expect(result.completed).toBe(false);
+    expect(result.positionSeconds).toBe(314);
   });
 });
