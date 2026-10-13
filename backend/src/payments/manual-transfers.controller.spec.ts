@@ -34,8 +34,7 @@ describe('Manual transfers', () => {
   const student = { id: 'student-1' } as never;
   const admin = { id: 'admin-1' } as never;
   const req = { ip: '127.0.0.1' } as never;
-  const receiptKey = 'receipts/order1/0b0c3a52-6c1e-4f8e-9d4e-0f1a2b3c4d5e.jpg';
-  const proof = { senderPhone: '01024066401', transactionReference: 'tx-1', receiptKey };
+  const proof = { senderPhone: '01024066401', transferTime: '14:30', transactionReference: 'tx-1' };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -48,34 +47,19 @@ describe('Manual transfers', () => {
     expect(await new ManualTransferProvider().verifyWebhook()).toBeNull();
   });
 
-  it('issues a private screenshot upload scoped to the student’s own pending order', async () => {
+  it('records the sender number and transfer time but never settles the order', async () => {
     prisma.order.findFirst.mockResolvedValue({ id: 'order1' });
-    const ticket = await controller.receiptTicket(student, 'AM-1', {
-      contentType: 'image/png',
-      sizeBytes: 1000,
-    });
+    await expect(controller.submit(student, 'AM-1', proof)).resolves.toEqual({ submitted: true });
     expect(prisma.order.findFirst).toHaveBeenCalledWith({
       where: { reference: 'AM-1', userId: 'student-1', status: 'AWAITING_PAYMENT' },
     });
-    expect(ticket.key).toMatch(/^receipts\/order1\/[0-9a-f-]{36}\.png$/);
-    expect(storage.presignUpload).toHaveBeenCalledWith('private', ticket.key, 900);
-  });
-
-  it('stores the sender number and screenshot but never settles the order', async () => {
-    prisma.order.findFirst.mockResolvedValue({ id: 'order1' });
-    await expect(controller.submit(student, 'AM-1', proof)).resolves.toEqual({ submitted: true });
     const saved = prisma.payment.updateMany.mock.calls[0][0].data.providerPayload;
-    expect(saved).toMatchObject({ senderPhone: '01024066401', receiptKey });
+    expect(saved).toMatchObject({ senderPhone: '01024066401', transferTime: '14:30' });
     expect(saved.review).toBeUndefined();
     expect(orders.settleOrder).not.toHaveBeenCalled();
   });
 
-  it('refuses a screenshot from another order, a missing upload, and other students’ orders', async () => {
-    prisma.order.findFirst.mockResolvedValue({ id: 'other' });
-    await expect(controller.submit(student, 'AM-1', proof)).rejects.toThrow(BadRequestException);
-    prisma.order.findFirst.mockResolvedValue({ id: 'order1' });
-    storage.statObject.mockRejectedValue(new Error('NoSuchKey'));
-    await expect(controller.submit(student, 'AM-1', proof)).rejects.toThrow(BadRequestException);
+  it('refuses other students’ orders', async () => {
     prisma.order.findFirst.mockResolvedValue(null);
     await expect(controller.submit(student, 'AM-2', proof)).rejects.toThrow(NotFoundException);
     expect(prisma.payment.updateMany).not.toHaveBeenCalled();
@@ -120,7 +104,7 @@ describe('Manual transfers', () => {
       reason: 'الصورة مش واضحة',
       by: 'admin-1',
     });
-    expect(payload.receiptKey).toBe(receiptKey);
+    expect(payload.senderPhone).toBe('01024066401');
     expect(orders.settleOrder).not.toHaveBeenCalled();
     expect(audit.record).toHaveBeenCalledWith(
       tx,
@@ -159,7 +143,9 @@ describe('Manual transfers', () => {
     expect(list[0]).toMatchObject({
       state: 'submitted',
       method: 'INSTAPAY',
-      receiptUrl: 'https://s3/signed-receipt',
+      senderPhone: '01024066401',
+      transferTime: '14:30',
+      receiptUrl: null,
       items: ['L1'],
     });
     expect(list[1]).toMatchObject({ state: 'waiting', method: 'VODAFONE_CASH', receiptUrl: null });

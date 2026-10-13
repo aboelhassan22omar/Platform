@@ -19,6 +19,8 @@ export interface TransferSettings {
   instapayAddress: string;
   /** Name the student should see in their app before confirming. */
   recipientName: string;
+  /** WhatsApp number students send the transfer screenshot to. */
+  whatsappPhone: string;
 }
 
 const KEY = 'payments.transfer';
@@ -38,6 +40,7 @@ export class TransferSettingsService {
       instapayLink: '',
       instapayAddress: '',
       recipientName: '',
+      whatsappPhone: phone,
     };
   }
 
@@ -51,6 +54,7 @@ export class TransferSettingsService {
       instapayLink: stored.instapayLink ?? defaults.instapayLink,
       instapayAddress: stored.instapayAddress ?? defaults.instapayAddress,
       recipientName: stored.recipientName ?? defaults.recipientName,
+      whatsappPhone: stored.whatsappPhone || defaults.whatsappPhone,
     };
   }
 

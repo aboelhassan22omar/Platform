@@ -13,19 +13,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Transform } from 'class-transformer';
-import {
-  IsIn,
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-} from 'class-validator';
+import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import type { Request } from 'express';
-import { randomUUID } from 'node:crypto';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { StorageService } from '../common/storage/storage.service';
@@ -38,27 +27,11 @@ import { OrdersService } from './orders.service';
 import { TransferSettingsService } from './transfer-settings.service';
 import { transferState, type TransferSubmission } from './transfer-state';
 
-const RECEIPT_TYPES: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
-const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 const EGYPTIAN_MOBILE = /^01[0125]\d{8}$/;
 const normalizePhone = () =>
   Transform(({ value }) =>
     typeof value === 'string' ? (normalizeEgyptianPhone(value) ?? value.trim()) : value,
   );
-
-class ReceiptTicketDto {
-  @IsIn(Object.keys(RECEIPT_TYPES), { message: 'ارفع صورة JPG أو PNG أو WEBP' })
-  contentType!: string;
-
-  @IsInt()
-  @Min(1)
-  @Max(MAX_RECEIPT_BYTES, { message: 'الصورة أكبر من ٥ ميجا' })
-  sizeBytes!: number;
-}
 
 class SubmitTransferDto {
   @normalizePhone()
@@ -70,11 +43,10 @@ class SubmitTransferDto {
   @MaxLength(100)
   transactionReference?: string;
 
-  @IsString()
-  @Matches(/^receipts\/[a-z0-9]+\/[0-9a-f-]{36}\.(jpg|png|webp)$/, {
-    message: 'ارفع صورة التحويل الأول',
-  })
-  receiptKey!: string;
+  /** Roughly when they transferred, as typed in the order page (HH:MM). */
+  @IsOptional()
+  @Matches(/^([01]?\d|2[0-3]):[0-5]\d$/, { message: 'اكتب وقت التحويل بالشكل 14:30' })
+  transferTime?: string;
 }
 
 class RejectTransferDto {
@@ -108,13 +80,18 @@ class TransferSettingsDto {
   @IsString()
   @MaxLength(60)
   recipientName!: string;
+
+  @normalizePhone()
+  @Matches(EGYPTIAN_MOBILE, { message: 'رقم الواتساب لازم يكون رقم مصري صحيح' })
+  whatsappPhone!: string;
 }
 
 /**
  * Manual transfers (PAYMENT_PROVIDER=manual): the student transfers by
- * InstaPay or Vodafone Cash to the platform's number, then sends the number
- * they paid from and a screenshot. An admin approves (content unlocks
- * immediately) or rejects with a reason (the student can fix and resend).
+ * InstaPay or Vodafone Cash to the platform's number, notes here the number
+ * they paid from and roughly when, and sends the screenshot on WhatsApp. Every
+ * pending order appears in the payments log, where an admin approves (content
+ * unlocks immediately) or rejects with a reason (the student can resend).
  */
 @Controller()
 export class ManualTransfersController {
@@ -144,25 +121,6 @@ export class ManualTransfersController {
   // Student
   // --------------------------------------------------------------------------
 
-  /** A presigned upload for the transfer screenshot, stored privately. */
-  @Post('orders/:reference/transfer/receipt')
-  async receiptTicket(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('reference') reference: string,
-    @Body() dto: ReceiptTicketDto,
-  ) {
-    this.assertEnabled();
-    const order = await this.ownPendingOrder(reference, user.id);
-    const key = `receipts/${order.id}/${randomUUID()}.${RECEIPT_TYPES[dto.contentType]}`;
-    const upload = await this.storage.presignUpload(this.storage.videoBucket, key, 900);
-    return {
-      key,
-      uploadUrl: upload.url,
-      method: 'PUT' as const,
-      headers: { 'Content-Type': dto.contentType },
-    };
-  }
-
   @Post('orders/:reference/transfer')
   async submit(
     @CurrentUser() user: AuthenticatedUser,
@@ -171,19 +129,12 @@ export class ManualTransfersController {
   ) {
     this.assertEnabled();
     const order = await this.ownPendingOrder(reference, user.id);
-    if (!dto.receiptKey.startsWith(`receipts/${order.id}/`)) {
-      throw new BadRequestException('صورة التحويل مش تابعة للطلب ده');
-    }
-    const stat = await this.storage
-      .statObject(this.storage.videoBucket, dto.receiptKey)
-      .catch(() => null);
-    if (!stat) throw new BadRequestException('صورة التحويل ما اترفعتش، جرّب ترفعها تاني');
-    if (stat.size > MAX_RECEIPT_BYTES) throw new BadRequestException('الصورة أكبر من ٥ ميجا');
-
+    // The screenshot itself goes to WhatsApp; this records what the admin
+    // needs to match it against the receiving wallet.
     const submission: TransferSubmission = {
       senderPhone: dto.senderPhone,
+      transferTime: dto.transferTime,
       transactionReference: dto.transactionReference?.trim() || undefined,
-      receiptKey: dto.receiptKey,
       submittedAt: new Date().toISOString(),
     };
     const updated = await this.prisma.payment.updateMany({
@@ -217,6 +168,7 @@ export class ManualTransfersController {
       instapayLink: dto.instapayLink.trim(),
       instapayAddress: dto.instapayAddress.trim(),
       recipientName: dto.recipientName.trim(),
+      whatsappPhone: dto.whatsappPhone,
     });
     await this.audit.record(this.prisma, {
       actorId: actor.id,
@@ -267,6 +219,7 @@ export class ManualTransfersController {
           items: payment.order.items.map((item) => item.titleSnapshot),
           senderPhone: submission?.senderPhone ?? null,
           transactionReference: submission?.transactionReference ?? null,
+          transferTime: submission?.transferTime ?? null,
           submittedAt: submission?.submittedAt ?? null,
           rejectionReason: submission?.review?.reason ?? null,
           receiptUrl: submission?.receiptKey

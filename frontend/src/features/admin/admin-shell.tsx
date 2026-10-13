@@ -15,7 +15,6 @@ const TABS = [
   { href: '/admin/assessments', label: 'الواجبات والامتحانات' },
   { href: '/admin/live', label: 'اللايف' },
   { href: '/admin/pricing', label: 'الأسعار' },
-  { href: '/admin/transfers', label: 'مراجعة التحويلات' },
   { href: '/admin/payments', label: 'سجل المدفوعات' },
 ];
 

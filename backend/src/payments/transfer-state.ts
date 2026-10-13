@@ -5,16 +5,19 @@
 /** What a student sent as proof, stored on the pending Payment row. */
 export interface TransferSubmission {
   senderPhone: string;
+  /** Roughly when they transferred (HH:MM), as typed by the student. */
+  transferTime?: string;
   transactionReference?: string;
-  receiptKey: string;
+  /** Screenshot stored on the platform by the earlier upload flow (legacy). */
+  receiptKey?: string;
   submittedAt: string;
   /** Set when an admin sends the proof back; cleared by the next submission. */
   review?: { status: 'rejected'; reason: string; at: string; by: string };
 }
 
 /**
- * Where a student's proof stands. Proofs sent before screenshots existed
- * carry only the sender number and transaction id; they still need review.
+ * Where a student's proof stands. The screenshot travels on WhatsApp, so a
+ * submission is the sender number (older ones also carry a stored receipt).
  */
 export const transferState = (
   submission: Partial<TransferSubmission> | null | undefined,

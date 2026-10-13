@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -18,9 +17,11 @@ interface Transfer {
   student: { fullName: string; phone: string; username: string };
   items: string[];
   senderPhone: string | null;
+  transferTime: string | null;
   transactionReference: string | null;
   submittedAt: string | null;
   rejectionReason: string | null;
+  /** Only for proofs uploaded by the earlier on-site flow. */
   receiptUrl: string | null;
 }
 
@@ -30,102 +31,63 @@ interface TransferSettings {
   instapayLink: string;
   instapayAddress: string;
   recipientName: string;
+  whatsappPhone: string;
 }
 
 const METHOD_LABEL = { INSTAPAY: 'إنستا باي', VODAFONE_CASH: 'فودافون كاش' } as const;
-const QUICK_REASONS = ['صورة التحويل مش واضحة', 'المبلغ مش مطابق', 'التحويل ما وصلش لحد دلوقتي'];
+const STATE_LABEL = {
+  submitted: {
+    text: 'بعت بيانات التحويل',
+    className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  },
+  waiting: {
+    text: 'ما كتبش بيانات (شوف واتساب)',
+    className: 'bg-midnight-500/10 text-midnight-600 dark:text-ivory-300',
+  },
+  rejected: { text: 'اترفض قبل كده', className: 'bg-red-500/15 text-red-700 dark:text-red-300' },
+} as const;
+const QUICK_REASONS = ['التحويل ما وصلش', 'المبلغ مش مطابق', 'ما وصلتناش صورة التحويل على واتساب'];
+const ORDER = { submitted: 0, rejected: 1, waiting: 2 } as const;
 
-const useTransfers = () =>
-  useQuery({
+/**
+ * Pending manual transfers, at the top of the payments log. The student sends
+ * the screenshot on WhatsApp; here the admin matches it with the order and
+ * approves (content unlocks immediately) or rejects with a reason.
+ */
+export function PendingTransfers() {
+  const { data, error } = useQuery({
     queryKey: ['admin-transfers'],
     queryFn: () => api.get<Transfer[]>('/admin/transfers'),
     refetchInterval: 30_000,
     retry: false,
   });
-
-/** Small banner for the payments log: how many transfers wait for review. */
-export function PendingTransfers() {
-  const { data } = useTransfers();
-  const count = data?.filter((t) => t.state === 'submitted').length ?? 0;
-  if (!count) return null;
-  return (
-    <Link
-      href="/admin/transfers"
-      className="flex items-center justify-between gap-3 rounded-2xl border border-gold-500/40 bg-gold-500/10 px-5 py-4 font-bold text-midnight-900 transition-colors hover:bg-gold-500/15 dark:text-ivory-50"
-    >
-      <span>عندك {count} تحويل مستني موافقتك</span>
-      <span className="text-gold-700 dark:text-gold-300">راجع دلوقتي ←</span>
-    </Link>
-  );
-}
-
-/**
- * Manual transfer review: each card shows the student, the amount and the
- * screenshot they sent; one tap approves (content unlocks immediately) or
- * rejects with a reason the student sees.
- */
-export function AdminTransfers() {
-  const { data, isLoading, error } = useTransfers();
-  const [tab, setTab] = useState<'review' | 'waiting'>('review');
-  const toReview = data?.filter((t) => t.state === 'submitted') ?? [];
-  const waiting = data?.filter((t) => t.state !== 'submitted') ?? [];
-  const shown = tab === 'review' ? toReview : waiting;
+  // Automatic gateways refuse this endpoint: then there is nothing to review.
+  if (error || !data) return null;
+  const sorted = [...data].sort((a, b) => ORDER[a.state] - ORDER[b.state]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">
-            مراجعة التحويلات
-          </h1>
-          <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
-            افتح محفظتك، اتأكد إن التحويل وصل، وبعدين وافق أو ارفض.
-          </p>
-        </div>
-        <div className="flex rounded-xl border border-gold-500/25 bg-white p-1 dark:bg-midnight-950/80">
-          {(
-            [
-              ['review', `محتاجة موافقتك (${toReview.length})`],
-              ['waiting', `مستنية الطالب (${waiting.length})`],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
-              className={cn(
-                'min-h-10 rounded-lg px-4 text-sm font-bold transition-colors',
-                tab === key
-                  ? 'bg-midnight-900 text-ivory-50 dark:bg-gold-500 dark:text-midnight-950'
-                  : 'text-midnight-600 hover:bg-gold-500/10 dark:text-ivory-300',
-              )}
-            >
-              {label}
-            </button>
+    <section className="space-y-3">
+      <div>
+        <h2 className="font-display text-xl font-black text-midnight-950 dark:text-ivory-50">
+          تحويلات مستنية قرارك ({data.length})
+        </h2>
+        <p className="text-sm text-midnight-600 dark:text-ivory-300/70">
+          طابق صورة التحويل اللي جاتلك على واتساب مع الطلب، واتأكد إن المبلغ وصل محفظتك.
+        </p>
+      </div>
+      {!data.length ? (
+        <p className="rounded-2xl border border-gold-500/20 bg-white p-6 text-center text-sm text-midnight-500 dark:bg-midnight-950/80 dark:text-ivory-300/70">
+          مفيش تحويلات مستنية دلوقتي 👌
+        </p>
+      ) : (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {sorted.map((transfer) => (
+            <TransferCard key={transfer.orderId} transfer={transfer} />
           ))}
         </div>
-      </div>
-
-      {error instanceof ApiError && (
-        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300">
-          {error.message}
-        </p>
       )}
-      {isLoading && <div className="skeleton h-40 w-full rounded-2xl" />}
-      {data && !shown.length && (
-        <p className="rounded-2xl border border-gold-500/20 bg-white p-8 text-center text-sm text-midnight-500 dark:bg-midnight-950/80 dark:text-ivory-300/70">
-          {tab === 'review' ? 'مفيش تحويلات مستنية موافقتك دلوقتي 👌' : 'مفيش طلبات مستنية الطالب.'}
-        </p>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {shown.map((transfer) => (
-          <TransferCard key={transfer.orderId} transfer={transfer} />
-        ))}
-      </div>
-
       <TransferSettingsForm />
-    </div>
+    </section>
   );
 }
 
@@ -153,147 +115,158 @@ function TransferCard({ transfer: t }: { transfer: Transfer }) {
   });
   const reject = useMutation({
     mutationFn: () => api.post(`/admin/transfers/${t.orderId}/reject`, { reason: reason.trim() }),
-    onSuccess: refresh,
+    onSuccess: () => {
+      setRejecting(false);
+      setReason('');
+      refresh();
+    },
     onError: (caught) => setError(caught instanceof ApiError ? caught.message : 'تعذر رفض التحويل'),
   });
 
+  const state = STATE_LABEL[t.state];
+
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-gold-500/25 bg-white p-4 shadow-card dark:bg-midnight-950/80 sm:flex-row">
-      {t.receiptUrl ? (
+    <article className="space-y-3 rounded-2xl border border-gold-500/25 bg-white p-4 shadow-card dark:bg-midnight-950/80">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
+            {t.student.fullName}
+          </p>
+          <p className="text-xs text-midnight-500 dark:text-ivory-300/70">
+            <bdi dir="ltr">{t.student.phone}</bdi> · طلب <bdi dir="ltr">{t.reference}</bdi>
+          </p>
+        </div>
+        <div className="shrink-0 text-end">
+          <p className="font-display text-xl font-black text-gold-700 dark:text-gold-300">
+            {formatEgp(t.amountMinor)}
+          </p>
+          <span className="rounded-md bg-gold-500/15 px-2 py-0.5 text-[11px] font-bold text-gold-800 dark:text-gold-200">
+            {METHOD_LABEL[t.method]}
+          </span>
+        </div>
+      </div>
+
+      <span
+        className={cn('inline-block rounded-md px-2 py-0.5 text-[11px] font-bold', state.className)}
+      >
+        {state.text}
+      </span>
+
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-midnight-500 dark:text-ivory-300/70">حوّل من</dt>
+        <dd className="font-bold text-midnight-900 dark:text-ivory-100">
+          {t.senderPhone ? <bdi dir="ltr">{t.senderPhone}</bdi> : '—'}
+        </dd>
+        <dt className="text-midnight-500 dark:text-ivory-300/70">وقت التحويل</dt>
+        <dd className="font-bold text-midnight-900 dark:text-ivory-100">
+          {t.transferTime ? <bdi dir="ltr">{t.transferTime}</bdi> : '—'}
+        </dd>
+        {t.transactionReference && (
+          <>
+            <dt className="text-midnight-500 dark:text-ivory-300/70">رقم العملية</dt>
+            <dd className="truncate font-bold text-midnight-900 dark:text-ivory-100">
+              <bdi dir="ltr">{t.transactionReference}</bdi>
+            </dd>
+          </>
+        )}
+        <dt className="text-midnight-500 dark:text-ivory-300/70">الطلب</dt>
+        <dd className="text-midnight-800 dark:text-ivory-200">{t.items.join('، ') || '—'}</dd>
+        <dt className="text-midnight-500 dark:text-ivory-300/70">من</dt>
+        <dd className="text-midnight-800 dark:text-ivory-200">
+          {formatRelative(t.submittedAt ?? t.createdAt)}
+        </dd>
+      </dl>
+
+      <div className="flex flex-wrap gap-3 text-xs font-bold">
         <a
-          href={t.receiptUrl}
+          href={`https://wa.me/2${t.student.phone}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="block shrink-0 overflow-hidden rounded-xl border border-gold-500/20 bg-ivory-100 dark:bg-midnight-900 sm:w-40"
-          title="افتح صورة التحويل"
+          className="text-emerald-700 hover:underline dark:text-emerald-400"
         >
-          <img
-            src={t.receiptUrl}
-            alt={`صورة تحويل ${t.student.fullName}`}
-            className="h-48 w-full object-contain sm:h-full"
-          />
+          كلّم الطالب على واتساب
         </a>
-      ) : (
-        <div className="grid h-24 shrink-0 place-items-center rounded-xl border border-dashed border-gold-500/30 text-xs text-midnight-500 dark:text-ivory-300/60 sm:h-auto sm:w-40">
-          لسه ما بعتش صورة
-        </div>
-      )}
-
-      <div className="min-w-0 flex-1 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
-              {t.student.fullName}
-            </p>
-            <p className="text-xs text-midnight-500 dark:text-ivory-300/70">
-              <bdi dir="ltr">{t.student.username}</bdi> · <bdi dir="ltr">{t.student.phone}</bdi>
-            </p>
-          </div>
-          <div className="shrink-0 text-end">
-            <p className="font-display text-xl font-black text-gold-700 dark:text-gold-300">
-              {formatEgp(t.amountMinor)}
-            </p>
-            <span className="rounded-md bg-gold-500/15 px-2 py-0.5 text-[11px] font-bold text-gold-800 dark:text-gold-200">
-              {METHOD_LABEL[t.method]}
-            </span>
-          </div>
-        </div>
-
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-          <dt className="text-midnight-500 dark:text-ivory-300/70">حوّل من</dt>
-          <dd className="font-bold text-midnight-900 dark:text-ivory-100">
-            {t.senderPhone ? <bdi dir="ltr">{t.senderPhone}</bdi> : '—'}
-          </dd>
-          {t.transactionReference && (
-            <>
-              <dt className="text-midnight-500 dark:text-ivory-300/70">رقم العملية</dt>
-              <dd className="truncate font-bold text-midnight-900 dark:text-ivory-100">
-                <bdi dir="ltr">{t.transactionReference}</bdi>
-              </dd>
-            </>
-          )}
-          <dt className="text-midnight-500 dark:text-ivory-300/70">الطلب</dt>
-          <dd className="truncate text-midnight-800 dark:text-ivory-200">
-            {t.items.join('، ') || t.reference}
-          </dd>
-          <dt className="text-midnight-500 dark:text-ivory-300/70">وقت الإرسال</dt>
-          <dd className="text-midnight-800 dark:text-ivory-200">
-            {formatRelative(t.submittedAt ?? t.createdAt)}
-          </dd>
-        </dl>
-
-        {t.state === 'rejected' && (
-          <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
-            اترفض قبل كده: {t.rejectionReason}
-          </p>
-        )}
-        {error && (
-          <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
-            {error}
-          </p>
-        )}
-
-        {t.state === 'submitted' && !rejecting && (
-          <div className="flex gap-2">
-            <Button variant="accent" fullWidth onClick={() => setConfirming(true)}>
-              موافقة وفتح المحتوى
-            </Button>
-            <Button variant="outline" onClick={() => setRejecting(true)}>
-              رفض
-            </Button>
-          </div>
-        )}
-
-        {rejecting && (
-          <form
-            className="space-y-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (reason.trim().length >= 3) reject.mutate();
-            }}
+        {t.receiptUrl && (
+          <a
+            href={t.receiptUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gold-700 hover:underline dark:text-gold-300"
           >
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_REASONS.map((quick) => (
-                <button
-                  key={quick}
-                  type="button"
-                  onClick={() => setReason(quick)}
-                  className="rounded-full border border-gold-500/30 px-3 py-1 text-xs font-bold text-midnight-700 hover:bg-gold-500/10 dark:text-ivory-200"
-                >
-                  {quick}
-                </button>
-              ))}
-            </div>
-            <input
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="سبب الرفض (الطالب هيشوفه)"
-              maxLength={300}
-              autoFocus
-              className="min-h-11 w-full rounded-xl border-2 border-ivory-300 bg-white px-3 text-sm text-midnight-900 focus:border-gold-500 focus:outline-none dark:border-midnight-700 dark:bg-midnight-900 dark:text-ivory-50"
-            />
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                variant="danger"
-                fullWidth
-                isLoading={reject.isPending}
-                disabled={reason.trim().length < 3}
-              >
-                ارفض وبلّغ الطالب
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => setRejecting(false)}>
-                إلغاء
-              </Button>
-            </div>
-          </form>
+            صورة التحويل المرفوعة
+          </a>
         )}
       </div>
+
+      {t.state === 'rejected' && (
+        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+          سبب الرفض السابق: {t.rejectionReason}
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
+
+      {!rejecting ? (
+        <div className="flex gap-2">
+          <Button variant="accent" fullWidth onClick={() => setConfirming(true)}>
+            موافقة وفتح المحتوى
+          </Button>
+          <Button variant="outline" onClick={() => setRejecting(true)}>
+            رفض
+          </Button>
+        </div>
+      ) : (
+        <form
+          className="space-y-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (reason.trim().length >= 3) reject.mutate();
+          }}
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_REASONS.map((quick) => (
+              <button
+                key={quick}
+                type="button"
+                onClick={() => setReason(quick)}
+                className="rounded-full border border-gold-500/30 px-3 py-1 text-xs font-bold text-midnight-700 hover:bg-gold-500/10 dark:text-ivory-200"
+              >
+                {quick}
+              </button>
+            ))}
+          </div>
+          <input
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="سبب الرفض (الطالب هيشوفه)"
+            maxLength={300}
+            autoFocus
+            className="min-h-11 w-full rounded-xl border-2 border-ivory-300 bg-white px-3 text-sm text-midnight-900 focus:border-gold-500 focus:outline-none dark:border-midnight-700 dark:bg-midnight-900 dark:text-ivory-50"
+          />
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              variant="danger"
+              fullWidth
+              isLoading={reject.isPending}
+              disabled={reason.trim().length < 3}
+            >
+              ارفض وبلّغ الطالب
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setRejecting(false)}>
+              إلغاء
+            </Button>
+          </div>
+        </form>
+      )}
 
       <ConfirmDialog
         open={confirming}
         title="تأكيد وصول التحويل؟"
-        body={`اتأكدت إن ${formatEgp(t.amountMinor)} وصلوا محفظتك من ${t.senderPhone ?? 'الطالب'}؟ المحتوى هيتفتح لـ ${t.student.fullName} فورًا.`}
+        body={`اتأكدت إن ${formatEgp(t.amountMinor)} وصلوا محفظتك${t.senderPhone ? ` من ${t.senderPhone}` : ''}؟ المحتوى هيتفتح لـ ${t.student.fullName} فورًا.`}
         confirmLabel="أيوه، وصل — افتح المحتوى"
         isPending={approve.isPending}
         onCancel={() => setConfirming(false)}
@@ -346,14 +319,14 @@ function TransferSettingsForm() {
   );
 
   return (
-    <section className="rounded-2xl border border-gold-500/25 bg-white p-4 dark:bg-midnight-950/80">
+    <div className="rounded-2xl border border-gold-500/25 bg-white p-4 dark:bg-midnight-950/80">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         className="flex w-full items-center justify-between text-start font-display font-black text-midnight-950 dark:text-ivory-50"
         aria-expanded={open}
       >
-        بيانات استلام التحويلات (الرقم ولينك إنستا باي)
+        بيانات التحويل (الأرقام، لينك إنستا باي، واتساب الإثباتات)
         <span aria-hidden>{open ? '−' : '+'}</span>
       </button>
       {open && values && (
@@ -367,6 +340,7 @@ function TransferSettingsForm() {
         >
           {field('vodafoneCashPhone', 'رقم فودافون كاش')}
           {field('instapayPhone', 'رقم إنستا باي', 'الرقم المسجل على إنستا باي')}
+          {field('whatsappPhone', 'رقم واتساب الإثباتات', 'الطلاب هيبعتوا صورة التحويل عليه')}
           {field(
             'instapayLink',
             'لينك الدفع من إنستا باي',
@@ -379,7 +353,7 @@ function TransferSettingsForm() {
             'اللي الطالب هيشوفه في التطبيق قبل التحويل',
             false,
           )}
-          <div className="flex items-end">
+          <div className="flex items-end sm:col-span-2">
             <Button type="submit" variant="accent" fullWidth isLoading={save.isPending}>
               حفظ
             </Button>
@@ -399,6 +373,6 @@ function TransferSettingsForm() {
           )}
         </form>
       )}
-    </section>
+    </div>
   );
 }

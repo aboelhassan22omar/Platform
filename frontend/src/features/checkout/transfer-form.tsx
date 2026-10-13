@@ -2,14 +2,19 @@
 
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
 import { QrCode } from '@/components/ui/qr-code';
 import { api, ApiError } from '@/lib/api';
 import { formatEgp } from '@/lib/utils';
 import type { Order } from '@/types/api';
 
-const RECEIPT_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
+/** wa.me needs the number in international form without "+" (2010...). */
+const whatsappLink = (phone: string, text: string) =>
+  `https://wa.me/2${phone}?text=${encodeURIComponent(text)}`;
+
+const nowHHMM = () => {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+};
 
 /** Vodafone Cash transfer USSD (*9*7*number*amount#); `#` must be escaped in a tel: link. */
 const vodafoneCashDial = (phone: string, amountMinor: number) =>
@@ -56,7 +61,7 @@ export function TransferForm({ order }: { order: Order }) {
           حوّل {formatEgp(order.totalMinor)} بـ{methodName}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-          حوّل المبلغ، وبعدها ابعتلنا الرقم اللي حوّلت منه وصورة التحويل. هنراجعه ونفتحلك المحتوى.
+          حوّل المبلغ، وبعدها ابعتلنا صورة التحويل على واتساب. هنراجعه ونفتحلك المحتوى.
         </p>
       </header>
 
@@ -141,180 +146,142 @@ export function TransferForm({ order }: { order: Order }) {
       </div>
 
       {/* --- Proof -------------------------------------------------------- */}
-      {details.state === 'submitted' ? <SubmittedNotice /> : <ProofForm order={order} />}
+      <WhatsAppProof order={order} />
     </section>
   );
 }
 
-function SubmittedNotice() {
-  return (
-    <div
-      role="status"
-      className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 p-5 text-center"
-    >
-      <p className="font-display text-lg font-black text-[var(--text-primary)]">
-        وصلنا إثبات التحويل ✓
-      </p>
-      <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-        بنراجعه دلوقتي، وأول ما نأكد هيوصلك إشعار والمحتوى هيتفتح لوحده. ممكن تقفل الصفحة.
-      </p>
-    </div>
-  );
-}
-
-function ProofForm({ order }: { order: Order }) {
+function WhatsAppProof({ order }: { order: Order }) {
   const details = order.payment.transfer!;
   const queryClient = useQueryClient();
-  const [phone, setPhone] = useState('');
-  const [reference, setReference] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [phone, setPhone] = useState(details.senderPhone ?? '');
+  const [time, setTime] = useState(details.transferTime ?? nowHHMM());
   const [error, setError] = useState('');
-
-  const pick = (selected: File | undefined) => {
-    setError('');
-    if (!selected) return;
-    if (!RECEIPT_TYPES.includes(selected.type)) {
-      setError('ارفع صورة JPG أو PNG (سكرين شوت التحويل).');
-      return;
-    }
-    if (selected.size > MAX_RECEIPT_BYTES) {
-      setError('الصورة أكبر من ٥ ميجا، ابعت سكرين شوت بدلها.');
-      return;
-    }
-    setFile(selected);
-    setPreview((old) => {
-      if (old) URL.revokeObjectURL(old);
-      return URL.createObjectURL(selected);
-    });
-  };
-
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (pending) return;
-    setError('');
-    const senderPhone = phone.replace(/[^\d]/g, '');
-    if (!/^01[0125]\d{8}$/.test(senderPhone)) {
-      setError('اكتب الرقم اللي حوّلت منه صح (01xxxxxxxxx).');
-      return;
-    }
-    if (!file) {
-      setError('ارفع صورة التحويل.');
-      return;
-    }
-    setPending(true);
-    try {
-      const ticket = await api.post<{
-        key: string;
-        uploadUrl: string;
-        headers: Record<string, string>;
-      }>(`/orders/${order.reference}/transfer/receipt`, {
-        contentType: file.type,
-        sizeBytes: file.size,
-      });
-      const upload = await fetch(ticket.uploadUrl, {
-        method: 'PUT',
-        headers: ticket.headers,
-        body: file,
-      });
-      if (!upload.ok) throw new Error('تعذر رفع الصورة، جرّب تاني.');
-      await api.post(`/orders/${order.reference}/transfer`, {
-        senderPhone,
-        transactionReference: reference.trim() || undefined,
-        receiptKey: ticket.key,
-      });
-      await queryClient.invalidateQueries({ queryKey: ['order', order.reference] });
-    } catch (caught) {
-      setError(
-        caught instanceof ApiError || caught instanceof Error
-          ? caught.message
-          : 'تعذر إرسال البيانات، جرّب تاني.',
-      );
-    } finally {
-      setPending(false);
-    }
-  };
+  const sent = details.state === 'submitted';
+  const senderPhone = phone.replace(/[^\d]/g, '').replace(/^20(?=1)/, '0');
+  const valid = /^01[0125]\d{8}$/.test(senderPhone);
+  const methodName = details.method === 'INSTAPAY' ? 'إنستا باي' : 'فودافون كاش';
+  const message = [
+    `السلام عليكم، حوّلت ثمن الطلب ${order.reference}`,
+    `المبلغ: ${formatEgp(order.totalMinor)} (${methodName})`,
+    `الرقم اللي حوّلت منه: ${valid ? senderPhone : '...'}`,
+    `وقت التحويل: حوالي ${time || '...'}`,
+    'ومرفق صورة التحويل 👇',
+  ].join('\n');
+  const link = details.whatsappPhone ? whatsappLink(details.whatsappPhone, message) : null;
 
   const field =
     'mt-1 block min-h-11 w-full rounded-xl border-2 border-[var(--border-subtle)] bg-[var(--surface)] px-4 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none';
 
   return (
-    <form
-      onSubmit={submit}
-      noValidate
-      aria-busy={pending}
-      className="space-y-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5"
-    >
+    <div className="space-y-4 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
       <div>
         <h2 className="font-display text-lg font-black text-[var(--text-primary)]">
-          بعد ما تحوّل، ابعت الإثبات
+          بعد ما تحوّل، ابعت الصورة على واتساب
         </h2>
+        <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
+          اكتب الرقم اللي حوّلت منه ووقت التحويل، ودوس الزرار: هيفتحلك واتساب برسالة جاهزة، ابعت
+          معاها سكرين شوت التحويل.
+        </p>
         {details.state === 'rejected' && (
           <p
             role="alert"
             className="mt-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-300"
           >
-            الإثبات اللي بعته محتاج تعديل: <strong>{details.rejectionReason}</strong>
+            محتاجين نراجع تحويلك تاني: <strong>{details.rejectionReason}</strong>
+          </p>
+        )}
+        {sent && (
+          <p
+            role="status"
+            className="mt-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-2 text-sm text-[var(--text-secondary)]"
+          >
+            تمام ✓ طلبك عندنا وبنراجعه. أول ما نأكد وصول المبلغ هيوصلك إشعار والمحتوى هيتفتح لوحده.
+            لو لسه ما بعتش الصورة على واتساب، ابعتها دلوقتي.
           </p>
         )}
       </div>
 
-      <label className="block text-sm font-bold text-[var(--text-secondary)]">
-        الرقم اللي حوّلت منه
-        <input
-          dir="ltr"
-          inputMode="tel"
-          autoComplete="tel-national"
-          placeholder="01xxxxxxxxx"
-          maxLength={14}
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          className={field}
-        />
-      </label>
-
-      <div>
-        <p className="text-sm font-bold text-[var(--text-secondary)]">صورة التحويل (سكرين شوت)</p>
-        <label className="mt-1 flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--border-subtle)] p-3 text-center text-sm text-[var(--text-muted)] transition-colors hover:border-[var(--accent)]">
-          {preview ? (
-            <img
-              src={preview}
-              alt="معاينة صورة التحويل"
-              className="max-h-56 rounded-lg object-contain"
-            />
-          ) : (
-            <span>اضغط هنا واختار صورة التحويل من الموبايل</span>
-          )}
-          {preview && <span className="text-xs font-bold text-[var(--accent)]">تغيير الصورة</span>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-sm font-bold text-[var(--text-secondary)]">
+          الرقم اللي حوّلت منه
           <input
-            type="file"
-            accept={RECEIPT_TYPES.join(',')}
-            className="sr-only"
-            onChange={(event) => pick(event.target.files?.[0])}
+            dir="ltr"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder="01xxxxxxxxx"
+            maxLength={14}
+            value={phone}
+            onChange={(event) => {
+              setPhone(event.target.value);
+              setError('');
+            }}
+            className={field}
+          />
+        </label>
+        <label className="block text-sm font-bold text-[var(--text-secondary)]">
+          وقت التحويل تقريبًا
+          <input
+            type="time"
+            dir="ltr"
+            value={time}
+            onChange={(event) => setTime(event.target.value)}
+            className={field}
           />
         </label>
       </div>
-
-      <label className="block text-sm font-bold text-[var(--text-secondary)]">
-        رقم العملية <span className="font-normal text-[var(--text-muted)]">(اختياري)</span>
-        <input
-          dir="ltr"
-          maxLength={100}
-          value={reference}
-          onChange={(event) => setReference(event.target.value)}
-          className={field}
-        />
-      </label>
 
       {error && (
         <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
           {error}
         </p>
       )}
-      <Button type="submit" variant="accent" size="lg" fullWidth isLoading={pending}>
-        ابعت الإثبات للمراجعة
-      </Button>
-    </form>
+
+      {link ? (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(event) => {
+            if (!valid) {
+              event.preventDefault();
+              setError('اكتب الرقم اللي حوّلت منه صح (01xxxxxxxxx).');
+              return;
+            }
+            // Recorded for the admin's review; WhatsApp opens in parallel so
+            // the browser keeps it as a direct tap (no popup blocking).
+            void api
+              .post(`/orders/${order.reference}/transfer`, {
+                senderPhone,
+                transferTime: time || undefined,
+              })
+              .then(() => queryClient.invalidateQueries({ queryKey: ['order', order.reference] }))
+              .catch((caught) =>
+                setError(
+                  caught instanceof ApiError
+                    ? caught.message
+                    : 'الرسالة اتفتحت على واتساب، بس ما قدرناش نسجّل البيانات هنا. ابعت الصورة عادي.',
+                ),
+              );
+          }}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1fa855] px-5 text-base font-black text-white shadow-[0_10px_30px_-14px_#1fa855] transition hover:brightness-110"
+        >
+          <svg aria-hidden width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1 2.7.1.2 1.8 2.8 4.5 3.9 1.7.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z" />
+          </svg>
+          ابعت صورة التحويل على واتساب
+        </a>
+      ) : (
+        <p className="text-sm text-[var(--text-muted)]">ابعت صورة التحويل للدعم على واتساب.</p>
+      )}
+      {details.whatsappPhone && (
+        <p className="text-center text-xs text-[var(--text-muted)]">
+          أو ابعتها يدويًا على واتساب:{' '}
+          <bdi dir="ltr" className="font-bold text-[var(--text-secondary)]">
+            {details.whatsappPhone}
+          </bdi>
+        </p>
+      )}
+    </div>
   );
 }
