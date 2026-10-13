@@ -14,6 +14,7 @@ import { StorageService } from '../common/storage/storage.service';
 import { EntitlementsService, ACCESS_MESSAGES } from '../entitlements/entitlements.service';
 import { generateToken, hashToken } from '../common/utils';
 import { StreamAdmissionService } from './stream-admission.service';
+import { hasPlayableVersion } from './playable';
 
 /**
  * Staff tickets carry this prefix so the per-segment admission check can skip
@@ -185,6 +186,8 @@ export class VideosService {
       durationSeconds: asset.durationSeconds,
       renditions: asset.renditions,
       error: asset.errorMessage,
+      /** Students keep watching this version until a replacement finishes. */
+      hasPublishedVersion: hasPlayableVersion(asset),
       jobStatus: asset.jobs[0]?.status ?? null,
       attempts: asset.jobs[0]?.attempts ?? 0,
     };
@@ -237,10 +240,12 @@ export class VideosService {
         durationSeconds: true,
         posterKey: true,
         renditions: true,
+        processedAt: true,
       },
     });
 
-    if (!asset || asset.status !== VideoStatus.READY || !asset.hlsPrefix) {
+    // A replacement upload in progress never takes the published version offline.
+    if (!asset || !hasPlayableVersion(asset) || !asset.hlsPrefix) {
       throw new NotFoundException('الفيديو لسه بيتجهز، جرّب بعد شوية');
     }
 
@@ -345,10 +350,10 @@ export class VideosService {
   async streamObject(lessonId: string, relativePath: string) {
     const asset = await this.prisma.videoAsset.findUnique({
       where: { lessonId },
-      select: { hlsPrefix: true, masterPlaylist: true, status: true },
+      select: { hlsPrefix: true, masterPlaylist: true, processedAt: true },
     });
 
-    if (!asset?.hlsPrefix || asset.status !== VideoStatus.READY) {
+    if (!asset?.hlsPrefix || !hasPlayableVersion(asset)) {
       throw new NotFoundException('الفيديو غير متاح');
     }
 
@@ -385,7 +390,7 @@ export class VideosService {
         status: VideoStatus.AWAITING_UPLOAD,
         updatedAt: { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
       },
-      select: { id: true, sourceKey: true },
+      select: { id: true, sourceKey: true, hlsPrefix: true, processedAt: true },
     });
     for (const asset of assets) {
       if (asset.sourceKey) {
@@ -394,9 +399,19 @@ export class VideosService {
           .catch(() => undefined);
       }
     }
-    if (assets.length) {
+    // An abandoned *replacement* must not delete the lesson's published video:
+    // put it back to READY instead of dropping the row and its HLS pointer.
+    const published = assets.filter((asset) => hasPlayableVersion(asset));
+    const orphaned = assets.filter((asset) => !hasPlayableVersion(asset));
+    if (published.length) {
+      await this.prisma.videoAsset.updateMany({
+        where: { id: { in: published.map((asset) => asset.id) } },
+        data: { status: VideoStatus.READY, sourceKey: null, errorMessage: null },
+      });
+    }
+    if (orphaned.length) {
       await this.prisma.videoAsset.deleteMany({
-        where: { id: { in: assets.map((asset) => asset.id) } },
+        where: { id: { in: orphaned.map((asset) => asset.id) } },
       });
     }
     return assets.length;

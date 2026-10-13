@@ -35,3 +35,19 @@ export async function uploadDirectory(
     });
   }
 }
+
+/** Deletes every object under `prefix`. Used to drop a superseded HLS version. */
+export async function removePrefix(
+  storage: MinioClient,
+  bucket: string,
+  prefix: string,
+): Promise<number> {
+  const keys: string[] = [];
+  for await (const object of storage.listObjectsV2(bucket, prefix, true) as AsyncIterable<{
+    name?: string;
+  }>) {
+    if (object.name) keys.push(object.name);
+  }
+  if (keys.length) await storage.removeObjects(bucket, keys);
+  return keys.length;
+}
