@@ -1,22 +1,24 @@
 # Release images are built on GitHub Actions, never on the production host.
+# Each service has its own tag so a release only replaces what changed:
+# scripts/deploy-production.sh keeps the running tag for unchanged services.
 services:
   minio:
-    image: ${IMAGE_PREFIX:?IMAGE_PREFIX is required}/minio:${RELEASE_SHA:?RELEASE_SHA is required}
+    image: ${IMAGE_PREFIX:?IMAGE_PREFIX is required}/minio:${MINIO_TAG:?MINIO_TAG is required}
   backend:
     build: !reset null
-    image: ${IMAGE_PREFIX:?IMAGE_PREFIX is required}/backend:${RELEASE_SHA:?RELEASE_SHA is required}
+    image: ${IMAGE_PREFIX:?IMAGE_PREFIX is required}/backend:${BACKEND_TAG:?BACKEND_TAG is required}
   migrate:
     build: !reset null
-    image: ${IMAGE_PREFIX}/backend:${RELEASE_SHA}
+    image: ${IMAGE_PREFIX}/backend:${BACKEND_TAG}
   seed:
     build: !reset null
-    image: ${IMAGE_PREFIX}/backend:${RELEASE_SHA}
+    image: ${IMAGE_PREFIX}/backend:${BACKEND_TAG}
   bootstrap-admin:
     build: !reset null
-    image: ${IMAGE_PREFIX}/backend:${RELEASE_SHA}
+    image: ${IMAGE_PREFIX}/backend:${BACKEND_TAG}
   frontend:
     build: !reset null
-    image: ${IMAGE_PREFIX}/frontend:${RELEASE_SHA}
+    image: ${IMAGE_PREFIX}/frontend:${FRONTEND_TAG:?FRONTEND_TAG is required}
   worker:
     build: !reset null
-    image: ${IMAGE_PREFIX}/worker:${RELEASE_SHA}
+    image: ${IMAGE_PREFIX}/worker:${WORKER_TAG:?WORKER_TAG is required}

@@ -1,14 +1,30 @@
-name: Platform CI-CD
+name: Production pipeline
+
+# After a merge into main:
+#   Stage 1  CI (the same checks a pull request runs)
+#   Stage 2  Detect which services changed since the last production deploy
+#   CD       Publish only the changed images to GHCR
+#   Stage 3  Deploy production - waits for the owner's approval
+#   Stage 4  Record this commit as the last successful deploy (git tag "production")
+# Pull requests run CI only (ci.yml); nothing here runs for them.
 on:
   push:
-    branches: [main]
-  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      deploy_all:
+        description: Rebuild and redeploy every service, even unchanged ones
+        type: boolean
+        default: false
+
 permissions:
   contents: read
+
 concurrency:
-  group: pipeline-${{ github.ref }}-${{ github.event_name }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: production-pipeline
+  cancel-in-progress: false
+
 jobs:
   authorize:
     name: Verify production approval policy
@@ -19,58 +35,90 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify owner reviewer and production branch restrictions
-        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 scripts/verify-production-approval.py
+
   ci:
-    name: Stage 1 - CI and image build
-    needs: authorize
+    name: Stage 1 - CI
     uses: ./.github/workflows/ci.yml
+
   changes:
     name: Stage 2 - Detect changed services
-    needs: ci
     runs-on: ubuntu-latest
+    needs: ci
     outputs:
-      prefix: ${{ steps.changes.outputs.prefix }}
+      prefix: ${{ steps.detect.outputs.prefix }}
+      backend: ${{ steps.detect.outputs.backend }}
+      frontend: ${{ steps.detect.outputs.frontend }}
+      worker: ${{ steps.detect.outputs.worker }}
+      minio: ${{ steps.detect.outputs.minio }}
+      services: ${{ steps.detect.outputs.services }}
+      any: ${{ steps.detect.outputs.any }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Detect service changes
-        id: changes
+      - name: Compare with the last production deploy
+        id: detect
         env:
-          BASE_SHA: ${{ github.event.before || github.event.pull_request.base.sha }}
-        run: node scripts/release-manifest.mjs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-plan-${{ github.sha }}
-          path: release-manifest.json
-  publish:
-    name: CD - Publish ${{ matrix.service }} image
-    needs: changes
-    if: github.event_name != 'pull_request'
+          DEPLOY_ALL: ${{ inputs.deploy_all }}
+        run: |
+          set -euo pipefail
+          git fetch --force origin 'refs/tags/production:refs/tags/production' 2>/dev/null || true
+
+          backend=false; frontend=false; worker=false; minio=false; infra=false
+          if [ "$DEPLOY_ALL" = "true" ] || ! git rev-parse -q --verify refs/tags/production >/dev/null; then
+            echo "Full deploy (manual request or no previous production deploy)."
+            backend=true; frontend=true; worker=true; minio=true; infra=true
+          else
+            base="$(git rev-parse refs/tags/production)"
+            echo "Last production deploy: ${base}"
+            changed="$(git diff --name-only "$base" "$GITHUB_SHA")"
+            printf '%s\n' "$changed"
+            grep -q '^backend/' <<< "$changed" && backend=true
+            grep -q '^frontend/' <<< "$changed" && frontend=true
+            # The worker image bundles the backend's Prisma schema.
+            grep -qE '^(workers/|backend/prisma/|backend/prisma\.config\.ts$)' <<< "$changed" && worker=true
+            grep -q '^docker/minio/' <<< "$changed" && minio=true
+            grep -qE '^(docker-compose[^/]*\.yml$|docker/(nginx|scripts|postgres)/|scripts/deploy-production\.sh$)' <<< "$changed" && infra=true
+          fi
+
+          services=""
+          for service in backend frontend worker minio; do
+            [ "${!service}" = true ] && services="${services:+$services,}$service"
+          done
+          any=false
+          if [ -n "$services" ] || [ "$infra" = true ]; then any=true; fi
+          {
+            echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}"
+            echo "backend=$backend"
+            echo "frontend=$frontend"
+            echo "worker=$worker"
+            echo "minio=$minio"
+            echo "services=$services"
+            echo "any=$any"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Changed since last production deploy"
+            echo "| Service | Will update |"
+            echo "|---|---|"
+            echo "| backend | $backend |"
+            echo "| frontend | $frontend |"
+            echo "| worker | $worker |"
+            echo "| minio | $minio |"
+            echo "| compose / nginx | $infra |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish-backend:
+    name: CD - Publish backend image
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     timeout-minutes: 30
     permissions:
       contents: read
       packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - service: minio
-            context: docker/minio
-            dockerfile: docker/minio/Dockerfile
-          - service: backend
-            context: backend
-            dockerfile: backend/Dockerfile
-          - service: frontend
-            context: frontend
-            dockerfile: frontend/Dockerfile
-          - service: worker
-            context: .
-            dockerfile: workers/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -81,10 +129,39 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: backend
+          file: backend/Dockerfile
           push: true
-          tags: ${{ needs.changes.outputs.prefix }}/${{ matrix.service }}:${{ github.sha }}
+          tags: ${{ needs.changes.outputs.prefix }}/backend:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+  publish-frontend:
+    name: CD - Publish frontend image
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: ${{ needs.changes.outputs.prefix }}/frontend:${{ github.sha }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -97,12 +174,77 @@ jobs:
             NEXT_PUBLIC_SUPPORT_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
             NEXT_PUBLIC_FOLLOWUP_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
             NEXT_PUBLIC_FOLLOWUP_WHATSAPP_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
-  release-ready:
-    name: CD - All release images published
-    needs: [changes, publish]
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  publish-worker:
+    name: CD - Publish worker image
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.worker == 'true'
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          # Root context: the worker reuses backend/prisma.
+          context: .
+          file: workers/Dockerfile
+          push: true
+          tags: ${{ needs.changes.outputs.prefix }}/worker:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+
+  publish-minio:
+    name: CD - Publish minio image
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.minio == 'true'
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: docker/minio
+          file: docker/minio/Dockerfile
+          push: true
+          tags: ${{ needs.changes.outputs.prefix }}/minio:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=minio
+          cache-to: type=gha,mode=max,scope=minio
+
+  published:
+    name: CD - All release images published
+    runs-on: ubuntu-latest
+    needs: [changes, publish-backend, publish-frontend, publish-worker, publish-minio]
+    if: >-
+      always() &&
+      needs.changes.result == 'success' &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
     permissions:
       contents: read
       packages: read
@@ -112,19 +254,31 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Verify all release images exist
+      - name: Verify the changed images exist
         env:
           PREFIX: ${{ needs.changes.outputs.prefix }}
+          SERVICES: ${{ needs.changes.outputs.services }}
         run: |
+          set -euo pipefail
+          echo "### Release images" >> "$GITHUB_STEP_SUMMARY"
           for service in backend frontend worker minio; do
-            docker manifest inspect "$PREFIX/$service:$GITHUB_SHA" > /dev/null
+            if [[ ",$SERVICES," == *",$service,"* ]]; then
+              docker manifest inspect "$PREFIX/$service:$GITHUB_SHA" > /dev/null
+              echo "- $service: \`$PREFIX/$service:$GITHUB_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "- $service: unchanged (keeps the running image)" >> "$GITHUB_STEP_SUMMARY"
+            fi
           done
-          echo 'Images ready. Review deployments must be approved by the repository owner before production credentials become available.' >> "$GITHUB_STEP_SUMMARY"
+
   deploy:
     name: Stage 3 - Deploy production (approval required)
-    needs: [changes, release-ready]
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    needs: [authorize, changes, published]
+    if: >-
+      always() &&
+      needs.authorize.result == 'success' &&
+      needs.published.result == 'success' &&
+      needs.changes.outputs.any == 'true'
     environment:
       name: production
       url: ${{ vars.PRODUCTION_SITE_URL }}
@@ -148,11 +302,12 @@ jobs:
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
-      - name: Deploy the published release over SSH
+      - name: Update changed services on the server
         env:
           HOST: ${{ secrets.PRODUCTION_HOST }}
           DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
           PREFIX: ${{ needs.changes.outputs.prefix }}
+          SERVICES: ${{ needs.changes.outputs.services }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REGISTRY_USER: ${{ github.actor }}
         run: |
@@ -164,24 +319,29 @@ jobs:
           git archive --format=tar.gz -o release.tar.gz HEAD
           scp -o BatchMode=yes -o StrictHostKeyChecking=yes release.tar.gz "$DEPLOY_USER@$HOST:$release/source.tar.gz"
           printf '%s\n' "$REGISTRY_TOKEN" | ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" \
-            "cd '$release' && tar -xzf source.tar.gz && bash scripts/deploy-production.sh '$GITHUB_SHA' '$PREFIX' '$REGISTRY_USER'"
+            "cd '$release' && tar -xzf source.tar.gz && bash scripts/deploy-production.sh '$GITHUB_SHA' '$PREFIX' '$REGISTRY_USER' '$SERVICES'"
       - name: Remove runner credentials
         if: always()
         run: rm -f ~/.ssh/id_ed25519
-      - name: Verify public HTTPS outside the server
+      - name: Smoke test the public site
         env:
-          SITE_URL: ${{ vars.PRODUCTION_SITE_URL }}
+          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
         run: |
           set -euo pipefail
           [[ "$SITE_URL" =~ ^https://[a-zA-Z0-9.-]+$ ]]
-          curl --fail --silent --show-error --retry 3 "$SITE_URL/api/health/ready" | python3 -c 'import json,sys; assert json.load(sys.stdin).get("status") == "ok"'
-          curl --fail --silent --show-error --retry 3 --output /dev/null "$SITE_URL/"
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 "$SITE_URL/api/health/ready" | python3 -c 'import json,sys; assert json.load(sys.stdin).get("status") == "ok"'
+          for path in / /login; do
+            curl --fail --silent --show-error --retry 5 --retry-delay 5 --output /dev/null "$SITE_URL$path"
+            echo "$path -> 200"
+          done
+
   record:
-    name: Stage 4 - Record successfully deployed release
-    needs: [changes, deploy]
+    name: Stage 4 - Record this as the last successful deploy
     runs-on: ubuntu-latest
+    needs: [changes, deploy]
+    if: needs.deploy.result == 'success'
     permissions:
-      contents: read
+      contents: write
       actions: read
     steps:
       - uses: actions/checkout@v4
@@ -191,14 +351,22 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" > deployment-approvals.json
           test "$(jq 'length' deployment-approvals.json)" -gt 0
+      - name: Move the "production" tag to this commit
+        env:
+          SERVICES: ${{ needs.changes.outputs.services }}
+        run: |
+          git tag -f production "$GITHUB_SHA"
+          git push -f origin refs/tags/production
+          echo "Production is now at \`${GITHUB_SHA}\` (updated: ${SERVICES:-configuration only})" >> "$GITHUB_STEP_SUMMARY"
       - name: Record release
         env:
           PREFIX: ${{ needs.changes.outputs.prefix }}
+          SERVICES: ${{ needs.changes.outputs.services }}
         run: |
           jq -n --slurpfile approvals deployment-approvals.json --arg sha "$GITHUB_SHA" --arg prefix "$PREFIX" \
-            --arg actor "$GITHUB_ACTOR" --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
-            '{commit: $sha, imagePrefix: $prefix, triggeredBy: $actor, approvals: $approvals[0], workflow: $run, status: "deployed", recordedAt: (now | todate)}' > deployed-release.json
-          echo "Production release: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+            --arg services "$SERVICES" --arg actor "$GITHUB_ACTOR" \
+            --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{commit: $sha, imagePrefix: $prefix, updatedServices: ($services | split(",") | map(select(. != ""))), triggeredBy: $actor, approvals: $approvals[0], workflow: $run, status: "deployed", recordedAt: (now | todate)}' > deployed-release.json
       - uses: actions/upload-artifact@v4
         with:
           name: deployed-release-${{ github.sha }}

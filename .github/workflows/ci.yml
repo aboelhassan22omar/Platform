@@ -1,50 +1,142 @@
-name: Stage 1 - CI and image build
+name: CI
+
+# Runs on every pull request, and as Stage 1 of the Production pipeline
+# (deploy.yml) after a merge into main. A pull request never publishes or
+# deploys anything.
 on:
+  pull_request:
   workflow_call:
+  workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  # A newer push to the same pull request replaces the older run; main is never cancelled.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  NODE_VERSION: '22'
+  # Prisma needs the variable at generate time; no connection is opened.
+  DATABASE_URL: postgresql://build:build@localhost:5432/build
+
 jobs:
-  checks:
-    name: CI - ${{ matrix.task }}
+  dependencies:
+    name: CI - Dependencies
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        task: [lint, typecheck, backend-tests, frontend-tests, asset-audit]
-    env:
-      DATABASE_URL: postgresql://build:build@localhost:5432/build
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install from the lockfile and generate the Prisma client
+        run: |
+          npm ci --no-audit --no-fund
+          npm --workspace backend run prisma:generate
+
+  lint:
+    name: CI - Lint
+    runs-on: ubuntu-latest
+    needs: dependencies
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm --workspace backend run prisma:generate
-      - name: Run check
-        env:
-          TASK: ${{ matrix.task }}
-        run: |
-          case "$TASK" in
-            lint) npm run lint ;;
-            typecheck) npm run typecheck ;;
-            backend-tests) npm --workspace backend test -- --runInBand ;;
-            frontend-tests) npm run test:models ;;
-            asset-audit) npm run audit:assets ;;
-            *) exit 1 ;;
-          esac
-  image-build:
-    name: CI - Build ${{ matrix.service }} image
+      - run: npm run lint
+
+  typecheck:
+    name: CI - Type-check (backend, frontend, worker)
     runs-on: ubuntu-latest
+    needs: dependencies
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm --workspace backend run prisma:generate
+      - run: npm run typecheck
+
+  backend-tests:
+    name: CI - Backend tests
+    runs-on: ubuntu-latest
+    needs: dependencies
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm --workspace backend run prisma:generate
+      - run: npm --workspace backend test -- --runInBand
+
+  frontend-tests:
+    name: CI - Frontend model tests
+    runs-on: ubuntu-latest
+    needs: typecheck
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm --workspace backend run prisma:generate
+      - run: npm run test:models
+
+  asset-audit:
+    name: CI - Asset audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run audit:assets
+
+  compose:
+    name: CI - Docker Compose validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      IMAGE_PREFIX: ghcr.io/aboelhassan22omar/platform
+      BACKEND_TAG: ${{ github.sha }}
+      FRONTEND_TAG: ${{ github.sha }}
+      WORKER_TAG: ${{ github.sha }}
+      MINIO_TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the production compose stack and deploy script
+        run: |
+          cp .env.example .env
+          bash -n scripts/deploy-production.sh
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.host.yml -f docker-compose.images.yml config --quiet
+
+  image-build:
+    name: CI - Container build (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, backend-tests, frontend-tests, asset-audit, compose]
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - service: minio
-            context: docker/minio
-            dockerfile: docker/minio/Dockerfile
           - service: backend
             context: backend
             dockerfile: backend/Dockerfile
@@ -54,6 +146,9 @@ jobs:
           - service: worker
             context: .
             dockerfile: workers/Dockerfile
+          - service: minio
+            context: docker/minio
+            dockerfile: docker/minio/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -116,15 +211,3 @@ jobs:
               ;;
             *) exit 1 ;;
           esac
-  compose:
-    name: CI - Production Compose validation
-    runs-on: ubuntu-latest
-    env:
-      IMAGE_PREFIX: ghcr.io/aboelhassan22omar/platform
-      RELEASE_SHA: ${{ github.sha }}
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          cp .env.example .env
-          bash -n scripts/deploy-production.sh
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.host.yml -f docker-compose.images.yml config --quiet
