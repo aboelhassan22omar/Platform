@@ -10,8 +10,14 @@ import {
   UserStatus,
 } from '../generated/prisma/enums';
 
-/** A lesson counts as finished at 92% — credits and outros are not content. */
+/** A lesson counts as finished once 99% of it has been watched. */
 const COMPLETION_THRESHOLD_PERCENT = 99;
+/**
+ * Players report whole seconds and the probed duration is rounded, so the
+ * last fraction of a second never arrives as a full "watched" second. Watching
+ * up to this close to the end counts as reaching it.
+ */
+const END_TOLERANCE_SECONDS = 1.5;
 
 @Injectable()
 export class ProgressService {
@@ -76,10 +82,16 @@ export class ProgressService {
     const verifiedAdvance = existing
       ? Math.min(reportedWatched, elapsedSeconds * 2.15 + 3)
       : Math.min(reportedWatched, 33);
-    const furthestPosition = Math.min(
-      duration || position,
-      Math.max(previousPosition, Math.min(position, previousPosition + verifiedAdvance)),
-    );
+    const verifiedPosition = Math.min(position, previousPosition + verifiedAdvance);
+    // Seeking to the end and letting it run still fails this: the verified
+    // advance has to carry the student to within the tolerance themselves.
+    const reachedEnd =
+      duration > 0 &&
+      position >= duration - END_TOLERANCE_SECONDS &&
+      verifiedPosition >= duration - END_TOLERANCE_SECONDS;
+    const furthestPosition = reachedEnd
+      ? duration
+      : Math.min(duration || position, Math.max(previousPosition, verifiedPosition));
     const knownDuration = Math.max(existing?.durationSeconds ?? 0, duration);
     const furthestPercent =
       knownDuration > 0 ? Math.min(100, Math.round((furthestPosition / knownDuration) * 100)) : 0;
