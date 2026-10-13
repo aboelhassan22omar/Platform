@@ -674,9 +674,16 @@ export class LiveService {
     });
     try {
       // "speaker" puts a shared screen front and centre with the camera beside it.
-      const info = await egress.startRoomCompositeEgress(session.roomName, output, {
-        layout: 'speaker',
-      });
+      // Wrapped as { file } so LiveKit reports the result in fileResults; a bare
+      // EncodedFileOutput is also sent as the legacy field, which LiveKit Cloud
+      // answers in the deprecated `result` slot and fileResults stays empty.
+      const info = await egress.startRoomCompositeEgress(
+        session.roomName,
+        { file: output },
+        {
+          layout: 'speaker',
+        },
+      );
       await this.prisma.liveRecording.create({
         data: {
           sessionId: session.id,
@@ -726,13 +733,53 @@ export class LiveService {
     await this.broadcast(active[0].session.roomName, { type: 'recording', active: false });
   }
 
+  /** Size of an uploaded recording, or null when the file is not in the store. */
+  private async uploadedSize(objectKey: string): Promise<bigint | null> {
+    try {
+      const stat = await this.storage.statObject(this.storage.videoBucket, objectKey);
+      return stat.size > 0 ? BigInt(stat.size) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Recordings marked FAILED only because LiveKit's answer carried no file
+   * info: the file was usually uploaded fine, so they become READY again.
+   * Runs once per boot.
+   */
+  private async recoverRecordings() {
+    if (this.recovered) return;
+    this.recovered = true;
+    const candidates = await this.prisma.liveRecording.findMany({
+      where: { status: LiveRecordingStatus.FAILED, error: 'التسجيل خلص من غير ملف' },
+      select: { id: true, objectKey: true, startedAt: true, endedAt: true },
+      take: 100,
+    });
+    for (const recording of candidates) {
+      const size = await this.uploadedSize(recording.objectKey);
+      if (size === null) continue;
+      const ended = recording.endedAt ?? new Date();
+      await this.prisma.liveRecording.update({
+        where: { id: recording.id },
+        data: {
+          status: LiveRecordingStatus.READY,
+          sizeBytes: size,
+          durationSeconds: Math.round((ended.getTime() - recording.startedAt.getTime()) / 1000),
+          error: null,
+        },
+      });
+      this.logger.log(`recording ${recording.id} recovered from storage`);
+    }
+  }
+
   /** Moves stopped segments to READY / FAILED once LiveKit reports the result. */
   private async syncRecordings() {
     const egress = this.egressClient();
     if (!egress) return;
     const pending = await this.prisma.liveRecording.findMany({
       where: { status: { in: [LiveRecordingStatus.RECORDING, LiveRecordingStatus.PROCESSING] } },
-      select: { id: true, egressId: true, status: true, startedAt: true },
+      select: { id: true, egressId: true, status: true, startedAt: true, objectKey: true },
       take: 50,
     });
     for (const recording of pending) {
@@ -756,15 +803,23 @@ export class LiveService {
         info.status === EgressStatus.EGRESS_COMPLETE ||
         info.status === EgressStatus.EGRESS_LIMIT_REACHED
       ) {
-        const file = info.fileResults[0];
+        const file =
+          info.fileResults[0] ?? (info.result.case === 'file' ? info.result.value : undefined);
+        const uploaded = file ? null : await this.uploadedSize(recording.objectKey);
+        const ready = Boolean(file) || uploaded !== null;
+        const seconds = file?.duration
+          ? Number(file.duration) / 1e9
+          : info.startedAt && info.endedAt
+            ? Number(info.endedAt - info.startedAt) / 1e9
+            : null;
         await this.prisma.liveRecording.update({
           where: { id: recording.id },
           data: {
-            status: file ? LiveRecordingStatus.READY : LiveRecordingStatus.FAILED,
+            status: ready ? LiveRecordingStatus.READY : LiveRecordingStatus.FAILED,
             endedAt: info.endedAt ? new Date(Number(info.endedAt / 1_000_000n)) : new Date(),
-            durationSeconds: file ? Math.round(Number(file.duration) / 1e9) : null,
-            sizeBytes: file ? file.size : null,
-            error: file ? null : info.error || 'التسجيل خلص من غير ملف',
+            durationSeconds: ready && seconds ? Math.round(seconds) : null,
+            sizeBytes: file?.size || uploaded,
+            error: ready ? null : (info.error || 'التسجيل خلص من غير ملف').slice(0, 500),
           },
         });
       } else if (
@@ -796,6 +851,7 @@ export class LiveService {
   // -------------------------------------------------------------------------
 
   private monitoring = false;
+  private recovered = false;
 
   private static isPresenter(participant: ParticipantInfo) {
     try {
@@ -813,6 +869,7 @@ export class LiveService {
     try {
       await this.watchLiveSessions();
       await this.syncRecordings();
+      await this.recoverRecordings();
     } catch (error) {
       this.logger.error(`live monitor: ${(error as Error).message}`);
     } finally {
