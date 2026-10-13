@@ -1,7 +1,8 @@
+import { ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 
-describe('Student registration phone verification', () => {
+describe('Student registration', () => {
   const dto = {
     fullName: 'Test Student',
     username: 'test.student',
@@ -12,52 +13,50 @@ describe('Student registration phone verification', () => {
     gradeLevel: 'SEC_1',
   } as never;
 
-  const build = (mode: string) => {
+  const build = (existing: { username: string; phone: string } | null = null) => {
     const prisma = {
       user: {
-        findFirst: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue(existing),
         create: jest.fn().mockImplementation(({ data }) => ({
           id: 'user-id',
           tokenVersion: 0,
           ...data,
         })),
       },
-      academicYear: { findFirst: jest.fn().mockResolvedValue(null) },
+      academicYear: { findFirst: jest.fn().mockResolvedValue({ id: 'year' }) },
       refreshToken: { create: jest.fn() },
     };
-    const otp = { create: jest.fn().mockResolvedValue({ challengeId: 'c', expiresIn: 300 }) };
     const service = new AuthService(
       prisma as never,
       { hash: jest.fn().mockResolvedValue('hash') } as never,
       { signAsync: jest.fn().mockResolvedValue('access') } as never,
-      new ConfigService({
-        phoneVerification: mode,
-        auth: { accessTtl: 900, refreshTtl: 3600, accessSecret: 's' },
-      }),
+      new ConfigService({ auth: { accessTtl: 900, refreshTtl: 3600, accessSecret: 's' } }),
       {} as never,
-      otp as never,
     );
     jest.spyOn(service, 'toProfile').mockImplementation((user) => user as never);
-    return { service, prisma, otp };
+    return { service, prisma };
   };
 
-  it('always requires a WhatsApp OTP when PHONE_VERIFICATION=whatsapp', async () => {
-    const { service, prisma, otp } = build('whatsapp');
+  it('creates an active student immediately and signs them in, with no OTP', async () => {
+    const { service, prisma } = build();
     const result = await service.register(dto, {});
-    expect(result.verificationRequired).toBe(true);
-    expect(otp.create).toHaveBeenCalledWith('register', expect.anything());
-    expect(prisma.user.create).not.toHaveBeenCalled();
+    expect(prisma.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        phone: '01012345678',
+        parentPhone: '01112345678',
+        passwordHash: 'hash',
+        role: 'STUDENT',
+        status: 'ACTIVE',
+        academicYearId: 'year',
+      }),
+    });
+    expect(result.tokens.accessToken).toBe('access');
+    expect(result.user).toMatchObject({ username: 'test.student' });
   });
 
-  it.each(['off', 'console'])('creates the account directly when mode=%s', async (mode) => {
-    const { service, prisma, otp } = build(mode);
-    const result = await service.register(dto, {});
-    expect(result.verificationRequired).toBe(false);
-    expect(otp.create).not.toHaveBeenCalled();
-    expect(prisma.user.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ phone: '01012345678', phoneVerifiedAt: null }),
-      }),
-    );
+  it('refuses a phone number that is already registered', async () => {
+    const { service, prisma } = build({ username: 'someone', phone: '01012345678' });
+    await expect(service.register(dto, {})).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.user.create).not.toHaveBeenCalled();
   });
 });

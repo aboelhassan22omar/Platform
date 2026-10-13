@@ -42,15 +42,13 @@ limited.
 
 | Method  | Path                           | Auth   | Purpose                      |
 | ------- | ------------------------------ | ------ | ---------------------------- |
-| `POST`  | `/auth/register`               | —      | Create a student account     |
+| `POST`  | `/auth/register`               | —      | Create a student and sign in |
 | `POST`  | `/auth/login`                  | —      | Sign in (username or phone)  |
 | `POST`  | `/auth/refresh`                | cookie | Rotate the session           |
 | `POST`  | `/auth/logout`                 | —      | End the session              |
 | `GET`   | `/auth/me`                     | ✔     | Current account              |
 | `PATCH` | `/auth/me`                     | ✔     | Update name / guardian phone |
 | `PATCH` | `/auth/me/password`            | ✔     | Change password              |
-| `POST`  | `/auth/password/reset/request` | —      | Begin a reset                |
-| `POST`  | `/auth/password/reset/confirm` | —      | Complete a reset             |
 
 ### `POST /auth/register`
 
@@ -79,14 +77,13 @@ are valid.
 
 Any other pairing returns `400`.
 
-### `POST /auth/password/reset/request`
+### Forgotten passwords
 
-Always returns `200` with the same message, whether or not the phone is
-registered — it must not become a way to discover which numbers have accounts.
-
-In development the response also carries `devToken` **and** a `devNotice`
-stating that no SMS was sent. No SMS provider is integrated; the UI says so
-rather than implying a message is on its way.
+There is no self-service reset and no OTP. The student contacts support, and
+an administrator sets a new password with
+`PATCH /admin/students/:id/password` (`{ "newPassword": "..." }`, ADMIN). An
+admin can only reset accounts ranked below their own; the account is signed
+out of every device and the change is written to the audit log.
 
 ---
 

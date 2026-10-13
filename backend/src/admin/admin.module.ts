@@ -11,10 +11,11 @@ import { AdminAssessmentsController } from './admin-assessments.controller';
 import { ContentCatalogService } from './content/content-catalog.service';
 import { ContentLessonsService } from './content/content-lessons.service';
 import { ContentDeletionService } from './content/content-deletion.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   providers: [ContentCatalogService, ContentLessonsService, ContentDeletionService],
-  imports: [AnalyticsModule, EntitlementsModule, PresenceModule, VideosModule],
+  imports: [AnalyticsModule, AuthModule, EntitlementsModule, PresenceModule, VideosModule],
   controllers: [
     AdminDashboardController,
     AdminStudentsController,

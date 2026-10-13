@@ -36,8 +36,8 @@ interface AuthContextValue {
    */
   isSigningOut: boolean;
   login: (identifier: string, password: string) => Promise<AuthUser>;
-  register: (input: RegisterInput) => Promise<RegisterResult>;
-  verifyRegistration: (challengeId: string, code: string) => Promise<AuthUser>;
+  /** Creates the account and signs the student in (there is no OTP step). */
+  register: (input: RegisterInput) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -52,24 +52,6 @@ export interface RegisterInput {
   educationSystem: EducationSystem;
   gradeLevel: GradeLevel;
 }
-
-export interface OtpChallenge {
-  challengeId: string;
-  expiresIn: number;
-  resendAfterSeconds: number;
-  /**
-   * `whatsapp-link`: nothing is sent yet; the student opens `whatsappLink`,
-   * sends `whatsappMessage` to the business number, and the code comes back.
-   */
-  delivery?: 'whatsapp-link';
-  whatsappLink?: string;
-  whatsappMessage?: string;
-  businessNumber?: string;
-}
-
-export type RegisterResult =
-  | ({ verificationRequired: true } & OtpChallenge)
-  | { verificationRequired: false; user: AuthUser };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -125,24 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const register = useCallback(
-    async (input: RegisterInput): Promise<RegisterResult> => {
-      const result = await api.post<RegisterResult>('/auth/register', input);
-      if (result.verificationRequired === false) {
-        // No phone verification on this deployment: the account is already signed in.
-        setUser(result.user);
-        router.refresh();
-      }
-      return result;
-    },
-    [router],
-  );
-
-  const verifyRegistration = useCallback(
-    async (challengeId: string, code: string) => {
-      const { user: next } = await api.post<{ user: AuthUser }>('/auth/register/verify', {
-        challengeId,
-        code,
-      });
+    async (input: RegisterInput) => {
+      const { user: next } = await api.post<{ user: AuthUser }>('/auth/register', input);
       setUser(next);
       router.refresh();
       return next;
@@ -174,11 +140,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isSigningOut,
       login,
       register,
-      verifyRegistration,
       logout,
       refresh: loadSession,
     }),
-    [user, isLoading, isSigningOut, login, register, verifyRegistration, logout, loadSession],
+    [user, isLoading, isSigningOut, login, register, logout, loadSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

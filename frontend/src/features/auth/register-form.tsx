@@ -4,8 +4,7 @@ import { useRef, useState } from 'react';
 import { EDUCATION_SYSTEMS } from '@/config/academic-levels';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth, type OtpChallenge } from '@/components/providers/auth-provider';
-import { OtpVerificationForm } from './otp-verification-form';
+import { useAuth } from '@/components/providers/auth-provider';
 import { EGYPTIAN_PHONE, normalizePhone } from '@/lib/phone';
 import { ApiError } from '@/lib/api';
 import type { EducationSystem, GradeLevel, StudentType } from '@/types/api';
@@ -40,8 +39,7 @@ function firstErrorOnly(errors: RegisterErrors): RegisterErrors {
 }
 
 export function RegisterForm() {
-  const { register, verifyRegistration } = useAuth();
-  const [challenge, setChallenge] = useState<OtpChallenge | null>(null);
+  const { register } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
@@ -164,7 +162,7 @@ export function RegisterForm() {
 
     setIsSubmitting(true);
     try {
-      const next = await register({
+      await register({
         fullName: fullName.trim().replace(/\s+/g, ' '),
         username: username.trim().toLowerCase(),
         password,
@@ -175,14 +173,10 @@ export function RegisterForm() {
         gradeLevel,
       });
 
-      if (next.verificationRequired === false) {
-        setPassword('');
-        setConfirmPassword('');
-        router.replace(safeRedirectTarget(searchParams.get('next'), '/dashboard'));
-        return;
-      }
-      setChallenge(next);
-      setIsSubmitting(false);
+      // The account exists and the student is signed in.
+      setPassword('');
+      setConfirmPassword('');
+      router.replace(safeRedirectTarget(searchParams.get('next'), '/dashboard'));
     } catch (caught) {
       setServerError(
         caught instanceof ApiError
@@ -192,25 +186,6 @@ export function RegisterForm() {
       setIsSubmitting(false);
     }
   };
-
-  if (challenge)
-    return (
-      <OtpVerificationForm
-        challenge={challenge}
-        phone={normalizePhone(phone)}
-        onChallenge={setChallenge}
-        onBack={() => {
-          setChallenge(null);
-          setServerError(null);
-        }}
-        onVerify={async (code) => {
-          await verifyRegistration(challenge.challengeId, code);
-          setPassword('');
-          setConfirmPassword('');
-          router.replace(safeRedirectTarget(searchParams.get('next'), '/dashboard'));
-        }}
-      />
-    );
 
   return (
     <form

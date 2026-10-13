@@ -18,16 +18,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { CurrentUser, Public } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
 import { AuthService, type IssuedTokens, type SessionContext } from './auth.service';
-import {
-  ChangePasswordDto,
-  ConfirmPasswordResetDto,
-  LoginDto,
-  RegisterDto,
-  RequestPasswordResetDto,
-  UpdateProfileDto,
-  VerifyOtpDto,
-  OtpChallengeDto,
-} from './dto/auth.dto';
+import { ChangePasswordDto, LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
 
 const ACCESS_COOKIE = 'access_token';
 const REFRESH_COOKIE = 'refresh_token';
@@ -52,8 +43,6 @@ const authLimit = (fallback: number): number => {
 
 const REGISTER_LIMIT = authLimit(5);
 const LOGIN_LIMIT = authLimit(10);
-const RESET_REQUEST_LIMIT = authLimit(4);
-const RESET_CONFIRM_LIMIT = authLimit(6);
 
 @ApiTags('auth')
 @Controller('auth')
@@ -118,31 +107,8 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.auth.register(dto, this.sessionContext(req));
-    if (result.verificationRequired) return result;
-    // Phone verification is off: the account exists now, so sign the student in.
-    this.setAuthCookies(res, result.tokens);
-    return {
-      verificationRequired: false,
-      user: result.user,
-      accessToken: result.tokens.accessToken,
-    };
-  }
-
-  @Public()
-  @Post('register/verify')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: authLimit(10), ttl: AUTH_WINDOW_MS } })
-  async verifyRegistration(
-    @Body() dto: VerifyOtpDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { user, tokens } = await this.auth.verifyRegistration(
-      dto.challengeId,
-      dto.code,
-      this.sessionContext(req),
-    );
+    // No phone verification: the account exists now, so sign the student in.
+    const { user, tokens } = await this.auth.register(dto, this.sessionContext(req));
     this.setAuthCookies(res, tokens);
     return { user, accessToken: tokens.accessToken };
   }
@@ -228,54 +194,5 @@ export class AuthController {
     await this.auth.changePassword(actor.id, dto);
     this.clearAuthCookies(res);
     return { ok: true, message: 'تم تغيير كلمة السر، سجّل الدخول من جديد' };
-  }
-
-  @Public()
-  @Post('password/reset/request')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: RESET_REQUEST_LIMIT, ttl: AUTH_WINDOW_MS } })
-  @ApiOperation({ summary: 'طلب إعادة تعيين كلمة السر' })
-  async requestReset(@Body() dto: RequestPasswordResetDto) {
-    const result = await this.auth.requestPasswordReset(dto.phone);
-    return {
-      // Always the same response, whether or not the phone is registered.
-      message: 'لو الرقم مسجل عندنا هيوصلك كود التحقق على واتساب.',
-      ...result,
-    };
-  }
-
-  @Public()
-  @Post('otp/resend')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: authLimit(5), ttl: AUTH_WINDOW_MS } })
-  resendOtp(@Body() dto: OtpChallengeDto) {
-    return this.auth.resendOtp(dto.challengeId);
-  }
-
-  /** Polled while the student goes to WhatsApp to send the code word. */
-  @Public()
-  @Post('otp/status')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  otpStatus(@Body() dto: OtpChallengeDto) {
-    return this.auth.otpStatus(dto.challengeId);
-  }
-
-  @Public()
-  @Post('password/reset/verify')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: authLimit(10), ttl: AUTH_WINDOW_MS } })
-  verifyReset(@Body() dto: VerifyOtpDto) {
-    return this.auth.verifyPasswordReset(dto.challengeId, dto.code);
-  }
-
-  @Public()
-  @Post('password/reset/confirm')
-  @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: RESET_CONFIRM_LIMIT, ttl: AUTH_WINDOW_MS } })
-  @ApiOperation({ summary: 'تأكيد إعادة تعيين كلمة السر' })
-  async confirmReset(@Body() dto: ConfirmPasswordResetDto) {
-    await this.auth.confirmPasswordReset(dto);
-    return { ok: true, message: 'تم تغيير كلمة السر، تقدر تسجّل الدخول دلوقتي' };
   }
 }

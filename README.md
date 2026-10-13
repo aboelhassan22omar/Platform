@@ -269,7 +269,7 @@ Stated plainly, because shipping is easier than un-shipping a false claim.
 | Area | Status |
 |---|---|
 | Payments | The Paymob adapter is written to the documented API but has **not** been run against live or sandbox merchant credentials — none were available. Verify before taking money. |
-| SMS / phone verification | No provider is integrated. `PHONE_VERIFICATION=off` by default; password-reset tokens are logged, never sent. The UI says so rather than implying an SMS arrived. |
+| Phone verification / password reset | None by design: registration creates the account directly. A student who forgets their password contacts support, and an administrator sets a new one from the students page. |
 | Brand assets | The teacher's Facebook page is behind a login wall, so no logo, photography or brand colours could be extracted. The palette is an original design direction; asset slots are wired to editable settings. **No image is used without rights.** |
 | Curriculum | Compiled from Egyptian education press and published distribution summaries, not a machine-readable Ministry source. Courses carry an `isProvisional` flag and the admin UI shows a warning badge. Review before launch. |
 | Content protection | Short-lived signed playback tickets over private storage stop hotlinking and URL sharing. They do **not** stop screen recording — that needs DRM (Widevine/FairPlay), a separate commercial integration. |

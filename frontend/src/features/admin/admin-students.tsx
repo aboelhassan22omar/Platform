@@ -33,6 +33,7 @@ export function AdminStudents() {
   const [status, setStatus] = useState<'' | 'ACTIVE' | 'SUSPENDED'>('');
   const [page, setPage] = useState(1);
   const [accessStudent, setAccessStudent] = useState<AdminStudent | null>(null);
+  const [passwordStudent, setPasswordStudent] = useState<AdminStudent | null>(null);
 
   const [pendingAction, setPendingAction] = useState<{
     student: AdminStudent;
@@ -273,6 +274,13 @@ export function AdminStudents() {
                           </button>
                           <button
                             type="button"
+                            onClick={() => setPasswordStudent(student)}
+                            className="min-h-9 rounded-lg border border-midnight-300 px-3 text-xs font-bold text-midnight-700 transition-colors hover:bg-midnight-500/10 dark:border-midnight-600 dark:text-ivory-200"
+                          >
+                            كلمة سر جديدة
+                          </button>
+                          <button
+                            type="button"
                             onClick={() =>
                               setPendingAction({
                                 student,
@@ -325,6 +333,11 @@ export function AdminStudents() {
       )}
 
       <StudentLessonAccessDialog student={accessStudent} onClose={() => setAccessStudent(null)} />
+      <StudentPasswordDialog
+        key={passwordStudent?.id ?? 'none'}
+        student={passwordStudent}
+        onClose={() => setPasswordStudent(null)}
+      />
 
       {/* --- Destructive-action confirmation --- */}
       <ConfirmDialog
@@ -560,6 +573,169 @@ function StudentLessonAccessDialog({
             </div>
           )}
         </div>
+      </section>
+    </div>
+  );
+}
+
+/** A readable password support can dictate over the phone: no 0/O or 1/l/I. */
+const suggestPassword = () => {
+  const letters = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const pick = (set: string) => set[crypto.getRandomValues(new Uint32Array(1))[0] % set.length];
+  return (
+    Array.from({ length: 5 }, () => pick(letters)).join('') +
+    pick(digits) +
+    pick(digits) +
+    pick(digits)
+  );
+};
+
+/**
+ * Students cannot reset their own password: they ask support, and an admin
+ * sets a new one here. The account is signed out of every device.
+ */
+function StudentPasswordDialog({
+  student,
+  onClose,
+}: {
+  student: AdminStudent | null;
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState(suggestPassword);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (newPassword: string) =>
+      api.patch(`/admin/students/${student!.id}/password`, { newPassword }),
+    onMutate: () => setError(null),
+    onSuccess: (_, newPassword) => setSaved(newPassword),
+    onError: (caught) =>
+      setError(caught instanceof ApiError ? caught.message : 'تعذر تغيير كلمة السر.'),
+  });
+
+  if (!student) return null;
+
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = password.trim();
+    if (value.length < 6 || value.length > 128) {
+      setError('كلمة السر لازم تكون من ٦ إلى ١٢٨ خانة.');
+      return;
+    }
+    mutation.mutate(value);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center p-3 sm:p-5">
+      <button
+        type="button"
+        aria-label="إغلاق تغيير كلمة السر"
+        className="absolute inset-0 bg-midnight-950/75 backdrop-blur-sm"
+        onClick={() => !mutation.isPending && onClose()}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="student-password-title"
+        className="relative w-full max-w-md rounded-2xl border border-gold-500/30 bg-ivory-50 p-5 shadow-2xl dark:bg-midnight-950"
+      >
+        <p className="text-xs font-bold text-gold-700 dark:text-gold-300">طلب من الدعم</p>
+        <h2
+          id="student-password-title"
+          className="mt-1 font-display text-xl font-black text-midnight-950 dark:text-ivory-50"
+        >
+          كلمة سر جديدة لـ {student.fullName}
+        </h2>
+        <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
+          اتأكد إن الطلب جاي من صاحب الحساب. الطالب هيتسجّل خروجه من كل الأجهزة، ويدخل بكلمة السر
+          الجديدة.
+        </p>
+
+        {saved ? (
+          <div className="mt-4 space-y-3">
+            <div
+              role="status"
+              className="rounded-xl border border-emerald-500/25 bg-emerald-50 p-3 dark:bg-emerald-950/40"
+            >
+              <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">
+                تم تغيير كلمة السر. ابعتها للطالب:
+              </p>
+              <p className="mt-2 text-sm text-midnight-800 dark:text-ivory-100">
+                اسم المستخدم:{' '}
+                <bdi dir="ltr" className="font-bold">
+                  {student.username}
+                </bdi>
+              </p>
+              <p className="text-sm text-midnight-800 dark:text-ivory-100">
+                كلمة السر:{' '}
+                <bdi dir="ltr" className="font-bold">
+                  {saved}
+                </bdi>
+              </p>
+            </div>
+            <Button variant="outline" fullWidth onClick={onClose}>
+              تم
+            </Button>
+          </div>
+        ) : (
+          <form
+            onSubmit={submit}
+            noValidate
+            className="mt-4 space-y-3"
+            aria-busy={mutation.isPending}
+          >
+            <label
+              htmlFor="student-new-password"
+              className="block text-sm font-bold text-midnight-800 dark:text-ivory-100"
+            >
+              كلمة السر الجديدة
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="student-new-password"
+                type="text"
+                dir="ltr"
+                autoComplete="off"
+                spellCheck={false}
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setError(null);
+                }}
+                disabled={mutation.isPending}
+                className="min-h-11 w-full rounded-xl border-2 border-ivory-300 bg-white px-4 py-2.5 text-sm text-midnight-900 focus:border-gold-500 focus:outline-none dark:border-midnight-700 dark:bg-midnight-900/90 dark:text-ivory-50"
+              />
+              <button
+                type="button"
+                onClick={() => setPassword(suggestPassword())}
+                disabled={mutation.isPending}
+                className="min-h-11 shrink-0 rounded-xl border border-gold-500/30 px-3 text-xs font-bold text-gold-700 hover:bg-gold-500/10 dark:text-gold-300"
+              >
+                اقتراح
+              </button>
+            </div>
+            {error && (
+              <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
+                {error}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button type="submit" variant="accent" fullWidth isLoading={mutation.isPending}>
+                غيّر كلمة السر
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={mutation.isPending}
+                onClick={onClose}
+              >
+                إلغاء
+              </Button>
+            </div>
+          </form>
+        )}
       </section>
     </div>
   );
