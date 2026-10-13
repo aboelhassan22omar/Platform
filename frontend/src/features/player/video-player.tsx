@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type Hls from 'hls.js';
 import { api, apiBeacon } from '@/lib/api';
-import { cn, formatDuration } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import type {
   PlaybackHeartbeat,
   PlaybackQueue,
@@ -65,6 +65,25 @@ function switchHlsQuality(hls: Hls, requestedHeight: number): number | null {
  * Nothing here grants access. If the student is not entitled, step 1 fails
  * with 403 and no media URL is ever produced.
  */
+/** Player clock in Western digits: the Arabic-Indic zero is a dot and reads as noise. */
+const formatClock = (totalSeconds: number) => {
+  const safe = Number.isFinite(totalSeconds) && totalSeconds > 0 ? Math.floor(totalSeconds) : 0;
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = String(safe % 60).padStart(2, '0');
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}`
+    : `${minutes}:${seconds}`;
+};
+
+type WebkitVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+type WebkitElement = HTMLElement & { webkitRequestFullscreen?: () => void };
+type WebkitDocument = Document & {
+  webkitFullscreenEnabled?: boolean;
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => void;
+};
+
 export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -82,6 +101,8 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  /** In-page fullscreen for browsers that support neither API. */
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [levels, setLevels] = useState<Array<{ index: number; height: number }>>([]);
   const [selectedQualityHeight, setSelectedQualityHeight] = useState<number | null>(null);
@@ -475,10 +496,34 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   }, []);
 
   useEffect(() => {
-    const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    const doc = document as WebkitDocument;
+    const onFullscreenChange = () =>
+      setIsFullscreen(Boolean(doc.fullscreenElement || doc.webkitFullscreenElement));
+    // iPhone Safari only fullscreens the <video> itself, with its own events.
+    const video = videoRef.current;
+    const onNativeBegin = () => setIsFullscreen(true);
+    const onNativeEnd = () => setIsFullscreen(false);
     document.addEventListener('fullscreenchange', onFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
-  }, []);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    video?.addEventListener('webkitbeginfullscreen', onNativeBegin);
+    video?.addEventListener('webkitendfullscreen', onNativeEnd);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+      video?.removeEventListener('webkitbeginfullscreen', onNativeBegin);
+      video?.removeEventListener('webkitendfullscreen', onNativeEnd);
+    };
+  }, [ticket]);
+
+  // The in-page fallback must not leave the page scrolling underneath.
+  useEffect(() => {
+    if (!isPseudoFullscreen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isPseudoFullscreen]);
 
   // --------------------------------------------------------------------------
   // Controls
@@ -500,9 +545,50 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
 
   const skip = (delta: number) => seek((videoRef.current?.currentTime ?? 0) + delta);
 
+  /**
+   * Fullscreen that works on phones: the standard API (Android, desktop),
+   * then the WebKit element API (older Safari), then the iPhone native video
+   * fullscreen (the only one iOS Safari allows), then an in-page fallback.
+   */
   const toggleFullscreen = async () => {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else await containerRef.current?.requestFullscreen().catch(() => undefined);
+    const doc = document as WebkitDocument;
+    const container = containerRef.current as WebkitElement | null;
+    const video = videoRef.current as WebkitVideo | null;
+    if (isPseudoFullscreen) {
+      setIsPseudoFullscreen(false);
+      return;
+    }
+    if (doc.fullscreenElement) {
+      await doc.exitFullscreen().catch(() => undefined);
+      return;
+    }
+    if (doc.webkitFullscreenElement) {
+      doc.webkitExitFullscreen?.();
+      return;
+    }
+    if (container && document.fullscreenEnabled && container.requestFullscreen) {
+      try {
+        await container.requestFullscreen();
+        // Phones: watch lessons sideways, like any video app.
+        const orientation = screen.orientation as ScreenOrientation & {
+          lock?: (orientation: string) => Promise<void>;
+        };
+        await orientation?.lock?.('landscape').catch(() => undefined);
+        return;
+      } catch {
+        // Fall through to the WebKit paths.
+      }
+    }
+    // iPhone Safari exposes no usable element fullscreen; only trust the flag.
+    if (container?.webkitRequestFullscreen && doc.webkitFullscreenEnabled) {
+      container.webkitRequestFullscreen();
+      return;
+    }
+    if (video?.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen();
+      return;
+    }
+    setIsPseudoFullscreen(true);
   };
 
   const revealControls = useCallback(() => {
@@ -617,6 +703,9 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       case 'f':
         void toggleFullscreen();
         break;
+      case 'Escape':
+        if (isPseudoFullscreen) setIsPseudoFullscreen(false);
+        break;
       case 'm': {
         const video = videoRef.current;
         if (video) video.muted = !video.muted;
@@ -694,7 +783,12 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       onMouseMove={revealControls}
       onMouseLeave={hideControls}
       onTouchStart={revealControls}
-      className="group relative aspect-video w-full overflow-visible rounded-2xl bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500"
+      className={cn(
+        'group relative w-full overflow-visible bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500',
+        isPseudoFullscreen
+          ? 'fixed inset-0 z-[300] h-[100dvh] w-screen'
+          : 'aspect-video rounded-2xl [&:fullscreen]:aspect-auto [&:fullscreen]:rounded-none',
+      )}
     >
       <video
         ref={videoRef}
@@ -704,7 +798,10 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
         // not a protection — see the note in videos.service.ts.
         controlsList="nodownload"
         disablePictureInPicture={false}
-        className="h-full w-full rounded-2xl bg-black"
+        className={cn(
+          'h-full w-full bg-black object-contain',
+          !isPseudoFullscreen && !isFullscreen && 'rounded-2xl',
+        )}
         onClick={togglePlay}
       />
 
@@ -728,10 +825,21 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
             exit={{ opacity: 0, scale: 0.85 }}
             onClick={togglePlay}
             aria-label="شغّل"
-            className="absolute inset-0 grid place-items-center overflow-hidden rounded-2xl bg-midnight-950/35"
+            // On a phone the video is short: keep the button above the control
+            // bar instead of on top of the progress line.
+            className={cn(
+              'absolute inset-x-0 top-0 grid place-items-center overflow-hidden rounded-t-2xl bg-midnight-950/35',
+              showControls
+                ? 'bottom-[6.75rem] sm:bottom-0 sm:rounded-b-2xl'
+                : 'bottom-0 rounded-b-2xl',
+            )}
           >
-            <span className="grid h-20 w-20 place-items-center rounded-full bg-gold-500 text-midnight-950 shadow-2xl transition-transform duration-200 hover:scale-105">
-              <svg width="30" height="30" viewBox="0 0 30 30" fill="currentColor">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-gold-500 text-midnight-950 shadow-2xl transition-transform duration-200 hover:scale-105 sm:h-20 sm:w-20">
+              <svg
+                className="h-5 w-5 sm:h-[30px] sm:w-[30px]"
+                viewBox="0 0 30 30"
+                fill="currentColor"
+              >
                 <path d="M9 5.5l16 9.5-16 9.5z" />
               </svg>
             </span>
@@ -747,8 +855,16 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-x-0 bottom-0 rounded-b-2xl bg-gradient-to-t from-midnight-950/95 via-midnight-950/60 to-transparent p-3 pt-10 sm:p-4 sm:pt-12"
+            className="absolute inset-x-0 bottom-0 z-10 rounded-b-2xl bg-gradient-to-t from-midnight-950/95 via-midnight-950/70 to-transparent px-2.5 pb-2 pt-6 sm:p-4 sm:pt-12"
           >
+            {/* Phones: the clock sits above the bar so the button row fits. */}
+            <div
+              dir="ltr"
+              className="nums-tabular flex justify-between px-1 text-[11px] font-semibold text-ivory-100 sm:hidden"
+            >
+              <span>{formatClock(currentTime)}</span>
+              <span>{formatClock(duration)}</span>
+            </div>
             {/* Scrubber */}
             <div dir="ltr" className="group/bar relative">
               <input
@@ -766,7 +882,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
               />
             </div>
 
-            <div dir="ltr" className="mt-1 flex items-center gap-1.5 sm:gap-2.5">
+            <div dir="ltr" className="mt-0.5 flex items-center gap-1 sm:mt-1 sm:gap-2.5">
               <ControlButton onClick={togglePlay} label={isPlaying ? 'إيقاف مؤقت' : 'تشغيل'}>
                 {isPlaying ? (
                   <path d="M6.5 4.5h3.5v13H6.5zM12 4.5h3.5v13H12z" fill="currentColor" />
@@ -775,8 +891,8 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                 )}
               </ControlButton>
 
-              <span className="nums-tabular whitespace-nowrap text-[11px] font-semibold text-ivory-100 sm:text-xs">
-                {formatDuration(currentTime)} / {formatDuration(duration)}
+              <span className="nums-tabular hidden whitespace-nowrap text-xs font-semibold text-ivory-100 sm:inline">
+                {formatClock(currentTime)} / {formatClock(duration)}
               </span>
 
               <ControlButton onClick={() => skip(-10)} label="ارجع ١٠ ثواني">
@@ -801,7 +917,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                 />
               </ControlButton>
 
-              <div className="ml-auto flex items-center gap-1.5">
+              <div className="ml-auto flex items-center gap-0.5 sm:gap-1.5">
                 {/* Quality gets a dedicated control instead of sharing a
                     confusing speed/quality menu. */}
                 <div className="relative">
@@ -810,7 +926,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                     onClick={() => setShowQuality((value) => !value)}
                     aria-label="اختيار جودة الفيديو"
                     aria-expanded={showQuality}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-xs font-bold text-ivory-100 transition-colors hover:bg-ivory-50/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
+                    className="inline-flex min-h-10 items-center gap-1 rounded-lg px-2 text-xs font-bold text-ivory-100 transition-colors hover:bg-ivory-50/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400 sm:min-h-11 sm:gap-1.5 sm:px-3"
                   >
                     <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden>
                       <path
@@ -823,7 +939,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                       <circle cx="13" cy="10" r="1.5" fill="currentColor" />
                       <circle cx="9" cy="14.5" r="1.5" fill="currentColor" />
                     </svg>
-                    الجودة:{' '}
+                    <span className="hidden sm:inline">الجودة: </span>
                     {switchingQualityHeight != null
                       ? `جارٍ ${switchingQualityHeight}p`
                       : selectedQualityHeight == null
@@ -838,7 +954,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.96 }}
                         transition={{ duration: 0.16 }}
-                        className="absolute left-0 top-full z-50 mt-2 w-40 rounded-xl border border-gold-500/35 bg-midnight-950/98 p-2 shadow-2xl backdrop-blur-xl"
+                        className="absolute bottom-full right-0 z-50 mb-2 w-40 rounded-xl border border-gold-500/35 bg-midnight-950/98 p-2 shadow-2xl backdrop-blur-xl"
                       >
                         <p className="px-2 py-1 text-xs font-bold text-ivory-200/70">
                           جودة الفيديو
@@ -872,7 +988,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                     }}
                     aria-label="اختيار سرعة الفيديو"
                     aria-expanded={showSpeed}
-                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-2 text-xs font-bold text-ivory-100 transition-colors hover:bg-ivory-50/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
+                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-lg px-2 text-xs font-bold text-ivory-100 transition-colors hover:bg-ivory-50/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-400"
                   >
                     {playbackRate}x
                   </button>
@@ -884,7 +1000,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.96 }}
                         transition={{ duration: 0.16 }}
-                        className="absolute left-0 top-full z-50 mt-2 w-36 rounded-xl border border-gold-500/35 bg-midnight-950/98 p-2 shadow-2xl backdrop-blur-xl"
+                        className="absolute bottom-full right-0 z-50 mb-2 w-36 rounded-xl border border-gold-500/35 bg-midnight-950/98 p-2 shadow-2xl backdrop-blur-xl"
                       >
                         <p className="px-2 py-1 text-xs font-bold text-ivory-200/70">
                           سرعة التشغيل
@@ -959,9 +1075,9 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
 
                 <ControlButton
                   onClick={() => void toggleFullscreen()}
-                  label={isFullscreen ? 'إنهاء ملء الشاشة' : 'ملء الشاشة'}
+                  label={isFullscreen || isPseudoFullscreen ? 'إنهاء ملء الشاشة' : 'ملء الشاشة'}
                 >
-                  {isFullscreen ? (
+                  {isFullscreen || isPseudoFullscreen ? (
                     <path
                       d="M8 3v5H3M13 3v5h5M8 18v-5H3M13 18v-5h5"
                       stroke="currentColor"

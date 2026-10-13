@@ -43,6 +43,7 @@ export const formatDurationLabel = (totalSeconds: number | null | undefined): st
   if (!totalSeconds) return 'لسه مش متاح';
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.round((totalSeconds % 3600) / 60);
+  if (hours === 0 && minutes === 0) return 'أقل من دقيقة';
   if (hours === 0) return `${toArabicDigits(String(minutes))} دقيقة`;
   if (minutes === 0) return `${toArabicDigits(String(hours))} ساعة`;
   return `${toArabicDigits(String(hours))} ساعة و${toArabicDigits(String(minutes))} دقيقة`;
