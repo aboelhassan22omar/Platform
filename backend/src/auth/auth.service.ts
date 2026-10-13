@@ -31,7 +31,6 @@ import type {
 import type { AccessTokenPayload } from './strategies/jwt.strategy';
 import { LoginLockedException } from './login-locked.exception';
 import { OtpService, type OtpPayload } from './otp.service';
-import { WhatsAppService } from './whatsapp.service';
 
 export interface IssuedTokens {
   accessToken: string;
@@ -56,7 +55,6 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly redis: RedisService,
     private readonly otp: OtpService,
-    private readonly whatsapp: WhatsAppService,
   ) {}
 
   // --------------------------------------------------------------------------
@@ -64,17 +62,12 @@ export class AuthService {
   // --------------------------------------------------------------------------
 
   /**
-   * WhatsApp OTP is enforced only when PHONE_VERIFICATION=whatsapp and the Meta
-   * credentials and template are all present. Otherwise the student is created
-   * straight away (phone unverified) instead of every sign-up failing.
+   * PHONE_VERIFICATION=whatsapp makes the OTP mandatory: a misconfigured
+   * WhatsApp refuses sign-up loudly rather than creating unverified accounts.
+   * Any other mode creates the student straight away (phone unverified).
    */
   private registrationNeedsOtp(): boolean {
-    if (this.config.get<string>('phoneVerification') !== 'whatsapp') return false;
-    if (this.whatsapp.isConfigured()) return true;
-    this.logger.error(
-      'PHONE_VERIFICATION=whatsapp but WhatsApp OTP is not fully configured; registering without phone verification',
-    );
-    return false;
+    return this.config.get<string>('phoneVerification') === 'whatsapp';
   }
 
   async register(dto: RegisterDto, ctx: SessionContext) {
@@ -407,6 +400,10 @@ export class AuthService {
 
   resendOtp(challengeId: string) {
     return this.otp.resend(challengeId);
+  }
+
+  otpStatus(challengeId: string) {
+    return this.otp.status(challengeId);
   }
 
   async confirmPasswordReset(dto: ConfirmPasswordResetDto): Promise<void> {

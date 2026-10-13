@@ -252,6 +252,15 @@ export class AuthController {
     return this.auth.resendOtp(dto.challengeId);
   }
 
+  /** Polled while the student goes to WhatsApp to send the code word. */
+  @Public()
+  @Post('otp/status')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  otpStatus(@Body() dto: OtpChallengeDto) {
+    return this.auth.otpStatus(dto.challengeId);
+  }
+
   @Public()
   @Post('password/reset/verify')
   @HttpCode(HttpStatus.OK)

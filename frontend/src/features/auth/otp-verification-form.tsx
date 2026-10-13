@@ -35,6 +35,32 @@ export function OtpVerificationForm({
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [challenge]);
+  // Click-to-chat: poll until the student's WhatsApp message comes back as a code.
+  const viaLink = challenge.delivery === 'whatsapp-link';
+  const [linkStatus, setLinkStatus] = useState<'pending' | 'code_sent' | 'failed'>('pending');
+  useEffect(() => {
+    setLinkStatus('pending');
+    if (!viaLink) return;
+    let stopped = false;
+    const poll = async () => {
+      try {
+        const { status } = await api.post<{ status: string }>('/auth/otp/status', {
+          challengeId: challenge.challengeId,
+        });
+        if (stopped) return;
+        if (status === 'code_sent') return setLinkStatus('code_sent');
+        if (status !== 'pending') return setLinkStatus('failed');
+      } catch {
+        // Transient; keep polling.
+      }
+      if (!stopped) timer = window.setTimeout(poll, 3000);
+    };
+    let timer = window.setTimeout(poll, 3000);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
+  }, [challenge, viaLink]);
   const resendSeconds = Math.max(0, Math.ceil((deadlines.resend - now) / 1000));
   const expiresSeconds = Math.max(0, Math.ceil((deadlines.expires - now) / 1000));
 
@@ -77,10 +103,46 @@ export function OtpVerificationForm({
     <form onSubmit={verify} noValidate className="auth-form" aria-busy={busy}>
       <div className="rounded-xl border border-gold-500/25 bg-gold-500/5 p-3 text-center">
         <h2 className="font-display text-lg font-black">تأكيد رقم الواتساب</h2>
-        <p className="mt-1 text-sm">
-          اكتب الكود المرسل إلى <bdi dir="ltr">{phone}</bdi>
-        </p>
+        {viaLink ? (
+          <p className="mt-1 text-sm">
+            افتح واتساب من الموبايل اللي عليه رقم <bdi dir="ltr">{phone}</bdi> وابعت الرسالة زي ما
+            هي، وهيوصلك كود التحقق في نفس الشات.
+          </p>
+        ) : (
+          <p className="mt-1 text-sm">
+            اكتب الكود المرسل إلى <bdi dir="ltr">{phone}</bdi>
+          </p>
+        )}
       </div>
+      {viaLink && (
+        <div className="space-y-2 text-center">
+          <a
+            href={challenge.whatsappLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="auth-submit"
+          >
+            افتح واتساب وابعت الرسالة
+          </a>
+          <p className="text-xs opacity-80">
+            الرابط ما فتحش؟ ابعت <bdi className="font-bold">{challenge.whatsappMessage}</bdi> على
+            رقم <bdi dir="ltr">+{challenge.businessNumber}</bdi>
+          </p>
+          <p role="status" aria-live="polite" className="text-sm font-bold">
+            {linkStatus === 'code_sent' ? (
+              <span className="text-emerald-600 dark:text-emerald-400">
+                ✓ الكود اتبعتلك على واتساب، اكتبه تحت.
+              </span>
+            ) : linkStatus === 'failed' ? (
+              <span className="text-red-600 dark:text-red-400">
+                تعذر إرسال الكود. اطلب رابط جديد وجرب تاني.
+              </span>
+            ) : (
+              <span className="opacity-80">مستنيين رسالتك على واتساب…</span>
+            )}
+          </p>
+        </div>
+      )}
       <div className="auth-field">
         <label htmlFor="whatsapp-otp">كود التحقق</label>
         <div className="auth-input-wrap">
@@ -123,7 +185,7 @@ export function OtpVerificationForm({
       )}
       {sent && (
         <p role="status" className="text-center text-sm text-emerald-500">
-          تم إرسال كود جديد.
+          {viaLink ? 'تم تجهيز رابط جديد، ابعت الرسالة الجديدة.' : 'تم إرسال كود جديد.'}
         </p>
       )}
       <button type="submit" className="auth-submit" disabled={busy || !expiresSeconds}>
@@ -139,7 +201,11 @@ export function OtpVerificationForm({
           disabled={busy || resendSeconds > 0 || !expiresSeconds}
           onClick={resend}
         >
-          {resendSeconds ? `إعادة الإرسال بعد ${resendSeconds} ث` : 'إعادة إرسال الكود'}
+          {resendSeconds
+            ? `إعادة الإرسال بعد ${resendSeconds} ث`
+            : viaLink
+              ? 'طلب رابط جديد'
+              : 'إعادة إرسال الكود'}
         </button>
       </div>
     </form>

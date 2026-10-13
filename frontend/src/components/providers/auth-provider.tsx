@@ -57,6 +57,14 @@ export interface OtpChallenge {
   challengeId: string;
   expiresIn: number;
   resendAfterSeconds: number;
+  /**
+   * `whatsapp-link`: nothing is sent yet; the student opens `whatsappLink`,
+   * sends `whatsappMessage` to the business number, and the code comes back.
+   */
+  delivery?: 'whatsapp-link';
+  whatsappLink?: string;
+  whatsappMessage?: string;
+  businessNumber?: string;
 }
 
 export type RegisterResult =
