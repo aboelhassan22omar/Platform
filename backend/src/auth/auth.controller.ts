@@ -113,8 +113,20 @@ export class AuthController {
   @Post('register')
   @Throttle({ default: { limit: REGISTER_LIMIT, ttl: AUTH_WINDOW_MS } })
   @ApiOperation({ summary: 'تسجيل طالب جديد' })
-  async register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.auth.register(dto, this.sessionContext(req));
+    if (result.verificationRequired) return result;
+    // Phone verification is off: the account exists now, so sign the student in.
+    this.setAuthCookies(res, result.tokens);
+    return {
+      verificationRequired: false,
+      user: result.user,
+      accessToken: result.tokens.accessToken,
+    };
   }
 
   @Public()

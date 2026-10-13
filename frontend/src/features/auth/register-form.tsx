@@ -175,6 +175,12 @@ export function RegisterForm() {
         gradeLevel,
       });
 
+      if (next.verificationRequired === false) {
+        setPassword('');
+        setConfirmPassword('');
+        router.replace(safeRedirectTarget(searchParams.get('next'), '/dashboard'));
+        return;
+      }
       setChallenge(next);
       setIsSubmitting(false);
     } catch (caught) {
