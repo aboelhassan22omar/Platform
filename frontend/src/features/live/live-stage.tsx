@@ -22,6 +22,7 @@ import { api, ApiError } from '@/lib/api';
 import { cn, toArabicDigits } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { LiveChatMessage, LiveEvent, LiveReactionEvent, LiveSessionDetail } from '@/types/api';
+import { DeviceSettings } from './device-settings';
 
 export const REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🔥'] as const;
 
@@ -62,6 +63,7 @@ const ICONS = {
   camOff:
     'M3 3l18 18M16 10.5l5-3v9l-5-3M14.5 18h-10A1.5 1.5 0 0 1 3 16.5v-9A1.5 1.5 0 0 1 4.5 6H6m3.5 0h5A1.5 1.5 0 0 1 16 7.5v5',
   screen: 'M3 5h18v11H3zM8 20h8M12 16v4M9.5 10.5 12 8l2.5 2.5M12 8v5',
+  devices: 'M4 6h9M17 6h3M15 4v4M4 12h3M11 12h9M9 10v4M4 18h11M19 18h1M17 16v4',
   chat: 'M4 19l1.5-3.9A7.5 7.5 0 1 1 8.5 18L4 19Z',
   chatOff:
     'M3 3l18 18M4 19l1.5-3.9a7.5 7.5 0 0 1 1.2-8.8M10 4.6A7.5 7.5 0 0 1 19.4 14M15.5 17.7A7.5 7.5 0 0 1 8.5 18L4 19',
@@ -186,6 +188,7 @@ export function LiveStage({
   const [feed, setFeed] = useState<LiveReactionEvent[]>([]);
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [reactOpen, setReactOpen] = useState(false);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [ending, setEnding] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -648,6 +651,18 @@ export function LiveStage({
               off={!isCameraEnabled}
               onClick={() => void toggleMedia('camera')}
             />
+            <div className="relative">
+              <ControlButton
+                label="الأجهزة"
+                icon={ICONS.devices}
+                active={devicesOpen}
+                expanded={devicesOpen}
+                onClick={() => setDevicesOpen((v) => !v)}
+              />
+              <AnimatePresence>
+                {devicesOpen && <DeviceSettings onClose={() => setDevicesOpen(false)} />}
+              </AnimatePresence>
+            </div>
             <ControlButton
               label="اعرض الشاشة"
               icon={ICONS.screen}
