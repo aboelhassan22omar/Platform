@@ -5,8 +5,6 @@
 /** What a student sent as proof, stored on the pending Payment row. */
 export interface TransferSubmission {
   senderPhone: string;
-  /** Roughly when they transferred (HH:MM), as typed by the student. */
-  transferTime?: string;
   transactionReference?: string;
   /** Screenshot stored on the platform by the earlier upload flow (legacy). */
   receiptKey?: string;

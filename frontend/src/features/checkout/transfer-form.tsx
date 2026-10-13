@@ -11,11 +11,6 @@ import type { Order } from '@/types/api';
 const whatsappLink = (phone: string, text: string) =>
   `https://wa.me/2${phone}?text=${encodeURIComponent(text)}`;
 
-const nowHHMM = () => {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-};
-
 /** Vodafone Cash transfer USSD (*9*7*number*amount#); `#` must be escaped in a tel: link. */
 const vodafoneCashDial = (phone: string, amountMinor: number) =>
   `tel:*9*7*${phone}${amountMinor % 100 === 0 ? `*${amountMinor / 100}` : ''}%23`;
@@ -155,7 +150,6 @@ function WhatsAppProof({ order }: { order: Order }) {
   const details = order.payment.transfer!;
   const queryClient = useQueryClient();
   const [phone, setPhone] = useState(details.senderPhone ?? '');
-  const [time, setTime] = useState(details.transferTime ?? nowHHMM());
   const [error, setError] = useState('');
   const sent = details.state === 'submitted';
   const senderPhone = phone.replace(/[^\d]/g, '').replace(/^20(?=1)/, '0');
@@ -165,7 +159,6 @@ function WhatsAppProof({ order }: { order: Order }) {
     `السلام عليكم، حوّلت ثمن الطلب ${order.reference}`,
     `المبلغ: ${formatEgp(order.totalMinor)} (${methodName})`,
     `الرقم اللي حوّلت منه: ${valid ? senderPhone : '...'}`,
-    `وقت التحويل: حوالي ${time || '...'}`,
     'ومرفق صورة التحويل 👇',
   ].join('\n');
   const link = details.whatsappPhone ? whatsappLink(details.whatsappPhone, message) : null;
@@ -180,8 +173,8 @@ function WhatsAppProof({ order }: { order: Order }) {
           بعد ما تحوّل، ابعت الصورة على واتساب
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-          اكتب الرقم اللي حوّلت منه ووقت التحويل، ودوس الزرار: هيفتحلك واتساب برسالة جاهزة، ابعت
-          معاها سكرين شوت التحويل.
+          اكتب الرقم اللي حوّلت منه ودوس الزرار: هيفتحلك واتساب برسالة جاهزة، ابعت معاها سكرين شوت
+          التحويل.
         </p>
         {details.state === 'rejected' && (
           <p
@@ -202,34 +195,22 @@ function WhatsAppProof({ order }: { order: Order }) {
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm font-bold text-[var(--text-secondary)]">
-          الرقم اللي حوّلت منه
-          <input
-            dir="ltr"
-            inputMode="tel"
-            autoComplete="tel-national"
-            placeholder="01xxxxxxxxx"
-            maxLength={14}
-            value={phone}
-            onChange={(event) => {
-              setPhone(event.target.value);
-              setError('');
-            }}
-            className={field}
-          />
-        </label>
-        <label className="block text-sm font-bold text-[var(--text-secondary)]">
-          وقت التحويل تقريبًا
-          <input
-            type="time"
-            dir="ltr"
-            value={time}
-            onChange={(event) => setTime(event.target.value)}
-            className={field}
-          />
-        </label>
-      </div>
+      <label className="block text-sm font-bold text-[var(--text-secondary)]">
+        الرقم اللي حوّلت منه
+        <input
+          dir="ltr"
+          inputMode="tel"
+          autoComplete="tel-national"
+          placeholder="01xxxxxxxxx"
+          maxLength={14}
+          value={phone}
+          onChange={(event) => {
+            setPhone(event.target.value);
+            setError('');
+          }}
+          className={field}
+        />
+      </label>
 
       {error && (
         <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
@@ -251,10 +232,7 @@ function WhatsAppProof({ order }: { order: Order }) {
             // Recorded for the admin's review; WhatsApp opens in parallel so
             // the browser keeps it as a direct tap (no popup blocking).
             void api
-              .post(`/orders/${order.reference}/transfer`, {
-                senderPhone,
-                transferTime: time || undefined,
-              })
+              .post(`/orders/${order.reference}/transfer`, { senderPhone })
               .then(() => queryClient.invalidateQueries({ queryKey: ['order', order.reference] }))
               .catch((caught) =>
                 setError(

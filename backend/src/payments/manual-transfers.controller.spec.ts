@@ -34,7 +34,7 @@ describe('Manual transfers', () => {
   const student = { id: 'student-1' } as never;
   const admin = { id: 'admin-1' } as never;
   const req = { ip: '127.0.0.1' } as never;
-  const proof = { senderPhone: '01024066401', transferTime: '14:30', transactionReference: 'tx-1' };
+  const proof = { senderPhone: '01024066401', transactionReference: 'tx-1' };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,14 +47,14 @@ describe('Manual transfers', () => {
     expect(await new ManualTransferProvider().verifyWebhook()).toBeNull();
   });
 
-  it('records the sender number and transfer time but never settles the order', async () => {
+  it('records the sender number but never settles the order', async () => {
     prisma.order.findFirst.mockResolvedValue({ id: 'order1' });
     await expect(controller.submit(student, 'AM-1', proof)).resolves.toEqual({ submitted: true });
     expect(prisma.order.findFirst).toHaveBeenCalledWith({
       where: { reference: 'AM-1', userId: 'student-1', status: 'AWAITING_PAYMENT' },
     });
     const saved = prisma.payment.updateMany.mock.calls[0][0].data.providerPayload;
-    expect(saved).toMatchObject({ senderPhone: '01024066401', transferTime: '14:30' });
+    expect(saved).toMatchObject({ senderPhone: '01024066401', transactionReference: 'tx-1' });
     expect(saved.review).toBeUndefined();
     expect(orders.settleOrder).not.toHaveBeenCalled();
   });
@@ -144,7 +144,6 @@ describe('Manual transfers', () => {
       state: 'submitted',
       method: 'INSTAPAY',
       senderPhone: '01024066401',
-      transferTime: '14:30',
       receiptUrl: null,
       items: ['L1'],
     });

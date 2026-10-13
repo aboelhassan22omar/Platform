@@ -42,11 +42,6 @@ class SubmitTransferDto {
   @IsString()
   @MaxLength(100)
   transactionReference?: string;
-
-  /** Roughly when they transferred, as typed in the order page (HH:MM). */
-  @IsOptional()
-  @Matches(/^([01]?\d|2[0-3]):[0-5]\d$/, { message: 'اكتب وقت التحويل بالشكل 14:30' })
-  transferTime?: string;
 }
 
 class RejectTransferDto {
@@ -89,7 +84,7 @@ class TransferSettingsDto {
 /**
  * Manual transfers (PAYMENT_PROVIDER=manual): the student transfers by
  * InstaPay or Vodafone Cash to the platform's number, notes here the number
- * they paid from and roughly when, and sends the screenshot on WhatsApp. Every
+ * they paid from, and sends the screenshot on WhatsApp. Every
  * pending order appears in the payments log, where an admin approves (content
  * unlocks immediately) or rejects with a reason (the student can resend).
  */
@@ -133,7 +128,6 @@ export class ManualTransfersController {
     // needs to match it against the receiving wallet.
     const submission: TransferSubmission = {
       senderPhone: dto.senderPhone,
-      transferTime: dto.transferTime,
       transactionReference: dto.transactionReference?.trim() || undefined,
       submittedAt: new Date().toISOString(),
     };
@@ -219,7 +213,6 @@ export class ManualTransfersController {
           items: payment.order.items.map((item) => item.titleSnapshot),
           senderPhone: submission?.senderPhone ?? null,
           transactionReference: submission?.transactionReference ?? null,
-          transferTime: submission?.transferTime ?? null,
           submittedAt: submission?.submittedAt ?? null,
           rejectionReason: submission?.review?.reason ?? null,
           receiptUrl: submission?.receiptKey

@@ -514,7 +514,6 @@ export class OrdersService {
       recipientName: settings.recipientName || null,
       whatsappPhone: settings.whatsappPhone || null,
       senderPhone: submission?.senderPhone ?? null,
-      transferTime: submission?.transferTime ?? null,
       state: transferState(submission),
       rejectionReason: submission?.review?.reason ?? null,
       submitted: transferState(submission) === 'submitted',

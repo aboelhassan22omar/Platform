@@ -18,10 +18,10 @@ in the payments log → "بيانات التحويل" (stored in `site_settings`
 The order page shows the student the number (copy), a QR code (the InstaPay
 link, or the Vodafone Cash `*9*7*number*amount#` dial code) and a one-tap
 button that opens InstaPay or dials the transfer. After paying, the student
-types the number they paid from and roughly when, and taps a button that opens
+types the number they paid from and taps a button that opens
 **WhatsApp to the platform's number** (`whatsappPhone`, editable, default
 `PAYMENT_TRANSFER_PHONE`) with a ready message: order number, amount, method,
-sender number and time. They attach the screenshot there. This never grants
+and sender number. They attach the screenshot there. This never grants
 access.
 
 Every pending transfer order is listed at the top of the **payments log**

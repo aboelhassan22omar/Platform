@@ -557,7 +557,6 @@ export interface TransferDetails {
   /** WhatsApp number the student sends the transfer screenshot to. */
   whatsappPhone: string | null;
   senderPhone: string | null;
-  transferTime: string | null;
   state: 'waiting' | 'submitted' | 'rejected';
   rejectionReason: string | null;
   submitted: boolean;
