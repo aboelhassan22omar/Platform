@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { ProductKind, PublishStatus } from '../../generated/prisma/enums';
+import { LiveRecordingStatus, ProductKind, PublishStatus } from '../../generated/prisma/enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../../common/decorators';
 import { AuditService } from '../../common/audit/audit.service';
@@ -9,6 +9,7 @@ import { VideosService } from '../../videos/videos.service';
 import { uniqueSlug } from '../../common/utils';
 import {
   CompleteAttachmentDto,
+  PublishLiveRecordingDto,
   UploadTicketDto,
   UpsertLessonDto,
   UpdateLessonDto,
@@ -141,6 +142,86 @@ export class ContentLessonsService {
       return created;
     });
     return lesson;
+  }
+
+  /**
+   * Publishes a finished live recording as a lesson video. The recording file
+   * is copied (so deleting or replacing the lesson video never touches the
+   * original) and goes through the normal transcode: HLS, qualities,
+   * protected playback, access by the lesson's own price / plans.
+   */
+  async publishLiveRecording(
+    actor: AuthenticatedUser,
+    recordingId: string,
+    dto: PublishLiveRecordingDto,
+    ip: string | undefined,
+  ) {
+    const recording = await this.prisma.liveRecording.findUnique({
+      where: { id: recordingId },
+      include: { session: { select: { title: true } } },
+    });
+    if (!recording) throw new NotFoundException('التسجيل غير موجود');
+    if (recording.status !== LiveRecordingStatus.READY) {
+      throw new BadRequestException('التسجيل لسه مش جاهز، استنى لحد ما يبقى "جاهز"');
+    }
+    const stat = await this.storage
+      .statObject(this.storage.videoBucket, recording.objectKey)
+      .catch(() => null);
+    if (!stat) throw new BadRequestException('ملف التسجيل مش موجود في التخزين');
+
+    let lessonId = dto.lessonId;
+    let lessonTitle: string;
+    if (lessonId) {
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: lessonId },
+        select: { title: true },
+      });
+      if (!lesson) throw new NotFoundException('الحصة غير موجودة');
+      lessonTitle = lesson.title;
+    } else {
+      if (!dto.chapterId) throw new BadRequestException('اختار حصة موجودة أو فصل للحصة الجديدة');
+      const chapter = await this.prisma.chapter.findUnique({
+        where: { id: dto.chapterId },
+        select: { id: true },
+      });
+      if (!chapter) throw new NotFoundException('الفصل غير موجود');
+      const created = await this.createLesson(
+        actor,
+        dto.chapterId,
+        {
+          title: dto.title?.trim() || recording.session.title,
+          status: dto.status ?? PublishStatus.DRAFT,
+          priceMinor: dto.priceMinor ?? null,
+          isFreePreview: dto.isFreePreview ?? false,
+        } as UpsertLessonDto,
+        ip,
+      );
+      lessonId = created.id;
+      lessonTitle = created.title;
+    }
+
+    const sourceKey = `sources/${lessonId}/${Date.now()}-live.mp4`;
+    await this.storage.copyObject(this.storage.videoBucket, recording.objectKey, sourceKey);
+    const queued = await this.videos.attachExistingSource(lessonId, {
+      key: sourceKey,
+      originalName: `تسجيل لايف — ${recording.session.title}.mp4`,
+      sizeBytes: BigInt(stat.size),
+    });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.liveRecording.update({
+        where: { id: recording.id },
+        data: { publishedLessonId: lessonId, publishedAt: new Date() },
+      });
+      await this.audit.record(tx, {
+        actorId: actor.id,
+        action: 'live.recording.publish',
+        entityType: 'LiveRecording',
+        entityId: recording.id,
+        metadata: { lessonId, lessonTitle, created: !dto.lessonId },
+        ip,
+      });
+    });
+    return { lessonId, lessonTitle, video: queued };
   }
 
   async updateLesson(

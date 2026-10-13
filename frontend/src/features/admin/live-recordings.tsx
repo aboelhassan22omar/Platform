@@ -8,6 +8,7 @@ import { cn, toArabicDigits } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { LiveRecording } from '@/types/api';
+import { PublishRecordingDialog } from './publish-recording-dialog';
 
 const duration = (seconds: number | null) => {
   if (!seconds) return '';
@@ -36,13 +37,16 @@ const STATUS: Record<LiveRecording['status'], { label: string; className: string
 /** The recorded segments of one live class. Teacher-only. */
 export function LiveRecordings({
   title,
+  gradeId,
   recordings,
   onChanged,
 }: {
   title: string;
+  gradeId: string;
   recordings: LiveRecording[];
   onChanged: () => void;
 }) {
+  const [publishing, setPublishing] = useState<LiveRecording | null>(null);
   const [playing, setPlaying] = useState<{ url: string; label: string } | null>(null);
   const [deleting, setDeleting] = useState<LiveRecording | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +96,20 @@ export function LiveRecordings({
                       .join(' · ')}
                   </span>
                 )}
+                {recording.publishedLesson && (
+                  <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
+                    اتنشر في حصة{' '}
+                    <a
+                      href={`/lessons/${recording.publishedLesson.id}`}
+                      className="font-bold underline"
+                    >
+                      {recording.publishedLesson.title}
+                    </a>
+                    {recording.publishedLesson.videoAsset?.processedAt
+                      ? ' — متاح للطلاب'
+                      : ' — بيتجهز للطلاب…'}
+                  </p>
+                )}
                 {recording.status === 'FAILED' && recording.error && (
                   <p
                     className="mt-1 break-words text-xs text-midnight-500 dark:text-ivory-300/70"
@@ -104,6 +122,16 @@ export function LiveRecordings({
               <div className="flex shrink-0 gap-2">
                 {recording.status === 'READY' && (
                   <>
+                    <Button
+                      size="sm"
+                      variant={recording.publishedLesson ? 'outline' : 'primary'}
+                      onClick={() => {
+                        setError(null);
+                        setPublishing(recording);
+                      }}
+                    >
+                      {recording.publishedLesson ? 'انشر تاني' : 'انشر كحصة'}
+                    </Button>
                     <Button
                       size="sm"
                       variant="accent"
@@ -196,6 +224,16 @@ export function LiveRecordings({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {publishing && (
+        <PublishRecordingDialog
+          recordingId={publishing.id}
+          sessionTitle={title}
+          gradeId={gradeId}
+          onClose={() => setPublishing(null)}
+          onPublished={onChanged}
+        />
+      )}
 
       <ConfirmDialog
         open={Boolean(deleting)}

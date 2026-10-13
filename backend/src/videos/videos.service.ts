@@ -171,6 +171,35 @@ export class VideosService {
     return { assetId: updated.id, jobId: job.id, status: updated.status };
   }
 
+  /**
+   * Uses a file already in the video bucket (e.g. a live recording copy) as the
+   * lesson's new source and queues the transcode. The published version, if
+   * any, keeps playing until the new one is ready.
+   */
+  async attachExistingSource(
+    lessonId: string,
+    source: { key: string; originalName: string; sizeBytes: bigint | null },
+  ) {
+    await this.prisma.videoAsset.upsert({
+      where: { lessonId },
+      create: {
+        lessonId,
+        status: VideoStatus.AWAITING_UPLOAD,
+        sourceKey: source.key,
+        originalName: source.originalName.slice(0, 255),
+        sizeBytes: source.sizeBytes,
+      },
+      update: {
+        status: VideoStatus.AWAITING_UPLOAD,
+        sourceKey: source.key,
+        originalName: source.originalName.slice(0, 255),
+        sizeBytes: source.sizeBytes,
+        errorMessage: null,
+      },
+    });
+    return this.completeUpload(lessonId);
+  }
+
   async getProcessingStatus(lessonId: string) {
     const asset = await this.prisma.videoAsset.findUnique({
       where: { lessonId },

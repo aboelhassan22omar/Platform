@@ -178,6 +178,11 @@ export class StorageService implements OnModuleInit {
     await this.client.removeObject(bucket, key);
   }
 
+  /** Server-side copy inside the store; nothing passes through the API. */
+  async copyObject(bucket: string, sourceKey: string, targetKey: string): Promise<void> {
+    await this.client.copyObject(bucket, targetKey, `/${bucket}/${sourceKey}`);
+  }
+
   /** Removes an entire HLS output prefix, e.g. when a lesson video is replaced. */
   async removePrefix(bucket: string, prefix: string): Promise<number> {
     const keys: string[] = [];

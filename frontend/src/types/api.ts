@@ -518,6 +518,13 @@ export interface LiveRecording {
   durationSeconds: number | null;
   sizeBytes: number | null;
   error: string | null;
+  publishedAt?: string | null;
+  /** The lesson this recording was published to, and its video's state. */
+  publishedLesson?: {
+    id: string;
+    title: string;
+    videoAsset: { status: string; processedAt: string | null } | null;
+  } | null;
 }
 
 export interface AdminLiveSession extends LiveSessionSummary {

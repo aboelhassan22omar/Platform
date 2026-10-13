@@ -403,6 +403,14 @@ export class LiveService {
             durationSeconds: true,
             sizeBytes: true,
             error: true,
+            publishedAt: true,
+            publishedLesson: {
+              select: {
+                id: true,
+                title: true,
+                videoAsset: { select: { status: true, processedAt: true } },
+              },
+            },
           },
         },
       },

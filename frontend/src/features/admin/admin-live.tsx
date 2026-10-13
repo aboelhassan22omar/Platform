@@ -243,6 +243,7 @@ export function AdminLive() {
       {session.recordings.length > 0 && (
         <LiveRecordings
           title={session.title}
+          gradeId={session.grade.id}
           recordings={session.recordings}
           onChanged={() => void refresh()}
         />
