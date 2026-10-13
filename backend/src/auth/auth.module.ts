@@ -7,10 +7,11 @@ import { PasswordService } from './password.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { OtpService } from './otp.service';
 import { WhatsAppService } from './whatsapp.service';
+import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
 
 @Module({
   imports: [PassportModule, JwtModule.register({})],
-  controllers: [AuthController],
+  controllers: [AuthController, WhatsAppWebhookController],
   providers: [AuthService, PasswordService, JwtStrategy, OtpService, WhatsAppService],
   exports: [AuthService, PasswordService],
 })

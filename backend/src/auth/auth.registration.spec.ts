@@ -12,7 +12,7 @@ describe('Student registration phone verification', () => {
     gradeLevel: 'SEC_1',
   } as never;
 
-  const build = (mode: string, whatsappConfigured: boolean) => {
+  const build = (mode: string) => {
     const prisma = {
       user: {
         findFirst: jest.fn().mockResolvedValue(null),
@@ -36,25 +36,21 @@ describe('Student registration phone verification', () => {
       }),
       {} as never,
       otp as never,
-      { isConfigured: () => whatsappConfigured } as never,
     );
     jest.spyOn(service, 'toProfile').mockImplementation((user) => user as never);
     return { service, prisma, otp };
   };
 
-  it('requires a WhatsApp OTP when verification is on and configured', async () => {
-    const { service, prisma, otp } = build('whatsapp', true);
+  it('always requires a WhatsApp OTP when PHONE_VERIFICATION=whatsapp', async () => {
+    const { service, prisma, otp } = build('whatsapp');
     const result = await service.register(dto, {});
     expect(result.verificationRequired).toBe(true);
     expect(otp.create).toHaveBeenCalledWith('register', expect.anything());
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['off', true],
-    ['whatsapp', false],
-  ])('creates the account directly when mode=%s and configured=%s', async (mode, configured) => {
-    const { service, prisma, otp } = build(mode, configured);
+  it.each(['off', 'console'])('creates the account directly when mode=%s', async (mode) => {
+    const { service, prisma, otp } = build(mode);
     const result = await service.register(dto, {});
     expect(result.verificationRequired).toBe(false);
     expect(otp.create).not.toHaveBeenCalled();
