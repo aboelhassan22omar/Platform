@@ -2,24 +2,33 @@
 
 Repository: `aboelhassan22omar/Platform`. Server: `13.140.153.131`.
 
-A pull request runs parallel checks and builds all four Docker images. A push
-to `main` also publishes a complete release to GHCR, tagged with the commit SHA.
-After CI and publication succeed, the production job waits for the owner in
-Actions → **Platform CI-CD** → **Review deployments** → **production** →
-**Approve and deploy**. Only `aboelhassan22omar` may approve, bypass is disabled,
-and only `main` may deploy. `Run workflow` can also prepare a release; it still
-requires the same deployment review. There is one environment, `production`.
+A pull request runs **CI only** (`ci.yml`): lint, type checks, backend and
+frontend tests, asset audit, production Compose validation, then a container
+build of every image. Nothing is published or deployed from a pull request.
 
-The graph in `deploy.yml` has four stages:
+A merge into `main` runs the **Production pipeline** (`deploy.yml`):
 
-1. CI: lint, type checks, backend tests, asset audit, production Compose
-   validation, and a matrix building backend, frontend, worker and MinIO images.
-2. Change detection and parallel publication of the release images. Each
-   release includes all four images; unchanged layers use the build cache.
-3. Owner-approved production deployment, database backup, migrations and
-   checks of database, Redis and storage readiness.
-4. A deployment record with the commit, approver and workflow URL. The server
-   also records the current SHA only after readiness succeeds.
+1. **Stage 1 - CI**: the same checks a pull request runs.
+2. **Stage 2 - Detect changed services**: diff against the `production` git
+   tag (the last successful deploy). `backend/` → backend, `frontend/` →
+   frontend, `workers/` or `backend/prisma` → worker, `docker/minio/` → MinIO;
+   compose files, `docker/nginx|scripts|postgres` and the deploy script count
+   as configuration. With no tag yet, everything is deployed.
+3. **CD - Publish**: only the changed images are built and pushed to GHCR,
+   tagged with the commit SHA. Unchanged services show as skipped.
+4. **Stage 3 - Deploy production (approval required)**: waits for the owner in
+   Actions → **Production pipeline** → **Review deployments** → **production**
+   → **Approve and deploy**. The server updates only the changed services and
+   keeps the running image for the rest (`/opt/amr-platform/service-tags.env`),
+   after a database backup and migrations, then checks readiness and the
+   public site. If nothing deployable changed, this stage is skipped.
+5. **Stage 4 - Record**: moves the `production` tag to the commit and stores
+   the approver, updated services and workflow URL as an artifact.
+
+Only `aboelhassan22omar` may approve, bypass is disabled, and only `main` may
+deploy; every run verifies these rules. **Run workflow** with **deploy_all**
+rebuilds and redeploys every service (for example after changing a repository
+variable used as a build arg). There is one environment, `production`.
 
 Set the repository variable `PRODUCTION_SITE_URL` to the confirmed HTTPS
 origin before building the release; it defaults to `https://amr.aurexis.cc`.

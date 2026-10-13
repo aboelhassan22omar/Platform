@@ -5,9 +5,14 @@ umask 077
 release_sha="${1:?A release SHA is required}"
 image_prefix="${2:?An image prefix is required}"
 registry_user="${3:?A registry user is required}"
+# Comma-separated services built for this release (backend,frontend,worker,minio).
+# Empty means only compose/nginx changed: every service keeps its running image.
+changed_services="${4-}"
 [[ "$release_sha" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid release SHA'; exit 1; }
 [[ "$image_prefix" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._-]+$ ]] || { echo 'Invalid image prefix'; exit 1; }
 [[ "$registry_user" =~ ^[a-zA-Z0-9-]+$ ]] || { echo 'Invalid registry user'; exit 1; }
+service_list='^((backend|frontend|worker|minio)(,(backend|frontend|worker|minio))*)?$'
+[[ "$changed_services" =~ $service_list ]] || { echo 'Invalid service list'; exit 1; }
 deployment_root=/opt/amr-platform
 release_dir="$deployment_root/releases/$release_sha"
 [[ "$(pwd -P)" = "$release_dir" ]] || { echo 'Run from the immutable release directory'; exit 1; }
@@ -16,7 +21,34 @@ test -s "$deployment_root/shared/.env" || { echo 'Production .env is not configu
 exec 9>"$deployment_root/deploy.lock"
 flock -n 9 || { echo 'Another production deployment is running'; exit 1; }
 ln -sfn "$deployment_root/shared/.env" .env
-export IMAGE_PREFIX="$image_prefix" RELEASE_SHA="$release_sha"
+
+# Image tag per service: this release for what changed, the running tag for the
+# rest. Releases before per-service tags ran every image at current-sha.
+tags_file="$deployment_root/service-tags.env"
+previous_sha="$(cat "$deployment_root/current-sha" 2>/dev/null || true)"
+declare -A tags=()
+if [ -s "$tags_file" ]; then
+  while IFS='=' read -r key value; do
+    if [[ "$key" =~ ^(BACKEND|FRONTEND|WORKER|MINIO)_TAG$ && "$value" =~ ^[0-9a-f]{40}$ ]]; then
+      tags[$key]="$value"
+    fi
+  done < "$tags_file"
+fi
+updated=()
+for service in backend frontend worker minio; do
+  key="${service^^}_TAG"
+  if [[ ",$changed_services," == *",$service,"* ]]; then
+    tags[$key]="$release_sha"
+    updated+=("$service")
+  elif [ -z "${tags[$key]-}" ]; then
+    [[ "$previous_sha" =~ ^[0-9a-f]{40}$ ]] || { echo "No running image recorded for $service; deploy it too"; exit 1; }
+    tags[$key]="$previous_sha"
+  fi
+  export "$key=${tags[$key]}"
+done
+export IMAGE_PREFIX="$image_prefix"
+echo "Updating: ${updated[*]:-configuration only}"
+echo "Image tags: backend=$BACKEND_TAG frontend=$FRONTEND_TAG worker=$WORKER_TAG minio=$MINIO_TAG"
 export DOCKER_CONFIG
 DOCKER_CONFIG=$(mktemp -d)
 trap 'rm -rf -- "$DOCKER_CONFIG"' EXIT
@@ -44,7 +76,8 @@ else:
     assert re.fullmatch(r"(010|011|012|015)\d{8}", env.get("PAYMENT_TRANSFER_PHONE", "")), "Missing recipient wallet phone"
 '
 
-# Pull the complete tested release before touching running services.
+# Pull every image before touching running services; unchanged ones are
+# already local, so only the updated services actually download.
 for attempt in 1 2 3; do
   if "${compose[@]}" --profile seed --profile bootstrap pull --quiet; then
     break
@@ -62,6 +95,7 @@ if "${compose[@]}" ps --status running --services | grep -qx postgres; then
     > "$deployment_root/backups/pre-$release_sha-$(date -u +%Y%m%dT%H%M%SZ).dump"
 fi
 
+# Compose only recreates services whose image or configuration changed.
 "${compose[@]}" up -d --no-build --wait --wait-timeout 240
 course_count=$("${compose[@]}" exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT COUNT(*) FROM courses"' | tr -d '[:space:]')
 [[ "$course_count" =~ ^[0-9]+$ ]] || { echo 'Cannot verify existing content'; exit 1; }
@@ -82,4 +116,7 @@ curl --fail --silent --show-error http://127.0.0.1:17080/healthz
 ln -sfn "$release_dir" "$deployment_root/current.next"
 mv -Tf "$deployment_root/current.next" "$deployment_root/current"
 printf '%s\n' "$release_sha" > "$deployment_root/current-sha"
+printf 'BACKEND_TAG=%s\nFRONTEND_TAG=%s\nWORKER_TAG=%s\nMINIO_TAG=%s\n' \
+  "$BACKEND_TAG" "$FRONTEND_TAG" "$WORKER_TAG" "$MINIO_TAG" > "$tags_file.next"
+mv -f "$tags_file.next" "$tags_file"
 echo "Production deployed: $release_sha"
