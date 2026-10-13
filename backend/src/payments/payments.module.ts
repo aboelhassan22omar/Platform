@@ -11,6 +11,7 @@ import { KashierProvider } from './providers/kashier.provider';
 import { ManualTransferProvider } from './providers/manual-transfer.provider';
 import { ManualTransfersController } from './manual-transfers.controller';
 import { PaymentsLogController } from './payments-log.controller';
+import { TransferSettingsService } from './transfer-settings.service';
 
 @Module({
   imports: [EntitlementsModule],
@@ -22,6 +23,7 @@ import { PaymentsLogController } from './payments-log.controller';
   ],
   providers: [
     OrdersService,
+    TransferSettingsService,
     DevSandboxProvider,
     PaymobProvider,
     KashierProvider,

@@ -19,7 +19,7 @@ import { TransferForm } from './transfer-form';
  * shown a success screen the backend has not agreed with.
  */
 export function CheckoutReturn() {
-  const reference = useSearchParams().get('ref') ?? '';
+  const reference = (useSearchParams().get('ref') ?? '').split('?')[0];
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', reference],
@@ -34,7 +34,7 @@ export function CheckoutReturn() {
   if (!reference) {
     return (
       <Shell>
-        <p className="font-display text-lg font-bold text-midnight-800">مفيش رقم طلب</p>
+        <p className="font-display text-lg font-bold text-[var(--text-primary)]">مفيش رقم طلب</p>
       </Shell>
     );
   }
@@ -42,8 +42,8 @@ export function CheckoutReturn() {
   if (isLoading || !order) {
     return (
       <Shell>
-        <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-gold-500 border-t-transparent" />
-        <p className="mt-4 text-sm text-midnight-500">بنجيب تفاصيل طلبك...</p>
+        <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-[var(--accent)] border-t-transparent" />
+        <p className="mt-4 text-sm text-[var(--text-muted)]">بنجيب تفاصيل طلبك...</p>
       </Shell>
     );
   }
@@ -57,7 +57,7 @@ export function CheckoutReturn() {
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 220, damping: 16 }}
           aria-hidden
-          className="grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-emerald-600"
+          className="grid h-20 w-20 place-items-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
         >
           <motion.svg width="38" height="38" viewBox="0 0 38 38" fill="none">
             <motion.path
@@ -77,7 +77,7 @@ export function CheckoutReturn() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5, ease: EASE_ENTRANCE }}
-          className="mt-6 font-display text-2xl font-black text-midnight-900"
+          className="mt-6 font-display text-2xl font-black text-[var(--text-primary)]"
         >
           تم الدفع بنجاح 🎉
         </motion.h1>
@@ -85,7 +85,7 @@ export function CheckoutReturn() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
-          className="mt-2 max-w-sm text-sm leading-relaxed text-midnight-500"
+          className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-muted)]"
         >
           حصصك اتفتحت وجاهزة دلوقتي. تقدر تبدأ تذاكر على طول.
         </motion.p>
@@ -115,14 +115,16 @@ export function CheckoutReturn() {
       <Shell>
         <span
           aria-hidden
-          className="grid h-20 w-20 place-items-center rounded-full bg-red-100 text-red-600"
+          className="grid h-20 w-20 place-items-center rounded-full bg-red-500/15 text-red-600 dark:text-red-400"
         >
           <svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="currentColor">
             <path d="M11 11l12 12M23 11L11 23" strokeWidth="3" strokeLinecap="round" />
           </svg>
         </span>
-        <h1 className="mt-6 font-display text-2xl font-black text-midnight-900">الدفع ما تمّش</h1>
-        <p className="mt-2 max-w-sm text-sm leading-relaxed text-midnight-500">
+        <h1 className="mt-6 font-display text-2xl font-black text-[var(--text-primary)]">
+          الدفع ما تمّش
+        </h1>
+        <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-muted)]">
           معملناش أي خصم. تقدر تجرب تاني، ولو المشكلة اتكررت كلّم الدعم.
         </p>
         <OrderSummary order={order} />
@@ -149,9 +151,11 @@ export function CheckoutReturn() {
   }
   return (
     <Shell>
-      <span className="h-12 w-12 animate-spin rounded-full border-[3px] border-gold-500 border-t-transparent" />
-      <h1 className="mt-6 font-display text-xl font-black text-midnight-900">بنأكد عملية الدفع</h1>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-midnight-500">
+      <span className="h-12 w-12 animate-spin rounded-full border-[3px] border-[var(--accent)] border-t-transparent" />
+      <h1 className="mt-6 font-display text-xl font-black text-[var(--text-primary)]">
+        بنأكد عملية الدفع
+      </h1>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-muted)]">
         استنى ثواني، بنستنى تأكيد من بوابة الدفع. متقفلش الصفحة.
       </p>
       <OrderSummary order={order} />
@@ -161,8 +165,13 @@ export function CheckoutReturn() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-ivory-100 py-14">
-      <div className="container-page flex max-w-lg flex-col items-center text-center">
+    <div className="relative flex min-h-[calc(100dvh-4rem)] items-center justify-center overflow-hidden bg-[var(--surface)] py-14">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'var(--hero-wash)' }}
+      />
+      <div className="container-page relative flex max-w-lg flex-col items-center text-center">
         {children}
       </div>
     </div>
@@ -171,36 +180,36 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function OrderSummary({ order }: { order: Order }) {
   return (
-    <div className="mt-7 w-full rounded-2xl border border-ivory-300 bg-white p-5 text-start">
+    <div className="mt-7 w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 text-start">
       <dl className="space-y-2.5 text-sm">
         <div className="flex justify-between">
-          <dt className="text-midnight-400">رقم الطلب</dt>
-          <dd className="nums-tabular font-bold text-midnight-800">{order.reference}</dd>
+          <dt className="text-[var(--text-muted)]">رقم الطلب</dt>
+          <dd className="nums-tabular font-bold text-[var(--text-primary)]">{order.reference}</dd>
         </div>
         {order.items.map((item) => (
           <div key={item.id} className="flex justify-between gap-4">
-            <dt className="text-midnight-500">{item.title}</dt>
-            <dd className="shrink-0 font-semibold text-midnight-700">
+            <dt className="text-[var(--text-secondary)]">{item.title}</dt>
+            <dd className="shrink-0 font-semibold text-[var(--text-primary)]">
               {formatEgp(item.totalMinor)}
             </dd>
           </div>
         ))}
         {order.discountMinor > 0 && (
-          <div className="flex justify-between text-emerald-700">
+          <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
             <dt>الخصم</dt>
             <dd className="font-semibold">−{formatEgp(order.discountMinor)}</dd>
           </div>
         )}
-        <div className="flex justify-between border-t border-ivory-200 pt-2.5">
-          <dt className="font-bold text-midnight-700">الإجمالي</dt>
-          <dd className="font-display text-lg font-black text-midnight-900">
+        <div className="flex justify-between border-t border-[var(--border-subtle)] pt-2.5">
+          <dt className="font-bold text-[var(--text-secondary)]">الإجمالي</dt>
+          <dd className="font-display text-lg font-black text-[var(--accent)]">
             {formatEgp(order.totalMinor)}
           </dd>
         </div>
       </dl>
 
       {order.payment.isSandbox && (
-        <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+        <p className="mt-4 rounded-lg bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
           {order.payment.notice ?? 'وضع تجريبي: لم تتم أي عملية دفع حقيقية.'}
         </p>
       )}

@@ -37,16 +37,14 @@ export function PaymentMethodDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-method-title"
-        className="relative w-full max-w-md rounded-2xl border border-gold-500/30 bg-white p-5 shadow-2xl dark:bg-midnight-950 sm:p-6"
+        className="relative w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 shadow-2xl sm:p-6"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-black text-gold-700 dark:text-gold-300">
-              إتمام الشراء بأمان
-            </p>
+            <p className="text-xs font-black text-[var(--accent)]">إتمام الشراء بأمان</p>
             <h2
               id="payment-method-title"
-              className="font-display text-xl font-black text-midnight-950 dark:text-ivory-50"
+              className="font-display text-xl font-black text-[var(--text-primary)]"
             >
               اختار طريقة الدفع المناسبة
             </h2>
@@ -56,16 +54,14 @@ export function PaymentMethodDialog({
             onClick={onClose}
             disabled={isPending}
             aria-label="إغلاق"
-            className="grid h-10 w-10 place-items-center rounded-xl text-xl text-midnight-500 hover:bg-midnight-50 disabled:opacity-50 dark:text-ivory-300 dark:hover:bg-midnight-800"
+            className="grid h-10 w-10 place-items-center rounded-xl text-xl text-[var(--text-muted)] hover:bg-[var(--accent)]/10 disabled:opacity-50"
           >
             ×
           </button>
         </div>
-        <div className="mt-4 rounded-xl border border-gold-500/20 bg-gold-500/5 px-4 py-3">
-          <p className="truncate text-sm font-bold text-midnight-800 dark:text-ivory-200">
-            {title}
-          </p>
-          <p className="mt-1 font-display text-xl font-black text-gold-700 dark:text-gold-300">
+        <div className="mt-4 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-4 py-3">
+          <p className="truncate text-sm font-bold text-[var(--text-secondary)]">{title}</p>
+          <p className="mt-1 font-display text-xl font-black text-[var(--accent)]">
             {formatEgp(amountMinor)}
           </p>
         </div>
@@ -74,11 +70,11 @@ export function PaymentMethodDialog({
             type="button"
             disabled={isPending}
             onClick={() => onConfirm('WALLET')}
-            className="flex min-h-16 w-full items-center gap-3 rounded-xl border-2 border-gold-500/30 px-4 text-start transition-colors hover:border-gold-500 hover:bg-gold-500/5 disabled:opacity-50"
+            className="flex min-h-16 w-full items-center gap-3 rounded-xl border-2 border-[var(--border-subtle)] px-4 text-start transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 disabled:opacity-50"
           >
             <span
               aria-hidden
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-500/10 text-red-600 dark:text-red-300"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]"
             >
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none">
                 <path
@@ -91,11 +87,11 @@ export function PaymentMethodDialog({
               </svg>
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-black text-midnight-900 dark:text-ivory-50">
-                المحافظ الإلكترونية
+              <span className="block text-sm font-black text-[var(--text-primary)]">
+                فودافون كاش
               </span>
-              <span className="mt-0.5 block text-xs leading-5 text-midnight-500 dark:text-ivory-300/70">
-                فودافون كاش، أورنج كاش، اتصالات كاش أو WE Pay
+              <span className="mt-0.5 block text-xs leading-5 text-[var(--text-muted)]">
+                حوّل من فودافون كاش أو أي محفظة إلكترونية
               </span>
             </span>
           </button>
@@ -103,11 +99,11 @@ export function PaymentMethodDialog({
             type="button"
             disabled={isPending}
             onClick={() => onConfirm('CARD')}
-            className="flex min-h-16 w-full items-center gap-3 rounded-xl border-2 border-midnight-100 px-4 text-start transition-colors hover:border-gold-500 hover:bg-gold-500/5 disabled:opacity-50 dark:border-midnight-800"
+            className="flex min-h-16 w-full items-center gap-3 rounded-xl border-2 border-[var(--border-subtle)] px-4 text-start transition-colors hover:border-[var(--accent)] hover:bg-[var(--accent)]/5 disabled:opacity-50"
           >
             <span
               aria-hidden
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-500/10 text-violet-700 dark:text-violet-300"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
                 <path
@@ -126,11 +122,9 @@ export function PaymentMethodDialog({
               </svg>
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-black text-midnight-900 dark:text-ivory-50">
-                إنستا باي
-              </span>
-              <span className="mt-0.5 block text-xs leading-5 text-midnight-500 dark:text-ivory-300/70">
-                تحويل سريع وآمن من تطبيق InstaPay
+              <span className="block text-sm font-black text-[var(--text-primary)]">إنستا باي</span>
+              <span className="mt-0.5 block text-xs leading-5 text-[var(--text-muted)]">
+                تحويل سريع من تطبيق InstaPay أو أي تطبيق بنك
               </span>
             </span>
           </button>
@@ -138,14 +132,14 @@ export function PaymentMethodDialog({
         {isPending && (
           <div
             role="status"
-            className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-gold-700 dark:text-gold-300"
+            className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-[var(--accent)]"
           >
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             جاري تجهيز عملية الدفع…
           </div>
         )}
-        <p className="mt-4 text-center text-[11px] leading-relaxed text-midnight-400 dark:text-ivory-300/60">
-          لن يُفتح المحتوى إلا بعد وصول تأكيد الدفع رسميًا.
+        <p className="mt-4 text-center text-[11px] leading-relaxed text-[var(--text-muted)]">
+          بعد التحويل هتبعت صورة الإثبات، والمحتوى هيتفتح أول ما نأكد وصول المبلغ.
         </p>
         <Button
           type="button"

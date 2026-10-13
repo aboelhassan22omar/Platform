@@ -9,13 +9,26 @@ payments, and how to verify it before a student is ever charged.
 
 ### Reviewed wallet and InstaPay transfers
 
-`PAYMENT_PROVIDER=manual` and `PAYMENT_TRANSFER_PHONE=01024066401` enable real
-transfers to the recipient's wallet. The student submits the sending phone and
-transaction reference from the order page. This submission never grants access.
-An administrator checks the actual recipient ledger, enters the received
-amount and transaction reference at `/admin/transfers`, and confirms receipt.
-Settlement, entitlements and the administrator audit entry commit together.
-An amount mismatch or reuse of a settled transaction for another order is rejected.
+`PAYMENT_PROVIDER=manual` enables real transfers by **InstaPay** or **Vodafone
+Cash**. `PAYMENT_TRANSFER_PHONE` is only the first-run default: the receiving
+numbers, the InstaPay payment link (`https://ipn.eg/...`), the InstaPay address
+and the recipient name are edited in the dashboard at `/admin/transfers` →
+"بيانات استلام التحويلات" (stored in `site_settings`, audited).
+
+The order page shows the student the number (copy button), a QR code (the
+InstaPay link, or the Vodafone Cash `*9*7*number*amount#` dial code) and a
+one-tap button that opens InstaPay or dials the transfer. After paying, the
+student sends the number they paid from and a screenshot (private storage,
+max 5 MB, presigned upload). This never grants access.
+
+At `/admin/transfers` an administrator opens the screenshot, checks the money
+in the receiving wallet, then:
+
+- **Approves**: the order settles, the requested content unlocks immediately,
+  the student is notified, and the approval is audited.
+- **Rejects with a reason**: the order stays open, the student sees the reason
+  and a notification, and can resend.
+
 This is manual receipt verification, not an automatic bank notification.
 
 Automatic receipt verification still requires an official provider integration

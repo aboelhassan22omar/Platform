@@ -14,6 +14,8 @@ import { computeDiscountMinor, generateOrderReference } from '../common/utils';
 import { PAYMENT_PROVIDER } from './payments.constants';
 import { lessonPriceFor } from '../common/utils/lesson-pricing';
 import type { IPaymentProvider, VerifiedWebhook } from './providers/payment-provider.interface';
+import { TransferSettingsService, type TransferSettings } from './transfer-settings.service';
+import { transferState, type TransferSubmission } from './transfer-state';
 
 export interface CreateOrderParams {
   userId: string;
@@ -32,6 +34,7 @@ export class OrdersService {
     private readonly entitlements: EntitlementsService,
     private readonly config: ConfigService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: IPaymentProvider,
+    private readonly transferSettings: TransferSettingsService,
   ) {}
 
   // --------------------------------------------------------------------------
@@ -61,7 +64,7 @@ export class OrdersService {
       });
       if (existing) {
         if (existing.userId !== userId) throw new BadRequestException('مفتاح الطلب غير صالح');
-        return this.presentOrder(existing, null);
+        return this.presentOrder(existing, null, undefined, await this.transferDetails());
       }
     }
 
@@ -189,7 +192,12 @@ export class OrdersService {
     ]);
 
     const refreshed = await this.findOrderById(order.id);
-    return this.presentOrder(refreshed!, session.redirectUrl, session.isSandbox);
+    return this.presentOrder(
+      refreshed!,
+      session.redirectUrl,
+      session.isSandbox,
+      await this.transferDetails(),
+    );
   }
 
   /**
@@ -445,7 +453,7 @@ export class OrdersService {
     if (!order) throw new NotFoundException('الطلب غير موجود');
     // A student may only read their own orders.
     if (userId && order.userId !== userId) throw new NotFoundException('الطلب غير موجود');
-    return this.presentOrder(order, null);
+    return this.presentOrder(order, null, undefined, await this.transferDetails());
   }
 
   async listForUser(userId: string) {
@@ -455,7 +463,8 @@ export class OrdersService {
       include: { items: true, payments: true },
       take: 50,
     });
-    return orders.map((order) => this.presentOrder(order, null));
+    const transfer = await this.transferDetails();
+    return orders.map((order) => this.presentOrder(order, null, undefined, transfer));
   }
 
   async listSubscriptions(userId: string) {
@@ -481,10 +490,39 @@ export class OrdersService {
       );
   }
 
+  /** Transfer destination for manual payments; undefined for automatic providers. */
+  private async transferDetails(): Promise<TransferSettings | undefined> {
+    return this.provider.key === 'MANUAL' ? this.transferSettings.get() : undefined;
+  }
+
+  /**
+   * Where and how the student pays a manual transfer, and where their proof
+   * stands. Vodafone Cash = WALLET, InstaPay = CARD (the dialog's channels).
+   */
+  private presentTransfer(
+    order: Prisma.OrderGetPayload<{ include: { items: true; payments: true } }>,
+    settings: TransferSettings,
+  ) {
+    const payment = order.payments.find((p) => p.provider === 'MANUAL') ?? order.payments[0];
+    const method = payment?.method === 'CARD' ? 'INSTAPAY' : 'VODAFONE_CASH';
+    const submission = payment?.providerPayload as unknown as TransferSubmission | null;
+    return {
+      method,
+      phone: method === 'INSTAPAY' ? settings.instapayPhone : settings.vodafoneCashPhone,
+      instapayLink: method === 'INSTAPAY' ? settings.instapayLink || null : null,
+      instapayAddress: method === 'INSTAPAY' ? settings.instapayAddress || null : null,
+      recipientName: settings.recipientName || null,
+      state: transferState(submission),
+      rejectionReason: submission?.review?.reason ?? null,
+      submitted: transferState(submission) === 'submitted',
+    };
+  }
+
   private presentOrder(
     order: Prisma.OrderGetPayload<{ include: { items: true; payments: true } }>,
     redirectUrl: string | null,
     isSandbox = this.provider.isSandbox,
+    transferSettings?: TransferSettings,
   ) {
     return {
       id: order.id,
@@ -504,14 +542,8 @@ export class OrdersService {
       })),
       redirectUrl,
       payment: {
-        ...(this.provider.key === 'MANUAL'
-          ? {
-              transfer: {
-                phone: this.config.get<string>('payments.transferPhone'),
-                method: order.payments[0]?.method === 'CARD' ? 'INSTAPAY' : 'VODAFONE_CASH',
-                submitted: Boolean(order.payments.find((p) => p.providerPayload)),
-              },
-            }
+        ...(this.provider.key === 'MANUAL' && transferSettings
+          ? { transfer: this.presentTransfer(order, transferSettings) }
           : {}),
         provider: this.provider.key,
         isSandbox,

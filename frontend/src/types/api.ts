@@ -263,7 +263,7 @@ export interface Order {
     provider: string;
     isSandbox: boolean;
     notice?: string;
-    transfer?: { phone: string; method: string; submitted: boolean };
+    transfer?: TransferDetails;
   };
 }
 
@@ -546,3 +546,15 @@ export type LiveEvent =
   | { type: 'reaction'; reaction: LiveReactionEvent }
   | { type: 'recording'; active: boolean }
   | { type: 'ended' };
+
+/** Manual transfer destination and where the student's proof stands. */
+export interface TransferDetails {
+  method: 'INSTAPAY' | 'VODAFONE_CASH';
+  phone: string;
+  instapayLink: string | null;
+  instapayAddress: string | null;
+  recipientName: string | null;
+  state: 'waiting' | 'submitted' | 'rejected';
+  rejectionReason: string | null;
+  submitted: boolean;
+}
