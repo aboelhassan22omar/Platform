@@ -1,0 +1,55 @@
+name: Production diagnostics
+
+# Read-only health report for lesson videos on the server.
+# Uses the production environment, so it waits for the owner's approval.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Diagnose production (approval required)
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure pinned SSH connection
+        env:
+          SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+        run: |
+          test -n "$SSH_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Run diagnostics on the server
+        env:
+          HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+        run: |
+          set -uo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" 'bash -s' \
+            < scripts/production-diagnostics.sh > report.txt 2>&1 || true
+          url="$(grep -m1 '^UPLOAD_TEST_URL=' report.txt | cut -d= -f2- || true)"
+          key="$(grep -m1 '^UPLOAD_TEST_KEY=' report.txt | cut -d= -f2- || true)"
+          # The signed URL never reaches the public log.
+          if [ -n "$url" ]; then echo "::add-mask::$url"; fi
+          grep -v '^UPLOAD_TEST_URL=' report.txt
+          echo
+          echo '========== Browser-style upload from the internet =========='
+          if [ -z "$url" ]; then echo 'No presigned URL was produced (see the report above).'; exit 0; fi
+          code="$(curl -sS -o put.txt -w '%{http_code}' -X PUT -H 'Content-Type: video/mp4' \
+            -H "Origin: $SITE_URL" --data-binary 'diagnostics' "$url" || echo 'network-error')"
+          echo "PUT to the storage host -> $code"
+          [ "$code" = 200 ] || { echo 'Storage answered:'; head -c 400 put.txt; echo; }
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" "bash -s -- '$key'" \
+            < scripts/production-upload-check.sh
+      - name: Remove runner credentials
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519

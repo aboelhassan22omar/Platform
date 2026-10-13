@@ -51,6 +51,11 @@ Required production environment Actions secrets:
 - `PRODUCTION_SSH_KEY`: dedicated private deployment key, never the root password
 - `PRODUCTION_KNOWN_HOSTS`: host key verified during server setup
 
+**Production diagnostics** (manual, owner-approved) prints a read-only report:
+container state, video
+assets and transcode jobs, worker logs, and a browser-style upload through the
+public storage host.
+
 Production configuration lives only at `/opt/amr-platform/shared/.env`, mode
 600. Source releases are under `/opt/amr-platform/releases/<commit SHA>`.
 Host nginx owns HTTPS; the application edge binds `127.0.0.1:17080`, and the
