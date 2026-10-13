@@ -126,3 +126,98 @@ describe('Live participant moderation', () => {
     expect(prisma.liveSession.updateMany).toHaveBeenCalled();
   });
 });
+
+describe('Live recording results', () => {
+  const recording = {
+    id: 'rec',
+    egressId: 'EG_1',
+    status: 'PROCESSING',
+    startedAt: new Date(),
+    objectKey: 'live-recordings/s/r.mp4',
+  };
+  function setup(info: Record<string, unknown>, stored: number | null = null) {
+    const prisma = {
+      liveRecording: {
+        findMany: jest.fn().mockResolvedValue([recording]),
+        update: jest.fn(),
+      },
+    };
+    const storage = {
+      videoBucket: 'videos',
+      statObject: jest.fn(() =>
+        stored === null
+          ? Promise.reject(new Error('NoSuchKey'))
+          : Promise.resolve({ size: stored }),
+      ),
+    };
+    const service = new LiveService(prisma as any, {} as any, {} as any, storage as any);
+    jest.spyOn(service as any, 'egressClient').mockReturnValue({
+      listEgress: jest.fn().mockResolvedValue([
+        {
+          status: 3, // EGRESS_COMPLETE
+          fileResults: [],
+          result: { case: undefined },
+          startedAt: 1_000_000_000n,
+          endedAt: 61_000_000_000n,
+          error: '',
+          ...info,
+        },
+      ]),
+    });
+    return { service, prisma, storage };
+  }
+  const data = (prisma: any) => prisma.liveRecording.update.mock.calls[0][0].data;
+
+  it('reads the file from fileResults', async () => {
+    const { service, prisma } = setup({
+      fileResults: [{ duration: 42_000_000_000n, size: 900n }],
+    });
+    await (service as any).syncRecordings();
+    expect(data(prisma)).toMatchObject({ status: 'READY', durationSeconds: 42, sizeBytes: 900n });
+  });
+
+  it('reads the file from the legacy result LiveKit Cloud fills', async () => {
+    const { service, prisma } = setup({
+      result: { case: 'file', value: { duration: 30_000_000_000n, size: 500n } },
+    });
+    await (service as any).syncRecordings();
+    expect(data(prisma)).toMatchObject({ status: 'READY', durationSeconds: 30, sizeBytes: 500n });
+  });
+
+  it('trusts the uploaded file when LiveKit sends no file info', async () => {
+    const { service, prisma } = setup({}, 2048);
+    await (service as any).syncRecordings();
+    expect(data(prisma)).toMatchObject({
+      status: 'READY',
+      durationSeconds: 60,
+      sizeBytes: 2048n,
+      error: null,
+    });
+  });
+
+  it('fails only when nothing reached the store', async () => {
+    const { service, prisma } = setup({});
+    await (service as any).syncRecordings();
+    expect(data(prisma)).toMatchObject({ status: 'FAILED', error: 'التسجيل خلص من غير ملف' });
+  });
+
+  it('recovers recordings wrongly marked failed once their file is found', async () => {
+    const { service, prisma } = setup({}, 4096);
+    prisma.liveRecording.findMany.mockResolvedValue([
+      {
+        id: 'old',
+        objectKey: 'live-recordings/s/old.mp4',
+        startedAt: new Date('2026-10-13T22:08:36Z'),
+        endedAt: new Date('2026-10-13T22:38:36Z'),
+      },
+    ]);
+    await (service as any).recoverRecordings();
+    await (service as any).recoverRecordings();
+    expect(prisma.liveRecording.findMany).toHaveBeenCalledTimes(1);
+    expect(data(prisma)).toMatchObject({
+      status: 'READY',
+      durationSeconds: 1800,
+      sizeBytes: 4096n,
+    });
+  });
+});
