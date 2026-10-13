@@ -11,18 +11,23 @@ payments, and how to verify it before a student is ever charged.
 
 `PAYMENT_PROVIDER=manual` enables real transfers by **InstaPay** or **Vodafone
 Cash**. `PAYMENT_TRANSFER_PHONE` is only the first-run default: the receiving
-numbers, the InstaPay payment link (`https://ipn.eg/...`), the InstaPay address
-and the recipient name are edited in the dashboard at `/admin/transfers` →
-"بيانات استلام التحويلات" (stored in `site_settings`, audited).
+numbers, the WhatsApp number for proofs, the InstaPay payment link
+(`https://ipn.eg/...`), the InstaPay address and the recipient name are edited
+in the payments log → "بيانات التحويل" (stored in `site_settings`, audited).
 
-The order page shows the student the number (copy button), a QR code (the
-InstaPay link, or the Vodafone Cash `*9*7*number*amount#` dial code) and a
-one-tap button that opens InstaPay or dials the transfer. After paying, the
-student sends the number they paid from and a screenshot (private storage,
-max 5 MB, presigned upload). This never grants access.
+The order page shows the student the number (copy), a QR code (the InstaPay
+link, or the Vodafone Cash `*9*7*number*amount#` dial code) and a one-tap
+button that opens InstaPay or dials the transfer. After paying, the student
+types the number they paid from and roughly when, and taps a button that opens
+**WhatsApp to the platform's number** (`whatsappPhone`, editable, default
+`PAYMENT_TRANSFER_PHONE`) with a ready message: order number, amount, method,
+sender number and time. They attach the screenshot there. This never grants
+access.
 
-At `/admin/transfers` an administrator opens the screenshot, checks the money
-in the receiving wallet, then:
+Every pending transfer order is listed at the top of the **payments log**
+(`/admin/payments`), including orders where the student only used WhatsApp.
+The administrator matches the WhatsApp screenshot, checks the receiving
+wallet, then:
 
 - **Approves**: the order settles, the requested content unlocks immediately,
   the student is notified, and the approval is audited.

@@ -139,7 +139,7 @@ export function PaymentMethodDialog({
           </div>
         )}
         <p className="mt-4 text-center text-[11px] leading-relaxed text-[var(--text-muted)]">
-          بعد التحويل هتبعت صورة الإثبات، والمحتوى هيتفتح أول ما نأكد وصول المبلغ.
+          بعد التحويل هتبعتلنا صورة التحويل على واتساب، والمحتوى هيتفتح أول ما نأكد وصول المبلغ.
         </p>
         <Button
           type="button"
