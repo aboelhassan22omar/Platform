@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read-only production health report for lesson videos.
+# Read-only production health report for lesson videos and payments.
 # Runs on the server through .github/workflows/production-diagnostics.yml.
 # The repository is public, so this prints NO secret values, phone numbers or
 # IP addresses.
@@ -49,6 +49,26 @@ docker logs --tail 80 "$p-worker-1" 2>&1
 
 section 'API logs about videos (last 3 days)'
 docker logs --since 72h "$p-backend-1" 2>&1 | grep -E 'transcode|upload|Video|storage' | sed -E 's/[0-9]{1,3}(\.[0-9]{1,3}){3}/<ip>/g' | tail -60
+
+section 'Payments configuration (presence only)'
+for key in PAYMENT_PROVIDER KASHIER_MODE KASHIER_WALLET_METHODS KASHIER_INSTAPAY_METHODS PUBLIC_SITE_URL; do
+  echo "$key=$(grep -E "^$key=" "$root/shared/.env" | tail -1 | cut -d= -f2- | tr -d '"'"'")"
+done
+for key in KASHIER_MERCHANT_ID KASHIER_API_KEY KASHIER_SECRET_KEY PAYMOB_API_KEY PAYMOB_HMAC_SECRET; do
+  value="$(grep -E "^$key=" "$root/shared/.env" | tail -1 | cut -d= -f2- | tr -d '"'"'")"
+  if [ -n "$value" ]; then echo "$key: set (${#value} chars)"; else echo "$key: EMPTY"; fi
+done
+
+section 'Orders and payments (last 14 days)'
+psql_q "select status, count(*) from orders where \"createdAt\" > now() - interval '14 days' group by status order by status;"
+psql_q "select provider, method, status, count(*) from payments where \"createdAt\" > now() - interval '14 days' group by provider, method, status order by provider, method, status;"
+psql_q "select left(o.reference, 16) as order_ref, o.status, o.\"totalMinor\", p.provider, p.method, p.status as payment, left(coalesce(p.\"failureReason\", ''), 80) as failure, o.\"createdAt\" from orders o left join payments p on p.\"orderId\" = o.id order by o.\"createdAt\" desc limit 15;"
+
+section 'Payment webhooks received (latest 15)'
+psql_q "select provider, \"eventType\", \"processedAt\" is not null as processed, attempts, left(coalesce(error, ''), 120) as error, \"createdAt\" from webhook_events order by \"createdAt\" desc limit 15;"
+
+section 'API logs about payments (last 3 days)'
+docker logs --since 72h "$p-backend-1" 2>&1 | grep -E 'Kashier|Paymob|webhook|Webhook|Amount mismatch|checkout|Order ' | sed -E 's/[0-9]{1,3}(\.[0-9]{1,3}){3}/<ip>/g' | tail -60
 
 section 'Disk'
 df -h / /var/lib/docker 2>/dev/null | sort -u

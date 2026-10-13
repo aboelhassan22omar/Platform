@@ -45,6 +45,42 @@ const paid = {
 };
 
 describe('KashierProvider webhooks', () => {
+  it('serialises signed fields exactly like Kashier (query-string strict encoding)', () => {
+    // Reference string produced by query-string@7 stringify, which Kashier's
+    // own webhook sample uses: `*` -> %2A, `'()!` escaped, null as a bare key.
+    const data = {
+      merchantOrderId: 'AM-1234-ABCD',
+      transactionId: 'TX-77',
+      status: 'SUCCESS',
+      method: 'card',
+      amount: '150.50',
+      currency: 'EGP',
+      maskedCard: '512345******1234',
+      cardHolderName: "O'Neil (Test)!",
+      cardBrand: null,
+      kashierOrderId: 'k-1',
+    };
+    expect(KashierProvider.signaturePayload(data, Object.keys(data))).toBe(
+      'amount=150.50&cardBrand&cardHolderName=O%27Neil%20%28Test%29%21&currency=EGP' +
+        '&kashierOrderId=k-1&maskedCard=512345%2A%2A%2A%2A%2A%2A1234' +
+        '&merchantOrderId=AM-1234-ABCD&method=card&status=SUCCESS&transactionId=TX-77',
+    );
+  });
+
+  it('accepts a real-shaped card payment whose masked number contains *', async () => {
+    const data = { ...paid, method: 'card', maskedCard: '512345******1234' };
+    const keys = Object.keys(data);
+    const reference =
+      'amount=150.50&currency=EGP&kashierOrderId=k-1&maskedCard=512345%2A%2A%2A%2A%2A%2A1234' +
+      '&merchantOrderId=AM-1234-ABCD&method=card&status=SUCCESS&transactionId=tx-1';
+    const signature = createHmac('sha256', API_KEY).update(reference).digest('hex');
+    const raw = Buffer.from(
+      JSON.stringify({ event: 'pay', data: { ...data, signatureKeys: keys } }),
+    );
+    const event = await provider().verifyWebhook(raw, { 'x-kashier-signature': signature });
+    expect(event).toMatchObject({ succeeded: true, orderReference: 'AM-1234-ABCD' });
+  });
+
   it('accepts a correctly signed successful payment and maps it to the order', async () => {
     const { raw, signature } = webhook(paid);
     const event = await provider().verifyWebhook(raw, { 'x-kashier-signature': signature });

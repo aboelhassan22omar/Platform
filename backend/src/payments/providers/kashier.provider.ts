@@ -151,7 +151,10 @@ export class KashierProvider implements IPaymentProvider {
     const provided = String(headers['x-kashier-signature'] ?? '').toLowerCase();
     const expected = KashierProvider.sign(data, keys as string[], this.cfg.apiKey);
     if (!provided || !this.safeEqual(provided, expected)) {
-      this.logger.warn('Rejected Kashier webhook: signature mismatch');
+      // Key names only: enough to diagnose a format change, never the values.
+      this.logger.warn(
+        `Rejected Kashier webhook: ${provided ? 'signature mismatch' : 'missing x-kashier-signature'} (signed keys: ${[...(keys as string[])].sort().join(',')})`,
+      );
       return null;
     }
 
@@ -181,15 +184,37 @@ export class KashierProvider implements IPaymentProvider {
   }
 
   /**
-   * HMAC-SHA256 over `key=value` pairs of the sorted signatureKeys, joined by
-   * `&`, with only the values URL-encoded — exactly as Kashier specifies.
+   * HMAC-SHA256 over the signatureKeys fields serialised exactly as Kashier's
+   * reference code does with `query-string`'s `stringify`: keys sorted, strict
+   * RFC 3986 encoding (so `*` in a masked card becomes `%2A`), `null` as a bare
+   * key, `undefined` omitted and arrays as repeated keys. Plain
+   * `encodeURIComponent` leaves `!'()*` unescaped and produced a different
+   * signature for real payments, so they were never settled.
    */
   static sign(data: Record<string, unknown>, keys: string[], apiKey: string): string {
-    const query = [...keys]
+    return createHmac('sha256', apiKey)
+      .update(KashierProvider.signaturePayload(data, keys))
+      .digest('hex');
+  }
+
+  static signaturePayload(data: Record<string, unknown>, keys: string[]): string {
+    const strict = (value: string) =>
+      encodeURIComponent(value).replace(
+        /[!'()*]/g,
+        (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+      );
+    const pair = (key: string, value: unknown) =>
+      value === null ? strict(key) : `${strict(key)}=${strict(String(value))}`;
+    return [...new Set(keys)]
       .sort()
-      .map((key) => `${key}=${encodeURIComponent(String(data[key] ?? ''))}`)
+      .flatMap((key) => {
+        const value = data[key];
+        if (value === undefined) return [];
+        if (Array.isArray(value))
+          return value.filter((item) => item !== undefined).map((item) => pair(key, item));
+        return [pair(key, value)];
+      })
       .join('&');
-    return createHmac('sha256', apiKey).update(query).digest('hex');
   }
 
   /**
