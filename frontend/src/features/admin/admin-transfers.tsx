@@ -17,7 +17,6 @@ interface Transfer {
   student: { fullName: string; phone: string; username: string };
   items: string[];
   senderPhone: string | null;
-  transferTime: string | null;
   transactionReference: string | null;
   submittedAt: string | null;
   rejectionReason: string | null;
@@ -156,10 +155,6 @@ function TransferCard({ transfer: t }: { transfer: Transfer }) {
         <dt className="text-midnight-500 dark:text-ivory-300/70">حوّل من</dt>
         <dd className="font-bold text-midnight-900 dark:text-ivory-100">
           {t.senderPhone ? <bdi dir="ltr">{t.senderPhone}</bdi> : '—'}
-        </dd>
-        <dt className="text-midnight-500 dark:text-ivory-300/70">وقت التحويل</dt>
-        <dd className="font-bold text-midnight-900 dark:text-ivory-100">
-          {t.transferTime ? <bdi dir="ltr">{t.transferTime}</bdi> : '—'}
         </dd>
         {t.transactionReference && (
           <>
