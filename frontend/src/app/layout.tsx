@@ -22,6 +22,12 @@ export const metadata: Metadata = {
     description: platformConfig.brand.description,
   },
   robots: { index: true, follow: true },
+  appleWebApp: {
+    capable: true,
+    title: platformConfig.brand.shortPlatformName,
+    statusBarStyle: 'black-translucent',
+  },
+  icons: { apple: '/icons/apple-touch-icon.png' },
 };
 
 export const viewport: Viewport = {

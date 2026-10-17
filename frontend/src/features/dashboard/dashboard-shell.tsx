@@ -14,6 +14,7 @@ const TABS = [
   { href: '/dashboard/leaderboard', label: 'المتصدرون' },
   { href: '/dashboard/subscriptions', label: 'اشتراكاتي' },
   { href: '/dashboard/wallet', label: 'محفظتي' },
+  { href: '/dashboard/attendance', label: 'كارنيه الحضور' },
   { href: '/dashboard/profile', label: 'بياناتي' },
 ];
 

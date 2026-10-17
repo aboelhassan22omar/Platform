@@ -34,6 +34,8 @@ export interface ParentReportData {
   lessons: { watched: number; completed: string[] };
   exams: Array<{ title: string; kind: AssessmentKind; percentage: number; passed: boolean }>;
   missedHomework: Array<{ title: string; dueAt: string }>;
+  /** Center classes of the student's grade this week; null when not relevant. */
+  attendance?: { held: number; attended: number } | null;
   lastSeenAt: string | null;
 }
 
@@ -100,11 +102,13 @@ export class ParentReportsService {
         fullName: true,
         educationSystem: true,
         gradeLevel: true,
+        studentType: true,
         presence: { select: { lastSeenAt: true } },
         lastLoginAt: true,
       },
     });
     if (!user) throw new NotFoundException('الطالب غير موجود');
+    const attendance = await this.attendanceFor(userId, user, from, to);
 
     const previousFrom = new Date(from.getTime() - 7 * 86_400_000);
     const [grade, days, previous, completed, watched, attempts, missedHomework] = await Promise.all(
@@ -194,8 +198,39 @@ export class ParentReportsService {
         passed: attempt.passed,
       })),
       missedHomework,
+      attendance,
       lastSeenAt: (user.presence?.lastSeenAt ?? user.lastLoginAt)?.toISOString() ?? null,
     };
+  }
+
+  /**
+   * Center classes held for the grade in the window and how many the student
+   * attended. Shown for center students, or anyone who came to a class.
+   */
+  private async attendanceFor(
+    userId: string,
+    user: {
+      educationSystem: EducationSystem | null;
+      gradeLevel: GradeLevel | null;
+      studentType: StudentType;
+    },
+    from: Date,
+    to: Date,
+  ) {
+    if (!user.educationSystem || !user.gradeLevel) return null;
+    const [held, attended] = await Promise.all([
+      this.prisma.attendanceSession.count({
+        where: {
+          startsAt: { gte: from, lt: to },
+          grade: { educationSystem: user.educationSystem, level: user.gradeLevel },
+        },
+      }),
+      this.prisma.attendance.count({
+        where: { userId, session: { startsAt: { gte: from, lt: to } } },
+      }),
+    ]);
+    if (!held || (user.studentType !== StudentType.CENTER && !attended)) return null;
+    return { held, attended };
   }
 
   /**

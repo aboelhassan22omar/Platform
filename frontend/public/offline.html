@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a1120" />
+    <title>مفيش إنترنت</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        background: #0a1120;
+        color: #f3efe6;
+        font-family: system-ui, 'Segoe UI', Tahoma, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      img {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin: 20px 0 8px;
+      }
+      p {
+        color: #a6adbd;
+        line-height: 1.8;
+        margin: 0 0 24px;
+      }
+      button {
+        min-height: 48px;
+        padding: 0 28px;
+        border: 0;
+        border-radius: 14px;
+        background: #d3a126;
+        color: #0a1120;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="" />
+      <h1>مفيش اتصال بالإنترنت</h1>
+      <p>اتأكد من الواي فاي أو الباقة، وبعدين جرّب تاني.</p>
+      <button type="button" onclick="location.reload()">جرّب تاني</button>
+    </main>
+  </body>
+</html>

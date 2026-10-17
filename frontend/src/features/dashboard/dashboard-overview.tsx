@@ -12,6 +12,7 @@ import { formatDurationLabel, greetingFor, initialsOf, toArabicDigits } from '@/
 import { EASE_ENTRANCE, staggerContainer } from '@/lib/motion';
 import type { ContinueWatchingItem, Subscription } from '@/types/api';
 import { platformConfig } from '@/config/platform.config';
+import { AppSetupCard } from '@/features/app/app-setup-card';
 
 const GRADE_LABELS: Record<string, string> = {
   SEC_1: 'أولى ثانوي',
@@ -210,6 +211,8 @@ export function DashboardOverview() {
           )}
         </motion.div>
       </motion.section>
+
+      <AppSetupCard dismissible />
 
       {/* ------------------------------------------------------------------
           كمّل من مكان ما وقفت

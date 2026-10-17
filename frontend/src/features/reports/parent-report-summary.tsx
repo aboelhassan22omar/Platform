@@ -153,6 +153,18 @@ export function ParentReportSummary({ data }: { data: ParentReportData }) {
         />
       </div>
 
+      {data.attendance && (
+        <Tile
+          label="حضور حصص السنتر"
+          value={`${toArabicDigits(data.attendance.attended)} من ${toArabicDigits(data.attendance.held)}`}
+          note={
+            data.attendance.attended < data.attendance.held
+              ? `غاب عن ${pluralizeAr(data.attendance.held - data.attendance.attended, ['حصة واحدة', 'حصتين', 'حصص'])}`
+              : 'حضر كل الحصص 👏'
+          }
+        />
+      )}
+
       <section className="rounded-2xl border border-[var(--report-line)] bg-[var(--report-surface)] p-4">
         <h2 className="text-sm font-black text-[var(--report-ink)]">المذاكرة يوم بيوم</h2>
         <p className="mb-4 text-xs text-[var(--report-muted)]">دوس على أي يوم تشوف وقته</p>

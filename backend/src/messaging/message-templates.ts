@@ -137,6 +137,20 @@ export const MESSAGE_TEMPLATES: Record<MessageKind, MessageTemplate> = {
       'بالتوفيق 💪',
     ].join('\n'),
   },
+  CENTER_ABSENCE: {
+    kind: MessageKind.CENTER_ABSENCE,
+    name: 'center_absence_alert',
+    audience: MessageAudience.PARENT,
+    category: 'UTILITY',
+    label: 'تنبيه غياب عن حصة السنتر',
+    description: 'لولي أمر طالب السنتر اللي محضرش، لما تقفل الحصة وتختار تبعت للغايبين.',
+    params: ['اسم الطالب', 'اسم الحصة', 'اليوم'],
+    text: [
+      'تنبيه غياب 📋',
+      '{{1}} محضرش حصة «{{2}}» يوم {{3}}.',
+      'لو فيه ظرف ياريت تتواصل مع فريق المتابعة.',
+    ].join('\n'),
+  },
 };
 
 /** WhatsApp rejects variable values with new lines, tabs or long space runs. */

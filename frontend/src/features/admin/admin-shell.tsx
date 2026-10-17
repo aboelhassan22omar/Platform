@@ -16,6 +16,7 @@ const TABS = [
   { href: '/admin/grading', label: 'التصحيح' },
   { href: '/admin/questions', label: 'أسئلة الطلاب' },
   { href: '/admin/live', label: 'اللايف' },
+  { href: '/admin/attendance', label: 'الحضور' },
   { href: '/admin/pricing', label: 'الأسعار' },
   { href: '/admin/payments', label: 'المدفوعات' },
   { href: '/admin/messages', label: 'واتساب' },
