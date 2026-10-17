@@ -640,3 +640,98 @@ export interface LessonViewUsage extends ViewAllowance {
   title: string;
   lastWatchedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// WhatsApp messages and parent reports
+// ---------------------------------------------------------------------------
+
+export type MessageKind =
+  | 'WEEKLY_REPORT'
+  | 'NEW_LESSON'
+  | 'LIVE_REMINDER'
+  | 'HOMEWORK_DUE'
+  | 'SUBSCRIPTION_EXPIRING'
+  | 'PAYMENT_CONFIRMED';
+
+export type MessageStatus =
+  | 'PENDING'
+  | 'MANUAL'
+  | 'SENT'
+  | 'DELIVERED'
+  | 'READ'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface ParentReportData {
+  student: { name: string; grade: string | null };
+  period: { from: string; to: string };
+  watch: {
+    totalSeconds: number;
+    previousSeconds: number;
+    activeDays: number;
+    days: Array<{ date: string; seconds: number }>;
+  };
+  lessons: { watched: number; completed: string[] };
+  exams: Array<{ title: string; kind: string; percentage: number; passed: boolean }>;
+  missedHomework: Array<{ title: string; dueAt: string }>;
+  lastSeenAt: string | null;
+}
+
+export interface MessagingSettings {
+  mode: 'off' | 'manual' | 'cloud';
+  kinds: Record<MessageKind, boolean>;
+  weeklyReport: { weekday: number; hour: number; audience: 'paying' | 'all' };
+  quietHours: { enabled: boolean; from: number; to: number };
+}
+
+export interface MessageTemplateInfo {
+  kind: MessageKind;
+  name: string;
+  audience: 'STUDENT' | 'PARENT';
+  category: 'UTILITY' | 'MARKETING';
+  label: string;
+  description: string;
+  params: string[];
+  text: string;
+}
+
+export interface MessagingOverview {
+  settings: MessagingSettings;
+  cloud: { configured: boolean; phoneNumberId: string | null };
+  templates: MessageTemplateInfo[];
+  counts: Partial<Record<MessageStatus, number>>;
+}
+
+export interface OutboundMessageRow {
+  id: string;
+  kind: MessageKind;
+  audience: 'STUDENT' | 'PARENT';
+  toPhone: string;
+  body: string;
+  status: MessageStatus;
+  attempts: number;
+  lastError: string | null;
+  scheduledFor: string;
+  expiresAt: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  readAt: string | null;
+  createdAt: string;
+  user: { id: string; fullName: string } | null;
+  whatsappLink: string;
+}
+
+export interface StudentParentReport {
+  enabled: boolean;
+  parentPhone: string;
+  preview: ParentReportData;
+  latestReportUrl: string | null;
+  messages: Array<{
+    id: string;
+    kind: MessageKind;
+    audience: 'STUDENT' | 'PARENT';
+    status: MessageStatus;
+    createdAt: string;
+    sentAt: string | null;
+  }>;
+}

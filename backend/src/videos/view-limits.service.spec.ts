@@ -20,6 +20,7 @@ const setup = (opts: {
         videoAsset: { durationSeconds: opts.durationSeconds ?? 600 },
       })),
     },
+    studyDay: { upsert: jest.fn() },
     lessonProgress: {
       findUnique: jest.fn(async () => progress),
       upsert: jest.fn(async ({ update }: { update: { viewedSeconds?: { increment: number } } }) => {
@@ -81,9 +82,13 @@ describe('Lesson view limits', () => {
   });
 
   it('charges each new segment once, and ignores playlists', async () => {
-    const { service, progress, redis } = setup({ defaultMaxViews: 3 });
+    const { service, progress, redis, prisma } = setup({ defaultMaxViews: 3 });
     await service.chargeSegment(ticket, 'v0/seg_004.ts');
     expect(progress.viewedSeconds).toBe(6);
+    // The same 6 seconds land on today's study total for the parent report.
+    expect(prisma.studyDay.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: { watchedSeconds: { increment: 6 } } }),
+    );
     await service.chargeSegment(ticket, 'v1/index.m3u8');
     expect(redis.client.eval).toHaveBeenCalledTimes(1);
   });

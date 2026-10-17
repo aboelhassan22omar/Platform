@@ -29,6 +29,7 @@ import { AssessmentsModule } from './assessments/assessments.module';
 import { LiveModule } from './live/live.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { SettingsModule } from './settings/settings.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { SettingsModule } from './settings/settings.module';
     LiveModule,
     CertificatesModule,
     SettingsModule,
+    MessagingModule,
   ],
   providers: [
     MaintenanceService,

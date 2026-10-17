@@ -23,6 +23,7 @@ describe('Manual transfers', () => {
   };
   const audit = { record: jest.fn() };
   const settings = { get: jest.fn(), set: jest.fn() };
+  const messages = { paymentConfirmed: jest.fn(async () => 1) };
   const controller = new ManualTransfersController(
     prisma as never,
     orders as never,
@@ -30,6 +31,7 @@ describe('Manual transfers', () => {
     storage as never,
     audit as never,
     settings as never,
+    messages as never,
   );
   const student = { id: 'student-1' } as never;
   const admin = { id: 'admin-1' } as never;

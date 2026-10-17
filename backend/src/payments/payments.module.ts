@@ -14,9 +14,10 @@ import { PaymentsLogController } from './payments-log.controller';
 import { TransferSettingsService } from './transfer-settings.service';
 import { WalletController } from './wallet.controller';
 import { WalletModule } from '../wallet/wallet.module';
+import { MessagingModule } from '../messaging/messaging.module';
 
 @Module({
-  imports: [EntitlementsModule, WalletModule],
+  imports: [EntitlementsModule, WalletModule, MessagingModule],
   controllers: [
     PaymentsController,
     SandboxController,

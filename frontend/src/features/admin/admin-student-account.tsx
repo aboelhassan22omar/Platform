@@ -5,14 +5,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
 import { cn, formatDate, formatEgp, formatRelative, toArabicDigits } from '@/lib/utils';
-import type { DeviceList, LessonViewUsage, WalletSummary, WalletTransaction } from '@/types/api';
+import type {
+  DeviceList,
+  LessonViewUsage,
+  StudentParentReport,
+  WalletSummary,
+  WalletTransaction,
+} from '@/types/api';
+import { ParentReportSummary, ReportTheme } from '@/features/reports/parent-report-summary';
+import { KIND_LABELS, STATUS_LABELS } from './admin-messages';
 
-type Tab = 'wallet' | 'devices' | 'views';
+type Tab = 'wallet' | 'devices' | 'views' | 'parent';
 
 const TABS: Array<{ key: Tab; label: string }> = [
   { key: 'wallet', label: 'المحفظة' },
   { key: 'devices', label: 'الأجهزة' },
   { key: 'views', label: 'المشاهدات' },
+  { key: 'parent', label: 'ولي الأمر' },
 ];
 
 const TYPE_LABELS: Record<WalletTransaction['type'], string> = {
@@ -94,6 +103,7 @@ export function StudentAccountDialog({
           {tab === 'wallet' && <WalletTab studentId={student.id} />}
           {tab === 'devices' && <DevicesTab studentId={student.id} />}
           {tab === 'views' && <ViewsTab studentId={student.id} />}
+          {tab === 'parent' && <ParentTab studentId={student.id} />}
         </div>
       </section>
     </div>
@@ -462,6 +472,139 @@ function ViewsTab({ studentId }: { studentId: string }) {
         <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
           {error}
         </p>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Parent: weekly report preview, send now, on/off
+// ---------------------------------------------------------------------------
+
+function ParentTab({ studentId }: { studentId: string }) {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const report = useQuery({
+    queryKey: ['admin-student-parent-report', studentId],
+    queryFn: () => api.get<StudentParentReport>(`/admin/students/${studentId}/parent-report`),
+  });
+  const refresh = () =>
+    void queryClient.invalidateQueries({ queryKey: ['admin-student-parent-report', studentId] });
+  const send = useMutation({
+    mutationFn: () =>
+      api.post<{ queued: number }>(`/admin/students/${studentId}/parent-report/send`),
+    onMutate: () => setMessage(null),
+    onSuccess: () => {
+      setMessage({ ok: true, text: 'التقرير اتجهّز. هتلاقيه في «رسائل واتساب».' });
+      refresh();
+    },
+    onError: (error) => setMessage({ ok: false, text: errorText(error, 'تعذر تجهيز التقرير') }),
+  });
+  const toggle = useMutation({
+    mutationFn: (enabled: boolean) =>
+      api.patch(`/admin/students/${studentId}/parent-report`, { enabled }),
+    onMutate: () => setMessage(null),
+    onSuccess: refresh,
+    onError: (error) => setMessage({ ok: false, text: errorText(error, 'تعذر الحفظ') }),
+  });
+
+  if (report.isLoading || !report.data) return <div className="skeleton h-64 rounded-2xl" />;
+  const data = report.data;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-500/20 bg-white p-4 dark:bg-midnight-900">
+        <div className="text-sm">
+          <p className="font-bold text-midnight-900 dark:text-ivory-100">
+            رقم ولي الأمر: <span dir="ltr">{data.parentPhone}</span>
+          </p>
+          <p className="mt-0.5 text-xs text-midnight-500 dark:text-ivory-300/65">
+            {data.enabled ? 'التقرير الأسبوعي شغّال' : 'التقرير الأسبوعي متوقف للطالب ده'}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="accent"
+            isLoading={send.isPending}
+            onClick={() => send.mutate()}
+          >
+            ابعت تقرير الأسبوع دلوقتي
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            isLoading={toggle.isPending}
+            onClick={() => toggle.mutate(!data.enabled)}
+          >
+            {data.enabled ? 'وقّف التقرير' : 'شغّل التقرير'}
+          </Button>
+        </div>
+      </div>
+      {message && (
+        <p
+          role="status"
+          className={cn(
+            'text-sm font-semibold',
+            message.ok
+              ? 'text-emerald-700 dark:text-emerald-400'
+              : 'text-red-600 dark:text-red-400',
+          )}
+        >
+          {message.text}
+        </p>
+      )}
+
+      <div>
+        <h3 className="mb-3 text-sm font-black text-midnight-900 dark:text-ivory-50">
+          شكل تقرير الأسبوع ده
+          {data.latestReportUrl && (
+            <a
+              href={data.latestReportUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="ms-3 text-xs font-bold text-gold-700 underline-offset-4 hover:underline dark:text-gold-300"
+            >
+              آخر تقرير اتبعت ←
+            </a>
+          )}
+        </h3>
+        <div className="parent-report rounded-2xl bg-[var(--report-page)] p-3">
+          <ReportTheme />
+          <ParentReportSummary data={data.preview} />
+        </div>
+      </div>
+
+      {data.messages.length > 0 && (
+        <div>
+          <h3 className="text-sm font-black text-midnight-900 dark:text-ivory-50">
+            آخر رسائل واتساب
+          </h3>
+          <ul className="mt-2 divide-y divide-gold-500/15 rounded-xl border border-gold-500/20 bg-white dark:bg-midnight-900">
+            {data.messages.map((row) => (
+              <li
+                key={row.id}
+                className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm"
+              >
+                <span className="text-midnight-800 dark:text-ivory-100">
+                  {KIND_LABELS[row.kind]}
+                  <span className="ms-2 text-xs text-midnight-500 dark:text-ivory-300/60">
+                    {row.audience === 'PARENT' ? 'لولي الأمر' : 'للطالب'} ·{' '}
+                    {formatRelative(row.createdAt)}
+                  </span>
+                </span>
+                <span
+                  className={cn(
+                    'rounded-md px-2 py-0.5 text-[11px] font-bold',
+                    STATUS_LABELS[row.status].className,
+                  )}
+                >
+                  {STATUS_LABELS[row.status].label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
