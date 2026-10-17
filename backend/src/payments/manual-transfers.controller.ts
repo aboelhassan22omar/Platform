@@ -23,7 +23,7 @@ import { CurrentUser, Roles } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
 import { normalizeEgyptianPhone } from '../common/utils/phone.util';
 import { NotificationKind, OrderStatus, Role } from '../generated/prisma/enums';
-import { OrdersService } from './orders.service';
+import { OrdersService, TOPUP_TITLE } from './orders.service';
 import { TransferSettingsService } from './transfer-settings.service';
 import { transferState, type TransferSubmission } from './transfer-state';
 
@@ -210,7 +210,10 @@ export class ManualTransfersController {
           createdAt: payment.createdAt,
           state,
           student: payment.order.user,
-          items: payment.order.items.map((item) => item.titleSnapshot),
+          items:
+            payment.order.purpose === 'WALLET_TOPUP'
+              ? [TOPUP_TITLE]
+              : payment.order.items.map((item) => item.titleSnapshot),
           senderPhone: submission?.senderPhone ?? null,
           transactionReference: submission?.transactionReference ?? null,
           submittedAt: submission?.submittedAt ?? null,

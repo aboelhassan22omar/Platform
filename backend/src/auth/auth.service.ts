@@ -19,17 +19,22 @@ import { PasswordService } from './password.service';
 import type { ChangePasswordDto, LoginDto, RegisterDto } from './dto/auth.dto';
 import type { AccessTokenPayload } from './strategies/jwt.strategy';
 import { LoginLockedException } from './login-locked.exception';
+import { DeviceLimitException, DevicesService } from './devices.service';
 
 export interface IssuedTokens {
   accessToken: string;
   refreshToken: string;
   accessTtl: number;
   refreshTtl: number;
+  /** Device cookie value to (re)set; absent when the device is unknown. */
+  deviceToken?: string;
 }
 
 export interface SessionContext {
   ip?: string;
   userAgent?: string;
+  /** Raw device cookie sent by the browser, if any. */
+  deviceToken?: string;
 }
 
 @Injectable()
@@ -42,6 +47,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly redis: RedisService,
+    private readonly devices: DevicesService,
   ) {}
 
   // --------------------------------------------------------------------------
@@ -98,12 +104,14 @@ export class AuthService {
       });
 
       this.logger.log(`Student registered: ${user.username} (${user.gradeLevel})`);
+      const device = await this.devices.register(user, ctx);
       const tokens = await this.issueTokens(
         user.id,
         user.username,
         user.role,
         user.tokenVersion,
         ctx,
+        device,
       );
       return { user: this.toProfile(user), tokens };
     } catch (error) {
@@ -173,6 +181,10 @@ export class AuthService {
       throw new UnauthorizedException('تم إيقاف حسابك، تواصل مع الدعم');
     }
 
+    // The password was right, so this is not a failed attempt even if the
+    // account has no free device place.
+    const device = await this.devices.register(user, ctx);
+
     await this.redis.client.del(key, lockKey);
     await this.prisma.user.update({
       where: { id: user.id },
@@ -185,6 +197,7 @@ export class AuthService {
       user.role,
       user.tokenVersion,
       ctx,
+      device,
     );
     return { user: this.toProfile(user), tokens };
   }
@@ -199,6 +212,7 @@ export class AuthService {
     role: Role,
     tokenVersion: number,
     ctx: SessionContext,
+    device: { deviceId: string; token?: string } | null,
   ): Promise<IssuedTokens> {
     const accessTtl = this.config.get<number>('auth.accessTtl')!;
     const refreshTtl = this.config.get<number>('auth.refreshTtl')!;
@@ -216,13 +230,14 @@ export class AuthService {
       data: {
         userId,
         tokenHash: hashToken(refreshToken),
+        deviceId: device?.deviceId ?? null,
         expiresAt: new Date(Date.now() + refreshTtl * 1000),
         ip: ctx.ip,
         userAgent: ctx.userAgent?.slice(0, 255),
       },
     });
 
-    return { accessToken, refreshToken, accessTtl, refreshTtl };
+    return { accessToken, refreshToken, accessTtl, refreshTtl, deviceToken: device?.token };
   }
 
   /**
@@ -257,12 +272,33 @@ export class AuthService {
       throw new UnauthorizedException('تم إيقاف حسابك، تواصل مع الدعم');
     }
 
+    let device: { deviceId: string; token?: string };
+    if (stored.deviceId) {
+      await this.devices.touch(stored.deviceId, ctx);
+      device = { deviceId: stored.deviceId, token: ctx.deviceToken };
+    } else {
+      // A session from before devices were tracked adopts the browser it
+      // refreshes from, and ends if the account has no place left for it.
+      try {
+        device = await this.devices.register(stored.user, ctx);
+      } catch (error) {
+        if (error instanceof DeviceLimitException) {
+          await this.prisma.refreshToken.update({
+            where: { id: stored.id },
+            data: { revokedAt: new Date() },
+          });
+        }
+        throw error;
+      }
+    }
+
     const tokens = await this.issueTokens(
       stored.user.id,
       stored.user.username,
       stored.user.role,
       stored.user.tokenVersion,
       ctx,
+      device,
     );
 
     await this.prisma.refreshToken.update({

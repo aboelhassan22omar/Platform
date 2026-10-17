@@ -18,6 +18,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { CurrentUser, Public } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
 import { AuthService, type IssuedTokens, type SessionContext } from './auth.service';
+import { DEVICE_COOKIE, DEVICE_COOKIE_MAX_AGE_SECONDS } from './devices.service';
 import { ChangePasswordDto, LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
 
 const ACCESS_COOKIE = 'access_token';
@@ -79,6 +80,14 @@ export class AuthController {
       // The refresh cookie is only ever sent to the refresh/logout endpoints.
       path: '/api/auth',
     });
+    // Survives logout on purpose: it names the browser, not the session.
+    // Scoped to the API so /me/devices can tell which device is this one.
+    if (tokens.deviceToken) {
+      res.cookie(DEVICE_COOKIE, tokens.deviceToken, {
+        ...this.cookieOptions(DEVICE_COOKIE_MAX_AGE_SECONDS),
+        path: '/api',
+      });
+    }
   }
 
   private clearAuthCookies(res: Response): void {
@@ -91,7 +100,11 @@ export class AuthController {
   }
 
   private sessionContext(req: Request): SessionContext {
-    return { ip: req.ip, userAgent: req.get('user-agent') ?? undefined };
+    return {
+      ip: req.ip,
+      userAgent: req.get('user-agent') ?? undefined,
+      deviceToken: req.cookies?.[DEVICE_COOKIE] as string | undefined,
+    };
   }
 
   // --------------------------------------------------------------------------

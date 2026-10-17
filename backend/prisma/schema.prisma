@@ -115,14 +115,37 @@ enum PaymentProvider {
   KASHIER
   MANUAL
   DEV_SANDBOX
+  /// Paid from the student's balance on the platform; no money moves.
+  PLATFORM_WALLET
 }
 
 enum PaymentMethod {
   CARD
+  /// An e-wallet such as Vodafone Cash — not the platform balance (BALANCE).
   WALLET
   KIOSK
   MANUAL
   DEV
+  /// The student's balance on the platform.
+  BALANCE
+}
+
+/// What an order is for. A top-up has no items: settling it credits the
+/// student's balance instead of granting content.
+enum OrderPurpose {
+  PURCHASE
+  WALLET_TOPUP
+}
+
+enum WalletTransactionType {
+  /// A paid top-up order.
+  TOPUP
+  /// Content bought with the balance.
+  PURCHASE
+  /// Added by staff, e.g. cash paid at the center.
+  ADMIN_CREDIT
+  /// Removed by staff, e.g. a correction.
+  ADMIN_DEBIT
 }
 
 /// What an entitlement grants access to. Mirrors ProductKind but describes
@@ -224,8 +247,12 @@ model User {
 
   phoneVerifiedAt DateTime?
   lastLoginAt     DateTime?
+
+  /// Platform balance in piastres. Only ever changed together with a
+  /// WalletTransaction row; a CHECK constraint keeps it from going negative.
+  walletBalanceMinor Int @default(0)
   /// Bumped on password change / forced logout to invalidate refresh tokens.
-  tokenVersion    Int       @default(0)
+  tokenVersion       Int @default(0)
 
   /// Academic placement. Nullable only for staff accounts.
   educationSystem EducationSystem?
@@ -253,6 +280,8 @@ model User {
   liveChatMessages    LiveChatMessage[]
   liveReactions       LiveReaction[]
   certificates        Certificate[]
+  walletTransactions  WalletTransaction[]
+  devices             UserDevice[]
 
   @@index([role, status])
   @@index([educationSystem, gradeLevel])
@@ -267,6 +296,11 @@ model RefreshToken {
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash String @unique
 
+  /// The device this session belongs to. Removing the device deletes its
+  /// sessions, which signs that device out at its next refresh.
+  deviceId String?
+  device   UserDevice? @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
   /// Set when the token is rotated, so re-use of an old token can be detected.
   revokedAt    DateTime?
   replacedById String?
@@ -277,7 +311,31 @@ model RefreshToken {
 
   @@index([userId, revokedAt])
   @@index([expiresAt])
+  @@index([deviceId])
   @@map("refresh_tokens")
+}
+
+/// A browser a student has signed in from, identified by a random httpOnly
+/// cookie (only its hash is stored). Students may use at most the number of
+/// devices set by the admin; staff remove a device to free a place.
+model UserDevice {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  /// Readable name derived from the user agent, e.g. "Chrome على Windows".
+  label     String
+  userAgent String?
+  ip        String?
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  refreshTokens RefreshToken[]
+
+  @@unique([userId, tokenHash])
+  @@index([userId, lastSeenAt])
+  @@map("user_devices")
 }
 
 model PasswordReset {
@@ -461,6 +519,10 @@ model Lesson {
 
   /// Denormalised from the ready VideoAsset so lesson lists avoid a join.
   durationSeconds Int @default(0)
+
+  /// How many times a student may watch the video. Null uses the platform
+  /// default; 0 means unlimited for this lesson.
+  maxViews Int?
 
   publishedAt DateTime?
   scheduledAt DateTime?
@@ -730,16 +792,22 @@ model Order {
   /// returns the original order instead of creating a second one.
   idempotencyKey String? @unique
 
+  purpose        OrderPurpose @default(PURCHASE)
+  /// Paid from the platform balance. Such orders moved no new money, so
+  /// revenue figures leave them out (the top-up was already counted).
+  paidFromWallet Boolean      @default(false)
+
   paidAt      DateTime?
   cancelledAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  items         OrderItem[]
-  payments      Payment[]
-  entitlements  Entitlement[]
-  subscriptions Subscription[]
-  redemption    CouponRedemption?
+  items              OrderItem[]
+  payments           Payment[]
+  entitlements       Entitlement[]
+  subscriptions      Subscription[]
+  redemption         CouponRedemption?
+  walletTransactions WalletTransaction[]
 
   @@index([userId, status])
   @@index([status, createdAt])
@@ -820,6 +888,31 @@ model WebhookEvent {
   @@unique([provider, eventId])
   @@index([processedAt])
   @@map("webhook_events")
+}
+
+/// Append-only ledger of every balance change. balanceAfterMinor is the
+/// student's balance right after this row, so the history reads as a statement.
+model WalletTransaction {
+  id                String                @id @default(cuid())
+  userId            String
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              WalletTransactionType
+  /// Signed: positive adds to the balance, negative spends it.
+  amountMinor       Int
+  balanceAfterMinor Int
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  /// Shown to the student, e.g. the reason staff gave for an adjustment.
+  note    String?
+  /// Staff member behind an ADMIN_* row.
+  actorId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([orderId])
+  @@map("wallet_transactions")
 }
 
 // ----------------------------------------------------------------------------
@@ -919,6 +1012,13 @@ model LessonProgress {
   completedAt    DateTime?
   /// Legacy mirror of the furthest position; rewatching does not increase it.
   watchedSeconds Int       @default(0)
+
+  /// Seconds of video actually streamed to the student, counted on the server
+  /// from the segments served. Rewatching does increase it: views used =
+  /// viewedSeconds / lesson duration.
+  viewedSeconds Int @default(0)
+  /// Extra views granted to this student for this lesson by staff.
+  bonusViews    Int @default(0)
 
   lastWatchedAt DateTime @default(now())
   createdAt     DateTime @default(now())

@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { api, ApiError } from '@/lib/api';
 import { cn, formatEgp, formatNumber, formatRelative } from '@/lib/utils';
 import { EASE_ENTRANCE } from '@/lib/motion';
+import { StudentAccountDialog } from './admin-student-account';
 import type {
   AdminLessonAccess,
   AdminStudent,
@@ -34,6 +35,7 @@ export function AdminStudents() {
   const [page, setPage] = useState(1);
   const [accessStudent, setAccessStudent] = useState<AdminStudent | null>(null);
   const [passwordStudent, setPasswordStudent] = useState<AdminStudent | null>(null);
+  const [accountStudent, setAccountStudent] = useState<AdminStudent | null>(null);
 
   const [pendingAction, setPendingAction] = useState<{
     student: AdminStudent;
@@ -274,6 +276,13 @@ export function AdminStudents() {
                           </button>
                           <button
                             type="button"
+                            onClick={() => setAccountStudent(student)}
+                            className="min-h-9 rounded-lg border border-gold-500/30 px-3 text-xs font-bold text-gold-700 transition-colors hover:bg-gold-500/10 dark:text-gold-300"
+                          >
+                            المحفظة والأجهزة
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => setPasswordStudent(student)}
                             className="min-h-9 rounded-lg border border-midnight-300 px-3 text-xs font-bold text-midnight-700 transition-colors hover:bg-midnight-500/10 dark:border-midnight-600 dark:text-ivory-200"
                           >
@@ -333,6 +342,11 @@ export function AdminStudents() {
       )}
 
       <StudentLessonAccessDialog student={accessStudent} onClose={() => setAccessStudent(null)} />
+      <StudentAccountDialog
+        key={accountStudent?.id ?? 'none'}
+        student={accountStudent}
+        onClose={() => setAccountStudent(null)}
+      />
       <StudentPasswordDialog
         key={passwordStudent?.id ?? 'none'}
         student={passwordStudent}

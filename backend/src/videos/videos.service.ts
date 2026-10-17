@@ -14,6 +14,7 @@ import { StorageService } from '../common/storage/storage.service';
 import { EntitlementsService, ACCESS_MESSAGES } from '../entitlements/entitlements.service';
 import { generateToken, hashToken } from '../common/utils';
 import { StreamAdmissionService } from './stream-admission.service';
+import { ViewLimitsService } from './view-limits.service';
 import { hasPlayableVersion } from './playable';
 
 /**
@@ -45,6 +46,7 @@ export class VideosService {
     private readonly entitlements: EntitlementsService,
     private readonly config: ConfigService,
     private readonly admission: StreamAdmissionService,
+    private readonly viewLimits: ViewLimitsService,
   ) {
     const url = new URL(config.get<string>('redis.url')!);
     this.queue = new Queue(VIDEO_QUEUE, {
@@ -259,6 +261,8 @@ export class VideosService {
       throw new ForbiddenException(ACCESS_MESSAGES[decision.reason]);
     }
 
+    const views = opts.isStaff ? null : await this.viewLimits.assertCanStart(userId, lessonId);
+
     const asset = await this.prisma.videoAsset.findUnique({
       where: { lessonId },
       select: {
@@ -319,6 +323,8 @@ export class VideosService {
       renditions: asset.renditions,
       accessReason: decision.reason,
       resumeAtSeconds,
+      /** Null for staff; `limited: false` when the lesson has no view limit. */
+      views,
       /** 0 when no limit is configured: the player then skips heartbeats. */
       heartbeatSeconds:
         this.admission.enabled && !opts.isStaff ? this.admission.heartbeatSeconds : 0,
@@ -352,6 +358,16 @@ export class VideosService {
       });
     }
     return ticket;
+  }
+
+  /** Counts a streamed segment against the student's views of the lesson. */
+  async chargeSegment(
+    token: string,
+    ticket: { userId: string; lessonId: string },
+    relativePath: string,
+  ) {
+    if (token.startsWith(STAFF_TICKET_PREFIX)) return;
+    await this.viewLimits.chargeSegment(ticket, relativePath);
   }
 
   /** Validates a ticket on every manifest/segment request. */

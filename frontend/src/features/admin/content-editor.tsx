@@ -97,6 +97,10 @@ export function EntityEditor({
           if (target.kind === 'course' || target.kind === 'chapter' || target.kind === 'lesson')
             payload.priceMinor = Math.max(0, Math.round(Number(form.get('price') ?? 0) * 100));
           if (target.kind === 'lesson') payload.isFreePreview = form.get('isFreePreview') === 'on';
+          if (target.kind === 'lesson') {
+            const maxViews = String(form.get('maxViews') ?? '');
+            payload.maxViews = maxViews === '' ? null : Number(maxViews);
+          }
           if (target.kind === 'lesson')
             payload.centerPriceMinor =
               form.get('customCenterPrice') !== 'on'
@@ -226,6 +230,31 @@ export function EntityEditor({
               priceMinor={entity?.priceMinor}
               centerPriceMinor={entity?.centerPriceMinor}
             />
+          )}
+          {target.kind === 'lesson' && (
+            <label>
+              <span className="editor-label">عدد مرات المشاهدة</span>
+              <select
+                name="maxViews"
+                defaultValue={entity?.maxViews == null ? '' : String(entity.maxViews)}
+                className="editor-input"
+              >
+                <option value="">زي إعداد المنصة</option>
+                <option value="0">بدون حد للحصة دي</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                  <option key={n} value={n}>
+                    {n === 1
+                      ? 'مرة واحدة'
+                      : n === 2
+                        ? 'مرتين'
+                        : `${n.toLocaleString('ar-EG')} مرات`}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-[11px] text-midnight-400 dark:text-ivory-300/55">
+                الرقم العام بيتظبط من «الإعدادات».
+              </span>
+            </label>
           )}
           <label className="sm:col-span-2">
             <span className="editor-label">الوصف</span>

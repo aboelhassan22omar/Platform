@@ -159,6 +159,8 @@ export const configuration = () => ({
     /** Waiting students poll this often; one that stops polling leaves the queue. */
     queuePollSeconds: int(process.env.STREAM_QUEUE_POLL_SECONDS, 10),
     queueMax: int(process.env.STREAM_QUEUE_MAX, 2000),
+    /** Must match the worker's HLS_SEGMENT_SECONDS: each segment served counts this much watch time. */
+    segmentSeconds: int(process.env.HLS_SEGMENT_SECONDS, 6),
   },
 
   presence: {

@@ -56,7 +56,10 @@ export function TransferForm({ order }: { order: Order }) {
           حوّل {formatEgp(order.totalMinor)} بـ{methodName}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
-          حوّل المبلغ، وبعدها ابعتلنا صورة التحويل على واتساب. هنراجعه ونفتحلك المحتوى.
+          حوّل المبلغ، وبعدها ابعتلنا صورة التحويل على واتساب.{' '}
+          {order.purpose === 'WALLET_TOPUP'
+            ? 'هنراجعه ونضيف المبلغ لمحفظتك.'
+            : 'هنراجعه ونفتحلك المحتوى.'}
         </p>
       </header>
 
@@ -189,7 +192,10 @@ function WhatsAppProof({ order }: { order: Order }) {
             role="status"
             className="mt-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3 py-2 text-sm text-[var(--text-secondary)]"
           >
-            تمام ✓ طلبك عندنا وبنراجعه. أول ما نأكد وصول المبلغ هيوصلك إشعار والمحتوى هيتفتح لوحده.
+            تمام ✓ طلبك عندنا وبنراجعه. أول ما نأكد وصول المبلغ هيوصلك إشعار
+            {order.purpose === 'WALLET_TOPUP'
+              ? ' والرصيد هيتضاف لمحفظتك.'
+              : ' والمحتوى هيتفتح لوحده.'}
             لو لسه ما بعتش الصورة على واتساب، ابعتها دلوقتي.
           </p>
         )}

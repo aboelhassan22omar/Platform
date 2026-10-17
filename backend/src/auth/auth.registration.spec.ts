@@ -32,6 +32,9 @@ describe('Student registration', () => {
       { signAsync: jest.fn().mockResolvedValue('access') } as never,
       new ConfigService({ auth: { accessTtl: 900, refreshTtl: 3600, accessSecret: 's' } }),
       {} as never,
+      {
+        register: jest.fn().mockResolvedValue({ deviceId: 'device-id', token: 'device-token' }),
+      } as never,
     );
     jest.spyOn(service, 'toProfile').mockImplementation((user) => user as never);
     return { service, prisma };

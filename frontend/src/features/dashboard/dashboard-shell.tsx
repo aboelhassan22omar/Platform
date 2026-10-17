@@ -13,6 +13,7 @@ const TABS = [
   { href: '/dashboard/assessments', label: 'الواجبات والامتحانات' },
   { href: '/dashboard/leaderboard', label: 'المتصدرون' },
   { href: '/dashboard/subscriptions', label: 'اشتراكاتي' },
+  { href: '/dashboard/wallet', label: 'محفظتي' },
   { href: '/dashboard/profile', label: 'بياناتي' },
 ];
 
