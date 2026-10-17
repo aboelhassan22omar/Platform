@@ -128,6 +128,25 @@ export const configuration = () => ({
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? '',
   },
 
+  /**
+   * Phone notifications (Web Push). Without keys a pair is generated on first
+   * use and kept in site settings. The subject must be a mailto: or https URL.
+   */
+  push: {
+    publicKey: process.env.WEB_PUSH_PUBLIC_KEY ?? '',
+    privateKey: process.env.WEB_PUSH_PRIVATE_KEY ?? '',
+    subject:
+      // || not ??: docker compose passes an unset variable as an empty string.
+      process.env.WEB_PUSH_SUBJECT ||
+      `mailto:support@${(() => {
+        try {
+          return new URL(process.env.PUBLIC_SITE_URL ?? 'http://localhost').hostname;
+        } catch {
+          return 'localhost';
+        }
+      })()}`,
+  },
+
   payments: {
     transferPhone: process.env.PAYMENT_TRANSFER_PHONE ?? '',
     provider: (process.env.PAYMENT_PROVIDER ?? 'dev') as PaymentProviderKey,

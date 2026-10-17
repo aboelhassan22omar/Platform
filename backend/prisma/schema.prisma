@@ -251,6 +251,14 @@ enum MessageKind {
   SUBSCRIPTION_EXPIRING
   PAYMENT_CONFIRMED
   QUESTION_ANSWERED
+  CENTER_ABSENCE
+}
+
+enum AttendanceMethod {
+  /// The student's personal QR was scanned at the door.
+  SCAN
+  /// Staff picked the student from the list.
+  MANUAL
 }
 
 enum LessonQuestionStatus {
@@ -341,6 +349,8 @@ model User {
   lessonQuestions     LessonQuestion[]
   lessonReplies       LessonQuestionReply[]
   lessonVotes         LessonQuestionVote[]
+  pushSubscriptions   PushSubscription[]
+  attendance          Attendance[]
 
   @@index([role, status])
   @@index([educationSystem, gradeLevel])
@@ -458,9 +468,10 @@ model Grade {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  courses      Course[]
-  plans        Plan[]
-  liveSessions LiveSession[]
+  courses            Course[]
+  plans              Plan[]
+  liveSessions       LiveSession[]
+  attendanceSessions AttendanceSession[]
 
   @@unique([educationSystem, level])
   @@index([educationSystem, sortOrder])
@@ -1327,17 +1338,20 @@ model Notification {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  kind    NotificationKind @default(SYSTEM)
-  title   String
-  titleEn String?
-  body    String
-  bodyEn  String?
-  href    String?
-  readAt  DateTime?
+  kind     NotificationKind @default(SYSTEM)
+  title    String
+  titleEn  String?
+  body     String
+  bodyEn   String?
+  href     String?
+  readAt   DateTime?
+  /// When it was sent as a phone notification (null: not yet, or nowhere to send).
+  pushedAt DateTime?
 
   createdAt DateTime @default(now())
 
   @@index([userId, readAt])
+  @@index([pushedAt, createdAt])
   @@map("notifications")
 }
 
@@ -1606,4 +1620,67 @@ model LessonQuestionVote {
   @@id([questionId, userId])
   @@index([userId])
   @@map("lesson_question_votes")
+}
+
+// ----------------------------------------------------------------------------
+// Installed app: phone notifications
+// ----------------------------------------------------------------------------
+
+/// A browser or installed app that accepted phone notifications (Web Push).
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// The push service URL; unique per browser installation.
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ----------------------------------------------------------------------------
+// Center attendance
+// ----------------------------------------------------------------------------
+
+/// One class at the center. Students are marked present by scanning the
+/// personal QR on their phone or printed card.
+model AttendanceSession {
+  id                String    @id @default(cuid())
+  title             String
+  gradeId           String
+  grade             Grade     @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  startsAt          DateTime
+  createdById       String?
+  /// Closed sessions take no more scans; absences are final.
+  closedAt          DateTime?
+  /// When parents of absent center students were messaged.
+  absenceNotifiedAt DateTime?
+
+  records Attendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([gradeId, startsAt])
+  @@index([startsAt])
+  @@map("attendance_sessions")
+}
+
+model Attendance {
+  sessionId  String
+  session    AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  method     AttendanceMethod
+  markedAt   DateTime          @default(now())
+  markedById String?
+
+  @@id([sessionId, userId])
+  @@index([userId, markedAt])
+  @@map("attendance")
 }

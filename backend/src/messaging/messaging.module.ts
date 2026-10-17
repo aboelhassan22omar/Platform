@@ -21,6 +21,6 @@ import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
     ParentReportsService,
     MessageProducersService,
   ],
-  exports: [MessageProducersService],
+  exports: [MessageProducersService, OutboxService],
 })
 export class MessagingModule {}

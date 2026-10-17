@@ -12,6 +12,7 @@ import { EASE_ENTRANCE } from '@/lib/motion';
 import type { LeaderboardResponse, ProgressSummary } from '@/types/api';
 import { AchievementsLibrary } from './achievements-library';
 import { MyDevices } from './my-devices';
+import { AppSetupCard } from '@/features/app/app-setup-card';
 
 const GRADE_LABELS: Record<string, string> = {
   SEC_1: 'الصف الأول الثانوي',
@@ -277,6 +278,8 @@ export function ProfileSettings() {
       <AchievementsLibrary />
 
       <MyDevices />
+
+      <AppSetupCard />
 
       {/* Password change */}
       <motion.section

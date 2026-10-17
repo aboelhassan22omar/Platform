@@ -42,6 +42,7 @@ export const DEFAULT_MESSAGING_SETTINGS: MessagingSettings = {
     SUBSCRIPTION_EXPIRING: true,
     PAYMENT_CONFIRMED: true,
     QUESTION_ANSWERED: true,
+    CENTER_ABSENCE: true,
   },
   weeklyReport: { weekday: 5, hour: 18, audience: 'paying' },
   quietHours: { enabled: true, from: 22, to: 9 },

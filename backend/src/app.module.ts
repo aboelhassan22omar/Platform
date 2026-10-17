@@ -31,6 +31,8 @@ import { CertificatesModule } from './certificates/certificates.module';
 import { SettingsModule } from './settings/settings.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { LessonQuestionsModule } from './lesson-questions/lesson-questions.module';
+import { PushModule } from './push/push.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -82,6 +84,8 @@ import { LessonQuestionsModule } from './lesson-questions/lesson-questions.modul
     SettingsModule,
     MessagingModule,
     LessonQuestionsModule,
+    PushModule,
+    AttendanceModule,
   ],
   providers: [
     MaintenanceService,

@@ -658,7 +658,8 @@ export type MessageKind =
   | 'HOMEWORK_DUE'
   | 'SUBSCRIPTION_EXPIRING'
   | 'PAYMENT_CONFIRMED'
-  | 'QUESTION_ANSWERED';
+  | 'QUESTION_ANSWERED'
+  | 'CENTER_ABSENCE';
 
 export type MessageStatus =
   | 'PENDING'
@@ -681,6 +682,7 @@ export interface ParentReportData {
   lessons: { watched: number; completed: string[] };
   exams: Array<{ title: string; kind: string; percentage: number; passed: boolean }>;
   missedHomework: Array<{ title: string; dueAt: string }>;
+  attendance?: { held: number; attended: number } | null;
   lastSeenAt: string | null;
 }
 
