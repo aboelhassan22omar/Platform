@@ -6,21 +6,17 @@ import { PrismaService } from '../common/prisma/prisma.service';
  * Content protection the admin switches on and off from the dashboard. Applied
  * to students only; staff always see the plain site.
  *
- * A web page cannot truly stop a screenshot or a screen recorder — the
- * operating system takes them, not the browser. These switches turn on the
- * deterrents a browser does allow (hide the page while it is not focused,
- * catch PrintScreen, block copy / right-click / print) and a moving watermark
- * that makes any leaked recording traceable to the student who made it.
+ * A web page cannot stop a screenshot or a screen recorder (the operating
+ * system takes them, not the browser), so the protection is a moving
+ * watermark that makes any leaked recording traceable to the student.
  */
 export interface ProtectionSettings {
-  /** Hide content on focus loss, catch PrintScreen, block copy/right-click/print. */
-  blockCapture: boolean;
   /** Moving watermark with the student's name and phone over videos and lives. */
   watermark: boolean;
 }
 
 const KEY = 'security.protection';
-const DEFAULTS: ProtectionSettings = { blockCapture: false, watermark: false };
+const DEFAULTS: ProtectionSettings = { watermark: false };
 
 @Injectable()
 export class ProtectionSettingsService {
@@ -30,7 +26,6 @@ export class ProtectionSettingsService {
     const row = await this.prisma.siteSetting.findUnique({ where: { key: KEY } });
     const stored = (row?.value ?? {}) as Partial<ProtectionSettings>;
     return {
-      blockCapture: stored.blockCapture ?? DEFAULTS.blockCapture,
       watermark: stored.watermark ?? DEFAULTS.watermark,
     };
   }

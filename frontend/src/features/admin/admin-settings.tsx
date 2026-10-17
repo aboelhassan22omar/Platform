@@ -53,8 +53,6 @@ function ProtectionSection() {
     onError: (caught) => setError(caught instanceof ApiError ? caught.message : 'تعذر الحفظ'),
   });
   const values = save.isPending ? save.variables : settings.data;
-  const toggle = (key: keyof ProtectionSettings) =>
-    values && save.mutate({ ...values, [key]: !values[key] });
 
   return (
     <section aria-labelledby="protection-title" className="space-y-4">
@@ -73,24 +71,12 @@ function ProtectionSection() {
       {settings.isLoading || !values ? (
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="skeleton h-40 rounded-2xl" />
-          <div className="skeleton h-40 rounded-2xl" />
         </div>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           <SwitchCard
-            checked={values.blockCapture}
-            onToggle={() => toggle('blockCapture')}
-            disabled={save.isPending}
-            title="منع تصوير الشاشة والنسخ"
-            points={[
-              'الصفحة بتستخبى أول ما الطالب يفتح أداة تصوير أو تسجيل أو يسيب الصفحة',
-              'زرار Print Screen واختصارات التصوير بتتقفل',
-              'مفيش نسخ ولا كليك يمين ولا حفظ ولا طباعة',
-            ]}
-          />
-          <SwitchCard
             checked={values.watermark}
-            onToggle={() => toggle('watermark')}
+            onToggle={() => save.mutate({ ...values, watermark: !values.watermark })}
             disabled={save.isPending}
             title="علامة مائية على الفيديو واللايف"
             points={[
@@ -102,11 +88,6 @@ function ProtectionSection() {
         </div>
       )}
 
-      <p className="max-w-3xl rounded-xl border border-amber-500/25 bg-amber-50 p-4 text-xs leading-6 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-        <strong>معلومة مهمة:</strong> مفيش موقع يقدر يمنع تصوير الشاشة ١٠٠٪. الموبايل بيصوّر من
-        أزرار الجهاز نفسه، وفيه برامج تسجيل بتشتغل من غير ما الصفحة تحس. عشان كده العلامة المائية هي
-        أقوى حماية: بتخلي أي تسريب يبان صاحبه.
-      </p>
       {error && (
         <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
           {error}
