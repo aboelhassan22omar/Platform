@@ -553,6 +553,32 @@ html.light .royal-glass-card {
   }
 }
 
+/* Content protection (admin switch, students only — see ContentProtection). */
+html.protect-content body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html.protect-content :is(input, textarea, select, [contenteditable='true']) {
+  -webkit-user-select: text;
+  user-select: text;
+}
+html.protect-content :is(img, video) {
+  -webkit-user-drag: none;
+}
+@media print {
+  html.protect-content body > * {
+    display: none !important;
+  }
+  html.protect-content body::before {
+    content: 'المحتوى محمي ولا يمكن طباعته';
+    display: block;
+    padding: 4rem 1rem;
+    text-align: center;
+    font-size: 1.5rem;
+  }
+}
+
 /* Shared form control used by dense admin editors. */
 .input-base {
   width: 100%;

@@ -365,6 +365,8 @@ export interface StudentAssessment {
   kind: AssessmentKind;
   timeLimitMinutes: number | null;
   passingScore: number;
+  /** Minimum % for a certificate, or null when the exam has none. */
+  certificateMinScore: number | null;
   maxAttempts: number;
   shuffleQuestions: boolean;
   shuffleOptions: boolean;
@@ -380,6 +382,14 @@ export interface StudentAssessment {
   latestAttempt: { id: string; percentage: number; passed: boolean; submittedAt: string } | null;
   lesson: { title: string; unitTitle: string; courseTitle: string } | null;
   unit: { title: string; courseTitle: string } | null;
+}
+
+export interface StudentCertificate {
+  serial: string;
+  assessmentId: string;
+  assessmentTitle: string;
+  percentage: number;
+  issuedAt: string;
 }
 
 export interface AssessmentDetail

@@ -252,6 +252,7 @@ model User {
   liveSessionsCreated LiveSession[]       @relation("LiveSessionCreator")
   liveChatMessages    LiveChatMessage[]
   liveReactions       LiveReaction[]
+  certificates        Certificate[]
 
   @@index([role, status])
   @@index([educationSystem, gradeLevel])
@@ -934,22 +935,25 @@ model LessonProgress {
 // ----------------------------------------------------------------------------
 
 model Assessment {
-  id               String         @id @default(cuid())
-  title            String
-  titleEn          String?
-  description      String?
-  descriptionEn    String?
-  kind             AssessmentKind
-  status           PublishStatus  @default(DRAFT)
-  timeLimitMinutes Int?
-  passingScore     Int            @default(50)
-  maxAttempts      Int            @default(1)
-  shuffleQuestions Boolean        @default(false)
-  shuffleOptions   Boolean        @default(false)
-  availableFrom    DateTime?
-  dueAt            DateTime?
-  isFree           Boolean        @default(true)
-  priceMinor       Int?
+  id                  String         @id @default(cuid())
+  title               String
+  titleEn             String?
+  description         String?
+  descriptionEn       String?
+  kind                AssessmentKind
+  status              PublishStatus  @default(DRAFT)
+  timeLimitMinutes    Int?
+  passingScore        Int            @default(50)
+  maxAttempts         Int            @default(1)
+  shuffleQuestions    Boolean        @default(false)
+  shuffleOptions      Boolean        @default(false)
+  availableFrom       DateTime?
+  dueAt               DateTime?
+  isFree              Boolean        @default(true)
+  priceMinor          Int?
+  /// A student whose attempt reaches certificateMinScore % earns a certificate.
+  certificateEnabled  Boolean        @default(false)
+  certificateMinScore Int            @default(85)
 
   lessonId String?
   lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -960,6 +964,7 @@ model Assessment {
   attempts     AssessmentAttempt[]
   products     Product[]
   entitlements Entitlement[]
+  certificates Certificate[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1016,6 +1021,7 @@ model AssessmentAttempt {
   expiresAt    DateTime?
   submittedAt  DateTime?
   answers      AssessmentAnswer[]
+  certificate  Certificate?
 
   @@index([userId, submittedAt])
   @@index([assessmentId, userId])
@@ -1036,6 +1042,32 @@ model AssessmentAnswer {
   @@unique([attemptId, questionId])
   @@index([questionId])
   @@map("assessment_answers")
+}
+
+/// One certificate per student per exam. Issued when an attempt reaches the
+/// exam's certificateMinScore; a later, better attempt upgrades it in place so
+/// the serial (printed and encoded in the QR) never changes. Name and title
+/// are snapshots: the certificate reads the same even if they are edited later.
+model Certificate {
+  id           String            @id @default(cuid())
+  /// Short public code printed on the certificate, e.g. 7KQ2-9XDM-4H.
+  serial       String            @unique
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessmentId String
+  assessment   Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  attemptId    String            @unique
+  attempt      AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  recipientName   String
+  assessmentTitle String
+  percentage      Int
+  issuedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, assessmentId])
+  @@index([assessmentId])
+  @@map("certificates")
 }
 
 /// Durable mirror of the Redis presence set. Redis answers "who is online now";

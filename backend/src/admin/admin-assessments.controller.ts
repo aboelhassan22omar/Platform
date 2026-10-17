@@ -31,6 +31,7 @@ import type { AuthenticatedUser } from '../common/decorators';
 import { AuditService } from '../common/audit/audit.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AssessmentKind, ProductKind, PublishStatus, Role } from '../generated/prisma/enums';
+import { CertificatesService } from '../certificates/certificates.service';
 
 class AssessmentOptionDto {
   @IsString() @MinLength(1) @MaxLength(500) text!: string;
@@ -68,6 +69,8 @@ class UpsertAssessmentDto {
   @IsOptional() @IsInt() @Min(100) priceMinor?: number;
   @IsOptional() @IsDateString() availableFrom?: string;
   @IsOptional() @IsDateString() dueAt?: string;
+  @IsOptional() @IsBoolean() certificateEnabled?: boolean;
+  @IsOptional() @IsInt() @Min(1) @Max(100) certificateMinScore?: number;
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(200)
@@ -76,12 +79,18 @@ class UpsertAssessmentDto {
   questions!: AssessmentQuestionDto[];
 }
 
+class CertificateSettingsDto {
+  @IsBoolean() certificateEnabled!: boolean;
+  @IsInt() @Min(1) @Max(100) certificateMinScore!: number;
+}
+
 @Controller('admin/assessments')
 @Roles(Role.CONTENT_MANAGER)
 export class AdminAssessmentsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly certificates: CertificatesService,
   ) {}
 
   @Get('curriculum')
@@ -125,7 +134,7 @@ export class AdminAssessmentsController {
             },
           },
           unit: { select: { title: true, course: { select: { title: true } } } },
-          _count: { select: { questions: true, attempts: true } },
+          _count: { select: { questions: true, attempts: true, certificates: true } },
           attempts: { select: { percentage: true, passed: true } },
         },
       })
@@ -259,6 +268,38 @@ export class AdminAssessmentsController {
     return { ok: true };
   }
 
+  /**
+   * Certificates can be switched on, off or re-thresholded at any time, even
+   * after students have sat the exam: it does not change anyone's result.
+   * Students who already reached the new minimum get their certificate now.
+   */
+  @Patch(':id/certificate')
+  async updateCertificate(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: CertificateSettingsDto,
+  ) {
+    const row = await this.prisma.assessment.findUnique({ where: { id }, select: { title: true } });
+    if (!row) throw new NotFoundException('التقييم غير موجود');
+    await this.prisma.$transaction(async (tx) => {
+      await tx.assessment.update({
+        where: { id },
+        data: {
+          certificateEnabled: dto.certificateEnabled,
+          certificateMinScore: dto.certificateMinScore,
+        },
+      });
+      await this.audit.record(tx, {
+        actorId: actor.id,
+        action: 'assessment.certificate.update',
+        entityType: 'Assessment',
+        entityId: id,
+        metadata: { title: row.title, ...dto },
+      });
+    });
+    return { ok: true, issued: await this.certificates.backfill(id) };
+  }
+
   @Delete(':id')
   async remove(@CurrentUser() actor: AuthenticatedUser, @Param('id') id: string) {
     const row = await this.prisma.assessment.findUnique({ where: { id }, select: { title: true } });
@@ -316,6 +357,8 @@ export class AdminAssessmentsController {
       priceMinor: dto.isFree === false ? dto.priceMinor : null,
       availableFrom: dto.availableFrom ? new Date(dto.availableFrom) : null,
       dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
+      certificateEnabled: dto.certificateEnabled ?? false,
+      certificateMinScore: dto.certificateMinScore ?? 85,
       questions: {
         create: dto.questions.map((question, questionIndex) => ({
           prompt: question.prompt,

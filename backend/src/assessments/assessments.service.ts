@@ -7,10 +7,14 @@ import {
 import { AssessmentAttemptStatus, PublishStatus } from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
 import type { AuthenticatedUser } from '../common/decorators';
+import { CertificatesService } from '../certificates/certificates.service';
 
 @Injectable()
 export class AssessmentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly certificates: CertificatesService,
+  ) {}
 
   async listForStudent(user: AuthenticatedUser) {
     const profile = await this.prisma.user.findUnique({
@@ -112,6 +116,7 @@ export class AssessmentsService {
       kind: row.kind,
       timeLimitMinutes: row.timeLimitMinutes,
       passingScore: row.passingScore,
+      certificateMinScore: row.certificateEnabled ? row.certificateMinScore : null,
       maxAttempts: row.maxAttempts,
       shuffleQuestions: row.shuffleQuestions,
       shuffleOptions: row.shuffleOptions,
@@ -339,6 +344,7 @@ export class AssessmentsService {
         submittedAt: new Date(),
       },
     });
+    await this.certificates.issueForAttempt(attemptId);
   }
 
   private async review(attemptId: string, userId: string) {
@@ -360,6 +366,10 @@ export class AssessmentsService {
     const attemptsUsed = await this.prisma.assessmentAttempt.count({
       where: { assessmentId: attempt.assessmentId, userId },
     });
+    const certificate = await this.prisma.certificate.findUnique({
+      where: { userId_assessmentId: { userId, assessmentId: attempt.assessmentId } },
+      select: { serial: true, percentage: true },
+    });
     const answers = new Map(attempt.answers.map((answer) => [answer.questionId, answer]));
     return {
       mode: 'REVIEW',
@@ -376,6 +386,10 @@ export class AssessmentsService {
       submittedAt: attempt.submittedAt,
       attemptCount: attemptsUsed,
       maxAttempts: attempt.assessment.maxAttempts,
+      certificateMinScore: attempt.assessment.certificateEnabled
+        ? attempt.assessment.certificateMinScore
+        : null,
+      certificate,
       canRetry:
         attemptsUsed < attempt.assessment.maxAttempts &&
         (!attempt.assessment.dueAt || attempt.assessment.dueAt > new Date()),

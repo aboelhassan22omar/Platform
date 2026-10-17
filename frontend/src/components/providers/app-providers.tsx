@@ -8,6 +8,7 @@ import { AuthProvider } from './auth-provider';
 import { PresenceReporter } from './presence-reporter';
 import { ScrollToTop } from './scroll-to-top';
 import { StoreProvider } from '@/features/store/store-provider';
+import { ContentProtection } from '@/features/protection/content-protection';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -36,6 +37,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               <ScrollToTop />
               {children}
               <PresenceReporter />
+              <ContentProtection />
             </StoreProvider>
           </AuthProvider>
         </ThemeProvider>

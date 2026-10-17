@@ -35,11 +35,13 @@ interface AdminAssessment {
   priceMinor: number | null;
   availableFrom: string | null;
   dueAt: string | null;
+  certificateEnabled: boolean;
+  certificateMinScore: number;
   averageScore: number | null;
   passedCount: number;
   lesson: { title: string; chapter: { unit: { title: string; course: { title: string } } } } | null;
   unit: { title: string; course: { title: string } } | null;
-  _count: { questions: number; attempts: number };
+  _count: { questions: number; attempts: number; certificates: number };
 }
 interface EditorQuestion {
   prompt: string;
@@ -65,6 +67,8 @@ interface EditorState {
   pricePounds: string;
   availableFrom: string;
   dueAt: string;
+  certificateEnabled: boolean;
+  certificateMinScore: number;
   questions: EditorQuestion[];
 }
 
@@ -96,6 +100,8 @@ const blankEditor = (): EditorState => ({
   pricePounds: '',
   availableFrom: '',
   dueAt: '',
+  certificateEnabled: false,
+  certificateMinScore: 85,
   questions: [blankQuestion()],
 });
 const kindLabels: Record<AssessmentKind, string> = {
@@ -168,6 +174,8 @@ export function AdminAssessments() {
         pricePounds: item.priceMinor ? String(item.priceMinor / 100) : '',
         availableFrom: toLocalInput(item.availableFrom),
         dueAt: toLocalInput(item.dueAt),
+        certificateEnabled: item.certificateEnabled,
+        certificateMinScore: item.certificateMinScore,
         questions: item.questions.map((q) => ({
           prompt: q.prompt,
           explanation: q.explanation ?? '',
@@ -296,6 +304,17 @@ export function AdminAssessments() {
                   value={item.averageScore === null ? '—' : `${formatNumber(item.averageScore)}%`}
                 />
               </div>
+              <CertificateSettings
+                assessment={item}
+                onSaved={async (issued) => {
+                  setNotice(
+                    issued
+                      ? `تم حفظ إعداد الشهادة، واتصدر ${formatNumber(issued)} شهادة لطلاب كانوا جابوا النسبة.`
+                      : 'تم حفظ إعداد الشهادة.',
+                  );
+                  await queryClient.invalidateQueries({ queryKey: ['admin-assessments'] });
+                }}
+              />
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -354,6 +373,111 @@ export function AdminAssessments() {
           courses={curriculum.data ?? []}
           grades={grades}
         />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Certificate switch and minimum score, editable at any time — even after
+ * students have sat the exam, when the main editor is locked.
+ */
+function CertificateSettings({
+  assessment,
+  onSaved,
+}: {
+  assessment: AdminAssessment;
+  onSaved: (issued: number) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [enabled, setEnabled] = useState(assessment.certificateEnabled);
+  const [minScore, setMinScore] = useState(String(assessment.certificateMinScore));
+  const score = Number(minScore);
+  const scoreValid = Number.isInteger(score) && score >= 1 && score <= 100;
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch<{ ok: true; issued: number }>(`/admin/assessments/${assessment.id}/certificate`, {
+        certificateEnabled: enabled,
+        certificateMinScore: scoreValid ? score : assessment.certificateMinScore,
+      }),
+    onSuccess: async (result) => {
+      setOpen(false);
+      await onSaved(result.issued);
+    },
+  });
+
+  return (
+    <div className="mt-4 rounded-xl border border-gold-500/20 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-bold">
+          <span aria-hidden>🎓 </span>
+          {assessment.certificateEnabled ? (
+            <>
+              شهادة من {formatNumber(assessment.certificateMinScore)}%
+              <span className="ms-2 text-xs text-midnight-500 dark:text-ivory-300/60">
+                ({formatNumber(assessment._count.certificates)} شهادة اتصدرت)
+              </span>
+            </>
+          ) : (
+            <span className="text-midnight-500 dark:text-ivory-300/60">من غير شهادة</span>
+          )}
+        </p>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => {
+            setEnabled(assessment.certificateEnabled);
+            setMinScore(String(assessment.certificateMinScore));
+            setOpen((value) => !value);
+          }}
+          className="min-h-9 rounded-lg px-3 text-xs font-black text-gold-800 hover:bg-gold-500/10 dark:text-gold-300"
+        >
+          {open ? 'إغلاق' : 'إعداد الشهادة'}
+        </button>
+      </div>
+      {open && (
+        <form
+          className="mt-3 flex flex-wrap items-end gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!enabled || scoreValid) save.mutate();
+          }}
+        >
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-bold">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) => setEnabled(event.target.checked)}
+              className="h-5 w-5 accent-[#c99a30]"
+            />
+            فيه شهادة
+          </label>
+          {enabled && (
+            <label className="block">
+              <span className="mb-1 block text-xs font-black">من كام في المية؟</span>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={minScore}
+                onChange={(event) => setMinScore(event.target.value)}
+                className="input-base w-28"
+              />
+            </label>
+          )}
+          <button
+            type="submit"
+            disabled={save.isPending || (enabled && !scoreValid)}
+            className="min-h-11 rounded-xl bg-gold-500 px-4 text-sm font-black text-midnight-950 hover:bg-gold-400 disabled:opacity-50"
+          >
+            {save.isPending ? 'جاري الحفظ…' : 'حفظ'}
+          </button>
+          {save.isError && (
+            <p role="alert" className="w-full text-xs font-bold text-red-600 dark:text-red-400">
+              {save.error instanceof ApiError ? save.error.message : 'تعذر الحفظ'}
+            </p>
+          )}
+        </form>
       )}
     </div>
   );
@@ -423,6 +547,10 @@ function AssessmentEditor({
     state.title.trim().length >= 2 &&
     Boolean(state.gradeId) &&
     (state.isFree || Number(state.pricePounds) >= 1) &&
+    (!state.certificateEnabled ||
+      (Number.isInteger(state.certificateMinScore) &&
+        state.certificateMinScore >= 1 &&
+        state.certificateMinScore <= 100)) &&
     Boolean(state.kind === 'UNIT_EXAM' ? state.unitId : state.lessonId) &&
     state.questions.length > 0 &&
     state.questions.every(
@@ -633,6 +761,24 @@ function AssessmentEditor({
               title="ترتيب الإجابات عشوائيًا"
               description="يتم تغيير ترتيب اختيارات كل سؤال."
             />
+            <Toggle
+              checked={state.certificateEnabled}
+              onChange={(checked) => set('certificateEnabled', checked)}
+              title="شهادة للمتفوقين"
+              description="اللي يجيب النسبة اللي تحددها أو أعلى ياخد شهادة يحمّلها PDF."
+            />
+            {state.certificateEnabled && (
+              <Field label="الشهادة من كام في المية؟">
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={state.certificateMinScore}
+                  onChange={(e) => set('certificateMinScore', Number(e.target.value))}
+                  className="input-base"
+                />
+              </Field>
+            )}
           </section>
           <section>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

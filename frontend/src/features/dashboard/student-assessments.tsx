@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { cn, formatNumber } from '@/lib/utils';
-import type { AssessmentKind, StudentAssessment } from '@/types/api';
+import type { AssessmentKind, StudentAssessment, StudentCertificate } from '@/types/api';
 import { useMutation } from '@tanstack/react-query';
 import {
   PaymentMethodDialog,
@@ -44,6 +44,10 @@ export function StudentAssessments() {
     queryFn: () => api.get<StudentAssessment[]>('/assessments'),
   });
   const items = query.data ?? [];
+  const certificates = useQuery({
+    queryKey: ['my-certificates'],
+    queryFn: () => api.get<StudentCertificate[]>('/certificates/mine'),
+  });
   const checkout = useMutation({
     mutationFn: ({ productId, method }: { productId: string; method: CheckoutPaymentMethod }) =>
       api.post<{ redirectUrl: string | null }>(
@@ -89,6 +93,30 @@ export function StudentAssessments() {
           </div>
         ))}
       </section>
+
+      {Boolean(certificates.data?.length) && (
+        <section aria-labelledby="my-certificates" className="space-y-3">
+          <h2 id="my-certificates" className="font-display text-xl font-black">
+            🎓 شهاداتي
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin]">
+            {certificates.data!.map((certificate) => (
+              <Link
+                key={certificate.serial}
+                href={`/certificates/${certificate.serial}`}
+                className="min-w-56 shrink-0 rounded-2xl border border-gold-500/40 bg-gold-500/10 p-4 transition-colors hover:bg-gold-500/20"
+              >
+                <p className="line-clamp-1 font-black text-midnight-950 dark:text-ivory-50">
+                  {certificate.assessmentTitle}
+                </p>
+                <p className="mt-1 text-xs font-bold text-gold-800 dark:text-gold-300">
+                  {formatNumber(certificate.percentage)}% · افتح وحمّل PDF
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {query.isLoading ? (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -174,6 +202,11 @@ export function StudentAssessments() {
                   <span>
                     {formatNumber(item.attemptCount)} من {formatNumber(item.maxAttempts)} محاولة
                   </span>
+                  {item.certificateMinScore !== null && (
+                    <span className="text-gold-700 dark:text-gold-300">
+                      🎓 شهادة من {formatNumber(item.certificateMinScore)}%
+                    </span>
+                  )}
                   {item.dueAt && (
                     <span className={item.isOverdue ? 'text-red-600 dark:text-red-300' : ''}>
                       التسليم:{' '}
