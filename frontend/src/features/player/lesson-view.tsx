@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
-import { VideoPlayer } from './video-player';
+import { VideoPlayer, type PlayerController } from './video-player';
+import { LessonQuestions } from '@/features/questions/lesson-questions';
 import { LockedLesson } from './locked-lesson';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -22,6 +23,7 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
   const [isBuying, setIsBuying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
+  const playerRef = useRef<PlayerController | null>(null);
 
   const buy = async (method: CheckoutPaymentMethod) => {
     if (!lesson.productId) return;
@@ -90,6 +92,7 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
                   lessonId={lesson.id}
                   title={lesson.title}
                   posterUrl={lesson.thumbnailUrl}
+                  controllerRef={playerRef}
                 />
               ) : (
                 <LockedLesson
@@ -187,6 +190,12 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
                 </section>
               )}
             </motion.div>
+
+            {canWatch && (
+              <Suspense fallback={null}>
+                <LessonQuestions lessonId={lesson.id} player={playerRef} />
+              </Suspense>
+            )}
           </div>
 
           {/* ---------------------------------------------------------------

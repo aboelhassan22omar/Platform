@@ -292,6 +292,33 @@ export class MessageProducersService {
     );
   }
 
+  /** Tells the student the teacher answered their question under a lesson. */
+  async questionAnswered(question: {
+    id: string;
+    userId: string;
+    lessonId: string;
+    lessonTitle: string;
+  }): Promise<number> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: question.userId },
+      select: { phone: true },
+    });
+    if (!user) return 0;
+    return this.outbox.enqueue([
+      {
+        kind: MessageKind.QUESTION_ANSWERED,
+        userId: question.userId,
+        phone: user.phone,
+        params: [
+          question.lessonTitle,
+          `${this.site}/lessons/${question.lessonId}?question=${question.id}`,
+        ],
+        // Once per question: later replies in the thread do not message again.
+        dedupeKey: `question:${question.id}:answered`,
+      },
+    ]);
+  }
+
   /** Tells the student their transfer was approved. */
   async paymentConfirmed(order: {
     id: string;

@@ -23,10 +23,17 @@ const END_REPORT_SECONDS = 0.75;
 const PLAYBACK_RATES = [1, 1.25, 1.5, 1.75, 2] as const;
 const PLAYBACK_RATE_STORAGE_KEY = 'video-playback-rate';
 
+/** Lets the page around the player read the position and jump to a moment. */
+export interface PlayerController {
+  currentTime: () => number;
+  seek: (seconds: number) => void;
+}
+
 interface VideoPlayerProps {
   lessonId: string;
   title: string;
   posterUrl?: string | null;
+  controllerRef?: React.MutableRefObject<PlayerController | null>;
 }
 
 /** Force hls.js onto a real rendition and return the rendition actually used. */
@@ -89,8 +96,23 @@ type WebkitDocument = Document & {
   webkitExitFullscreen?: () => void;
 };
 
-export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
+export function VideoPlayer({ lessonId, title, posterUrl, controllerRef }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (!controllerRef) return;
+    controllerRef.current = {
+      currentTime: () => videoRef.current?.currentTime ?? 0,
+      seek: (seconds) => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.currentTime = seconds;
+        void video.play().catch(() => undefined);
+      },
+    };
+    return () => {
+      controllerRef.current = null;
+    };
+  }, [controllerRef]);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
