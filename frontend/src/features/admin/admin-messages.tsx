@@ -21,6 +21,7 @@ export const KIND_LABELS: Record<MessageKind, string> = {
   HOMEWORK_DUE: 'تذكير واجب',
   SUBSCRIPTION_EXPIRING: 'اشتراك قرّب يخلص',
   PAYMENT_CONFIRMED: 'تأكيد دفع',
+  QUESTION_ANSWERED: 'رد على سؤال',
 };
 
 export const STATUS_LABELS: Record<MessageStatus, { label: string; className: string }> = {

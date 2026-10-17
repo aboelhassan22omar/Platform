@@ -122,6 +122,21 @@ export const MESSAGE_TEMPLATES: Record<MessageKind, MessageTemplate> = {
       'شكرًا إنك معانا 🌟',
     ].join('\n'),
   },
+  QUESTION_ANSWERED: {
+    kind: MessageKind.QUESTION_ANSWERED,
+    name: 'lesson_question_answered',
+    audience: MessageAudience.STUDENT,
+    category: 'UTILITY',
+    label: 'الرد على سؤال الطالب',
+    description: 'للطالب أول ما المستر أو المساعد يرد على سؤاله تحت الحصة.',
+    params: ['اسم الحصة', 'لينك السؤال'],
+    text: [
+      'المستر رد على سؤالك ✍️',
+      'في حصة «{{1}}».',
+      'شوف الرد من هنا: {{2}}',
+      'بالتوفيق 💪',
+    ].join('\n'),
+  },
 };
 
 /** WhatsApp rejects variable values with new lines, tabs or long space runs. */

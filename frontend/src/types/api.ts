@@ -657,7 +657,8 @@ export type MessageKind =
   | 'LIVE_REMINDER'
   | 'HOMEWORK_DUE'
   | 'SUBSCRIPTION_EXPIRING'
-  | 'PAYMENT_CONFIRMED';
+  | 'PAYMENT_CONFIRMED'
+  | 'QUESTION_ANSWERED';
 
 export type MessageStatus =
   | 'PENDING'
@@ -740,4 +741,46 @@ export interface StudentParentReport {
     createdAt: string;
     sentAt: string | null;
   }>;
+}
+
+// ---------------------------------------------------------------------------
+// Lesson Q&A
+// ---------------------------------------------------------------------------
+
+export interface LessonQuestionReply {
+  id: string;
+  body: string;
+  fromStaff: boolean;
+  createdAt: string;
+  edited: boolean;
+  author: string;
+  mine: boolean;
+}
+
+export interface LessonQuestionThread {
+  id: string;
+  lessonId: string;
+  body: string;
+  videoSeconds: number | null;
+  status: 'OPEN' | 'ANSWERED';
+  pinned: boolean;
+  hidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author: string;
+  authorId?: string;
+  mine: boolean;
+  votes: number;
+  votedByMe: boolean;
+  replies: LessonQuestionReply[];
+  /** Present in the staff inbox. */
+  lesson?: { id: string; title: string; courseTitle: string };
+}
+
+export interface LessonQuestionPage {
+  items: LessonQuestionThread[];
+  total: number;
+  open: number;
+  page: number;
+  pageSize: number;
 }

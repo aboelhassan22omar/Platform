@@ -15,6 +15,7 @@ const TABS = [
   { href: '/admin/assessments', label: 'الواجبات والامتحانات' },
   { href: '/admin/question-banks', label: 'بنك الأسئلة' },
   { href: '/admin/grading', label: 'التصحيح' },
+  { href: '/admin/questions', label: 'أسئلة الطلاب' },
   { href: '/admin/live', label: 'اللايف' },
   { href: '/admin/pricing', label: 'الأسعار' },
   { href: '/admin/payments', label: 'سجل المدفوعات' },

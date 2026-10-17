@@ -30,6 +30,7 @@ import { LiveModule } from './live/live.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { SettingsModule } from './settings/settings.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { LessonQuestionsModule } from './lesson-questions/lesson-questions.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { MessagingModule } from './messaging/messaging.module';
     CertificatesModule,
     SettingsModule,
     MessagingModule,
+    LessonQuestionsModule,
   ],
   providers: [
     MaintenanceService,
