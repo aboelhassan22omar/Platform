@@ -12,6 +12,8 @@ import type {
   PlaybackTicket,
 } from '@/types/api';
 import { WaitingRoom } from './waiting-room';
+import { Watermark } from '@/features/protection/watermark';
+import { useProtection } from '@/features/protection/use-protection';
 
 /** How often playback position is written to the server. */
 const PROGRESS_SYNC_SECONDS = 15;
@@ -105,6 +107,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   /** In-page fullscreen for browsers that support neither API. */
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
+  const { watermark } = useProtection();
   const [showControls, setShowControls] = useState(false);
   const [levels, setLevels] = useState<Array<{ index: number; height: number }>>([]);
   const [selectedQualityHeight, setSelectedQualityHeight] = useState<number | null>(null);
@@ -607,7 +610,9 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       container.webkitRequestFullscreen();
       return;
     }
-    if (video?.webkitEnterFullscreen) {
+    // The iPhone's native video fullscreen hides every overlay, the watermark
+    // included; with the watermark on, use the in-page fullscreen instead.
+    if (video?.webkitEnterFullscreen && !watermark) {
       video.webkitEnterFullscreen();
       return;
     }
@@ -827,6 +832,8 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
         )}
         onClick={togglePlay}
       />
+
+      <Watermark />
 
       {/* --- Loading --- */}
       {!isReady && (

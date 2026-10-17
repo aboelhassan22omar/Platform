@@ -31,6 +31,8 @@ type Review = {
   questionCount: number;
   attemptCount: number;
   maxAttempts: number;
+  certificateMinScore: number | null;
+  certificate: { serial: string; percentage: number } | null;
   canRetry: boolean;
   answers: Array<{
     questionId: string;
@@ -68,6 +70,7 @@ export function AssessmentRunner({ id }: { id: string }) {
       setConfirming(false);
       client.setQueryData(['assessment', id], data);
       void client.invalidateQueries({ queryKey: ['student-assessments'] });
+      void client.invalidateQueries({ queryKey: ['my-certificates'] });
     },
   });
   const assessment = query.data;
@@ -296,6 +299,33 @@ function ReviewResult({
           </button>
         )}
       </section>
+      {result.certificate ? (
+        <section className="flex flex-col items-center gap-4 rounded-3xl border-2 border-gold-500/50 bg-gold-500/10 p-6 text-center sm:flex-row sm:text-start">
+          <span className="text-5xl" aria-hidden>
+            🎓
+          </span>
+          <div className="flex-1">
+            <p className="font-display text-xl font-black">مبروك! كسبت شهادة</p>
+            <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/75">
+              شهادتك بدرجة {formatNumber(result.certificate.percentage)}% جاهزة، تقدر تحمّلها PDF
+              وتشاركها.
+            </p>
+          </div>
+          <Link
+            href={`/certificates/${result.certificate.serial}`}
+            className="flex min-h-12 items-center rounded-xl bg-gold-500 px-6 font-black text-midnight-950 hover:bg-gold-400"
+          >
+            افتح الشهادة
+          </Link>
+        </section>
+      ) : (
+        result.certificateMinScore !== null && (
+          <p className="rounded-2xl border border-gold-500/25 bg-white p-4 text-center text-sm font-bold dark:bg-midnight-950/75">
+            🎓 اجمع {formatNumber(result.certificateMinScore)}% أو أكتر في الامتحان ده وخد شهادة
+            {result.canRetry ? ' — لسه عندك محاولة.' : '.'}
+          </p>
+        )
+      )}
       {result.answers.map((a, i) => (
         <article
           key={a.questionId}

@@ -21,6 +21,7 @@ import { ConnectionState } from 'livekit-client';
 import { api, ApiError } from '@/lib/api';
 import { cn, toArabicDigits } from '@/lib/utils';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Watermark } from '@/features/protection/watermark';
 import type { LiveChatMessage, LiveEvent, LiveReactionEvent, LiveSessionDetail } from '@/types/api';
 import { DeviceSettings } from './device-settings';
 
@@ -449,6 +450,8 @@ export function LiveStage({
                 />
               </div>
             )}
+
+            <Watermark />
 
             {/* Floating reactions: names are shown to the teacher only. */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>

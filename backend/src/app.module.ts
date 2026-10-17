@@ -27,6 +27,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MaintenanceService } from './common/maintenance.service';
 import { AssessmentsModule } from './assessments/assessments.module';
 import { LiveModule } from './live/live.module';
+import { CertificatesModule } from './certificates/certificates.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -74,6 +76,8 @@ import { LiveModule } from './live/live.module';
     HealthModule,
     NotificationsModule,
     LiveModule,
+    CertificatesModule,
+    SettingsModule,
   ],
   providers: [
     MaintenanceService,
