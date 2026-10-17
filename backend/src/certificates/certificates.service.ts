@@ -45,6 +45,7 @@ export class CertificatesService {
         userId: true,
         status: true,
         percentage: true,
+        needsGrading: true,
         user: { select: { fullName: true } },
         assessment: {
           select: {
@@ -56,7 +57,8 @@ export class CertificatesService {
         },
       },
     });
-    if (!attempt || !FINISHED.includes(attempt.status)) return null;
+    // Written answers still waiting for a grader: the percentage is not final.
+    if (!attempt || !FINISHED.includes(attempt.status) || attempt.needsGrading) return null;
     const { assessment } = attempt;
     if (!assessment.certificateEnabled || attempt.percentage < assessment.certificateMinScore)
       return null;
@@ -115,6 +117,7 @@ export class CertificatesService {
       where: {
         assessmentId,
         status: { in: FINISHED },
+        needsGrading: false,
         percentage: { gte: assessment.certificateMinScore },
       },
       orderBy: [{ percentage: 'desc' }, { submittedAt: 'asc' }],

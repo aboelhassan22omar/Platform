@@ -175,12 +175,16 @@ export function StudentAssessments() {
                     <span
                       className={cn(
                         'shrink-0 rounded-xl px-3 py-2 text-sm font-black',
-                        item.latestAttempt.passed
-                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                          : 'bg-red-500/10 text-red-700 dark:text-red-300',
+                        item.latestAttempt.needsGrading
+                          ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300'
+                          : item.latestAttempt.passed
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-red-500/10 text-red-700 dark:text-red-300',
                       )}
                     >
-                      {formatNumber(item.latestAttempt.percentage)}%
+                      {item.latestAttempt.needsGrading
+                        ? 'مستني تصحيح'
+                        : `${formatNumber(item.latestAttempt.percentage)}%`}
                     </span>
                   )}
                 </div>

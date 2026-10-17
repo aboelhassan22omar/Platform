@@ -9,6 +9,9 @@ import { AdminPricingController } from './admin-pricing.controller';
 import { AdminStudentsController } from './admin-students.controller';
 import { AdminAssessmentsController } from './admin-assessments.controller';
 import { AdminStudentAccessController } from './admin-student-access.controller';
+import { AdminQuestionBanksController } from './admin-question-banks.controller';
+import { AdminGradingController } from './admin-grading.controller';
+import { AssessmentsModule } from '../assessments/assessments.module';
 import { ContentCatalogService } from './content/content-catalog.service';
 import { ContentLessonsService } from './content/content-lessons.service';
 import { ContentDeletionService } from './content/content-deletion.service';
@@ -19,6 +22,7 @@ import { CertificatesModule } from '../certificates/certificates.module';
   providers: [ContentCatalogService, ContentLessonsService, ContentDeletionService],
   imports: [
     AnalyticsModule,
+    AssessmentsModule,
     AuthModule,
     CertificatesModule,
     EntitlementsModule,
@@ -32,6 +36,8 @@ import { CertificatesModule } from '../certificates/certificates.module';
     AdminContentController,
     AdminPricingController,
     AdminAssessmentsController,
+    AdminQuestionBanksController,
+    AdminGradingController,
   ],
 })
 export class AdminModule {}
