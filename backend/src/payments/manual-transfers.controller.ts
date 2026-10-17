@@ -26,6 +26,7 @@ import { NotificationKind, OrderStatus, Role } from '../generated/prisma/enums';
 import { OrdersService, TOPUP_TITLE } from './orders.service';
 import { TransferSettingsService } from './transfer-settings.service';
 import { transferState, type TransferSubmission } from './transfer-state';
+import { MessageProducersService } from '../messaging/message-producers.service';
 
 const EGYPTIAN_MOBILE = /^01[0125]\d{8}$/;
 const normalizePhone = () =>
@@ -97,6 +98,7 @@ export class ManualTransfersController {
     private readonly storage: StorageService,
     private readonly audit: AuditService,
     private readonly settings: TransferSettingsService,
+    private readonly messages: MessageProducersService,
   ) {}
 
   private assertEnabled() {
@@ -264,6 +266,15 @@ export class ManualTransfersController {
         href: '/dashboard/lessons',
       },
     });
+    // WhatsApp is a courtesy on top of the in-app notification: never fail the approval for it.
+    await this.messages
+      .paymentConfirmed({
+        id: order.id,
+        reference: order.reference,
+        userId: order.userId,
+        purpose: order.purpose,
+      })
+      .catch(() => 0);
     return { approved: true };
   }
 

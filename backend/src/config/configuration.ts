@@ -111,6 +111,23 @@ export const configuration = () => ({
     workerConcurrency: int(process.env.VIDEO_WORKER_CONCURRENCY, 1),
   },
 
+  /**
+   * WhatsApp Business Cloud API (Meta). Secrets stay in the environment; the
+   * admin only switches sending on and off. Without them the platform can
+   * still queue messages for staff to send by hand.
+   */
+  whatsapp: {
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? '',
+    accessToken: process.env.WHATSAPP_ACCESS_TOKEN ?? '',
+    apiVersion: process.env.WHATSAPP_API_VERSION ?? 'v21.0',
+    /** Language the templates were approved in. */
+    templateLanguage: process.env.WHATSAPP_TEMPLATE_LANGUAGE ?? 'ar',
+    /** Verifies delivery-status webhooks (X-Hub-Signature-256). */
+    appSecret: process.env.WHATSAPP_APP_SECRET ?? '',
+    /** Echoed back once when Meta subscribes the webhook. */
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? '',
+  },
+
   payments: {
     transferPhone: process.env.PAYMENT_TRANSFER_PHONE ?? '',
     provider: (process.env.PAYMENT_PROVIDER ?? 'dev') as PaymentProviderKey,

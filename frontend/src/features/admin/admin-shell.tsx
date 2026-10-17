@@ -16,6 +16,7 @@ const TABS = [
   { href: '/admin/live', label: 'اللايف' },
   { href: '/admin/pricing', label: 'الأسعار' },
   { href: '/admin/payments', label: 'سجل المدفوعات' },
+  { href: '/admin/messages', label: 'رسائل واتساب' },
   { href: '/admin/settings', label: 'الإعدادات' },
 ];
 

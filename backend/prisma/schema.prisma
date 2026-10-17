@@ -227,6 +227,34 @@ enum AssessmentKind {
   UNIT_EXAM
 }
 
+/// What an automatic WhatsApp message is about. Each kind has one template.
+enum MessageKind {
+  WEEKLY_REPORT
+  NEW_LESSON
+  LIVE_REMINDER
+  HOMEWORK_DUE
+  SUBSCRIPTION_EXPIRING
+  PAYMENT_CONFIRMED
+}
+
+enum MessageAudience {
+  STUDENT
+  PARENT
+}
+
+enum MessageStatus {
+  /// Waiting for the dispatcher (automatic sending).
+  PENDING
+  /// Waiting for staff to send it by hand from the dashboard.
+  MANUAL
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  /// Dropped: no longer relevant (e.g. the live already started) or cancelled by staff.
+  CANCELLED
+}
+
 // ----------------------------------------------------------------------------
 // Identity
 // ----------------------------------------------------------------------------
@@ -247,6 +275,9 @@ model User {
 
   phoneVerifiedAt DateTime?
   lastLoginAt     DateTime?
+
+  /// Staff can stop the weekly WhatsApp report to this student's parent.
+  parentReportsEnabled Boolean @default(true)
 
   /// Platform balance in piastres. Only ever changed together with a
   /// WalletTransaction row; a CHECK constraint keeps it from going negative.
@@ -282,6 +313,9 @@ model User {
   certificates        Certificate[]
   walletTransactions  WalletTransaction[]
   devices             UserDevice[]
+  outboundMessages    OutboundMessage[]
+  parentReports       ParentReport[]
+  studyDays           StudyDay[]
 
   @@index([role, status])
   @@index([educationSystem, gradeLevel])
@@ -523,6 +557,10 @@ model Lesson {
   /// How many times a student may watch the video. Null uses the platform
   /// default; 0 means unlimited for this lesson.
   maxViews Int?
+
+  /// When students were told the lesson is out. Set once, so a lesson is
+  /// announced exactly one time however often it is re-published.
+  announcedAt DateTime?
 
   publishedAt DateTime?
   scheduledAt DateTime?
@@ -1263,6 +1301,8 @@ model LiveSession {
   recordingEnabled Boolean           @default(false)
   /// Set while the presenter is missing from the room; the class auto-ends after a grace period.
   hostAbsentSince  DateTime?
+  /// When the one-hour WhatsApp reminder was queued; null until then.
+  reminderSentAt   DateTime?
   endReason        LiveEndReason?
   /// LiveKit room name. Generated server-side, never taken from input.
   roomName         String            @unique
@@ -1333,4 +1373,80 @@ model LiveRecording {
   @@index([sessionId])
   @@index([status])
   @@map("live_recordings")
+}
+
+// ----------------------------------------------------------------------------
+// Messaging and parent reports
+// ----------------------------------------------------------------------------
+
+/// Outbox of WhatsApp messages. Producers only ever insert rows (dedupeKey
+/// makes a repeated run harmless); the dispatcher sends them, or staff send
+/// them by hand in manual mode.
+model OutboundMessage {
+  id       String          @id @default(cuid())
+  kind     MessageKind
+  audience MessageAudience
+  /// The student the message is about (also when it goes to the parent).
+  userId   String?
+  user     User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// International format without "+", e.g. 201012345678.
+  toPhone      String
+  templateName String
+  /// Template parameters, in order. Single-line strings (a WhatsApp rule).
+  params       String[]
+  /// The full text as the recipient reads it, for manual sending and the log.
+  body         String
+
+  status            MessageStatus @default(PENDING)
+  attempts          Int           @default(0)
+  lastError         String?
+  providerMessageId String?       @unique
+  /// One message per event and recipient, e.g. "live:<id>:<userId>".
+  dedupeKey         String        @unique
+  scheduledFor      DateTime      @default(now())
+  /// After this the message is pointless (a live reminder once the live began).
+  expiresAt         DateTime?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  /// Staff member who sent it by hand.
+  sentById          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, scheduledFor])
+  @@index([userId, createdAt])
+  @@index([kind, createdAt])
+  @@map("outbound_messages")
+}
+
+/// A weekly report snapshot, readable by the parent through its secret token.
+model ParentReport {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart DateTime
+  weekEnd   DateTime
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@unique([userId, weekStart])
+  @@index([createdAt])
+  @@map("parent_reports")
+}
+
+/// Streamed video time per student per Cairo calendar day, counted on the
+/// server with the view limits. Feeds the weekly report's daily chart.
+model StudyDay {
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  day            DateTime @db.Date
+  watchedSeconds Int      @default(0)
+
+  @@id([userId, day])
+  @@index([day])
+  @@map("study_days")
 }

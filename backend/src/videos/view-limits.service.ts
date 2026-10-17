@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 import { AccessSettingsService } from '../settings/access-settings.service';
+import { cairoDateOnly } from '../common/utils/cairo-time';
 
 /** A segment fetched again within this window is not charged a second time. */
 const REWATCH_AFTER_MS = 15 * 60 * 1000;
@@ -175,6 +176,13 @@ export class ViewLimitsService {
         viewedSeconds: this.segmentSeconds,
       },
       update: { viewedSeconds: { increment: this.segmentSeconds } },
+    });
+    // Daily totals feed the parent's weekly report.
+    const day = cairoDateOnly(new Date());
+    await this.prisma.studyDay.upsert({
+      where: { userId_day: { userId: ticket.userId, day } },
+      create: { userId: ticket.userId, day, watchedSeconds: this.segmentSeconds },
+      update: { watchedSeconds: { increment: this.segmentSeconds } },
     });
   }
 
