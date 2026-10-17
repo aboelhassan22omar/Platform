@@ -17,7 +17,15 @@ interface PaymentRow {
   items: Array<{ titleSnapshot: string; kindSnapshot: string }>;
   provider: string | null;
   method: string | null;
+  purpose: 'PURCHASE' | 'WALLET_TOPUP';
+  paidFromWallet: boolean;
 }
+
+/** A top-up has no items; show it as one line. */
+const linesOf = (row: PaymentRow) =>
+  row.purpose === 'WALLET_TOPUP'
+    ? [{ titleSnapshot: 'شحن رصيد المحفظة', kindSnapshot: 'WALLET_TOPUP' }]
+    : row.items;
 
 const KIND_LABELS: Record<string, string> = {
   LESSON: 'حصة',
@@ -26,10 +34,13 @@ const KIND_LABELS: Record<string, string> = {
   MONTHLY_PLAN: 'اشتراك شهري',
   YEARLY_PLAN: 'اشتراك سنوي',
   ASSESSMENT: 'امتحان',
+  WALLET_TOPUP: 'محفظة',
 };
 
 function methodLabel(row: PaymentRow): string {
   if (row.totalMinor === 0) return 'مجاني بكوبون';
+  // Spending money already counted at top-up, so not part of the total above.
+  if (row.paidFromWallet) return 'من رصيد المحفظة';
   if (row.provider === 'DEV_SANDBOX') return 'تجريبي';
   if (row.provider === 'MANUAL') return 'تحويل يدوي';
   if (row.method === 'WALLET') return 'محفظة إلكترونية';
@@ -159,7 +170,7 @@ export function AdminPayments() {
                       {formatEgp(row.totalMinor)}
                     </p>
                   </div>
-                  {row.items.map((item, index) => (
+                  {linesOf(row).map((item, index) => (
                     <p key={index} className="text-sm text-midnight-800 dark:text-ivory-100">
                       <span className="me-1.5 rounded-md bg-gold-500/10 px-1.5 py-0.5 text-[10px] font-bold text-gold-700 dark:text-gold-300">
                         {KIND_LABELS[item.kindSnapshot] ?? item.kindSnapshot}
@@ -210,7 +221,7 @@ export function AdminPayments() {
                       </td>
                       <td className="px-4 py-3">
                         <ul className="space-y-1">
-                          {row.items.map((item, index) => (
+                          {linesOf(row).map((item, index) => (
                             <li key={index} className="text-midnight-800 dark:text-ivory-100">
                               <span className="me-1.5 rounded-md bg-gold-500/10 px-1.5 py-0.5 text-[10px] font-bold text-gold-700 dark:text-gold-300">
                                 {KIND_LABELS[item.kindSnapshot] ?? item.kindSnapshot}

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Max,
   Min,
   MinLength,
 } from 'class-validator';
@@ -52,6 +53,8 @@ export class UpsertLessonDto {
   @IsOptional() @IsEnum(PublishStatus) status?: PublishStatus;
   @IsOptional() @IsInt() @Min(0) priceMinor?: number;
   @IsOptional() @IsBoolean() isFreePreview?: boolean;
+  /** Null uses the platform default; 0 = unlimited for this lesson. */
+  @IsOptional() @IsInt() @Min(0) @Max(100) maxViews?: number | null;
   @IsOptional() @IsString() thumbnailKey?: string;
   @IsOptional() @IsDateString() scheduledAt?: string;
 }

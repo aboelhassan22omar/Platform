@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   EntitlementStatus,
+  OrderPurpose,
   OrderStatus,
   PublishStatus,
   Role,
@@ -75,9 +76,13 @@ export class AnalyticsService {
       this.prisma.lesson.count(),
       this.prisma.lesson.count({ where: { status: PublishStatus.PUBLISHED } }),
       this.prisma.course.count({ where: { status: PublishStatus.PUBLISHED } }),
-      this.prisma.order.count({ where: { status: OrderStatus.PAID } }),
+      this.prisma.order.count({
+        where: { status: OrderStatus.PAID, purpose: OrderPurpose.PURCHASE },
+      }),
+      // Money actually received: top-ups and direct purchases. A purchase paid
+      // from the balance spends money already counted at top-up.
       this.prisma.order.aggregate({
-        where: { status: OrderStatus.PAID },
+        where: { status: OrderStatus.PAID, paidFromWallet: false },
         _sum: { totalMinor: true },
       }),
       this.presence.onlineBreakdown(),
@@ -156,8 +161,8 @@ export class AnalyticsService {
   async salesOverTime(range: DateRange) {
     const rows = await this.prisma.$queryRaw<Array<{ day: Date; orders: bigint; revenue: bigint }>>`
       SELECT date_trunc('day', "paidAt") AS day,
-             COUNT(*)::bigint AS orders,
-             COALESCE(SUM("totalMinor"), 0)::bigint AS revenue
+             COUNT(*) FILTER (WHERE "purpose" = 'PURCHASE')::bigint AS orders,
+             COALESCE(SUM("totalMinor") FILTER (WHERE NOT "paidFromWallet"), 0)::bigint AS revenue
       FROM "orders"
       WHERE "status" = 'PAID'
         AND "paidAt" >= ${range.from}

@@ -30,6 +30,8 @@ export interface AdminLesson {
   sortOrder: number;
   priceMinor: number | null;
   isFreePreview: boolean;
+  /** Null uses the platform default; 0 = unlimited. */
+  maxViews: number | null;
   videoAsset: {
     status: VideoStatus;
     originalName: string | null;
@@ -79,6 +81,7 @@ export interface EditorTarget {
     priceMinor?: number | null;
     centerPriceMinor?: number | null;
     isFreePreview?: boolean;
+    maxViews?: number | null;
     gradeId?: string;
     scheduledAt?: string | null;
   };

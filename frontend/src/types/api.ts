@@ -231,6 +231,21 @@ export interface PlaybackTicket {
   resumeAtSeconds: number;
   /** 0 when the platform has no viewer limit: no heartbeat is needed. */
   heartbeatSeconds: number;
+  /** Null for staff. */
+  views: ViewAllowance | null;
+}
+
+/** How much of a lesson's view allowance a student has left. */
+export interface ViewAllowance {
+  limited: boolean;
+  maxViews: number;
+  bonusViews: number;
+  durationSeconds: number;
+  viewedSeconds: number;
+  remainingSeconds: number | null;
+  viewsUsed: number;
+  remainingViews: number | null;
+  exhausted: boolean;
 }
 
 /** The platform is at its viewer limit; the student waits their turn. */
@@ -257,7 +272,10 @@ export interface Order {
   currency: string;
   createdAt: string;
   paidAt: string | null;
-  items: Array<{ id: string; title: string; kind: ProductKind; totalMinor: number }>;
+  purpose: 'PURCHASE' | 'WALLET_TOPUP';
+  paidFromWallet: boolean;
+  /** A top-up has one synthetic line with kind null. */
+  items: Array<{ id: string; title: string; kind: ProductKind | null; totalMinor: number }>;
   redirectUrl: string | null;
   payment: {
     provider: string;
@@ -577,4 +595,48 @@ export interface TransferDetails {
   state: 'waiting' | 'submitted' | 'rejected';
   rejectionReason: string | null;
   submitted: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Wallet and devices
+// ---------------------------------------------------------------------------
+
+export type WalletTransactionType = 'TOPUP' | 'PURCHASE' | 'ADMIN_CREDIT' | 'ADMIN_DEBIT';
+
+export interface WalletTransaction {
+  id: string;
+  type: WalletTransactionType;
+  /** Signed piastres: positive adds, negative spends. */
+  amountMinor: number;
+  balanceAfterMinor: number;
+  note: string | null;
+  createdAt: string;
+  orderReference: string | null;
+  items: string[];
+}
+
+export interface WalletSummary {
+  balanceMinor: number;
+  transactions: WalletTransaction[];
+}
+
+export interface SignedInDevice {
+  id: string;
+  label: string;
+  ip?: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  isCurrent?: boolean;
+}
+
+export interface DeviceList {
+  /** 0 = unlimited. */
+  limit: number;
+  devices: SignedInDevice[];
+}
+
+export interface LessonViewUsage extends ViewAllowance {
+  lessonId: string;
+  title: string;
+  lastWatchedAt: string;
 }

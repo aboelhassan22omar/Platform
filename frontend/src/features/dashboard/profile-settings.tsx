@@ -11,6 +11,7 @@ import { formatDate, formatDurationLabel } from '@/lib/utils';
 import { EASE_ENTRANCE } from '@/lib/motion';
 import type { LeaderboardResponse, ProgressSummary } from '@/types/api';
 import { AchievementsLibrary } from './achievements-library';
+import { MyDevices } from './my-devices';
 
 const GRADE_LABELS: Record<string, string> = {
   SEC_1: 'الصف الأول الثانوي',
@@ -274,6 +275,8 @@ export function ProfileSettings() {
       </div>
 
       <AchievementsLibrary />
+
+      <MyDevices />
 
       {/* Password change */}
       <motion.section

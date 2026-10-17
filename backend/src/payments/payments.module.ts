@@ -12,14 +12,17 @@ import { ManualTransferProvider } from './providers/manual-transfer.provider';
 import { ManualTransfersController } from './manual-transfers.controller';
 import { PaymentsLogController } from './payments-log.controller';
 import { TransferSettingsService } from './transfer-settings.service';
+import { WalletController } from './wallet.controller';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
-  imports: [EntitlementsModule],
+  imports: [EntitlementsModule, WalletModule],
   controllers: [
     PaymentsController,
     SandboxController,
     ManualTransfersController,
     PaymentsLogController,
+    WalletController,
   ],
   providers: [
     OrdersService,
