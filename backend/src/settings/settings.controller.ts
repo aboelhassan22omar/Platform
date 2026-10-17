@@ -11,7 +11,6 @@ import { AccessSettingsService } from './access-settings.service';
 import { ProtectionSettingsService } from './protection-settings.service';
 
 class ProtectionSettingsDto {
-  @IsBoolean() blockCapture!: boolean;
   @IsBoolean() watermark!: boolean;
 }
 
@@ -59,7 +58,6 @@ export class SettingsController {
     @Req() req: Request,
   ) {
     const saved = await this.protection.set({
-      blockCapture: dto.blockCapture,
       watermark: dto.watermark,
     });
     await this.audit.record(this.prisma, {
