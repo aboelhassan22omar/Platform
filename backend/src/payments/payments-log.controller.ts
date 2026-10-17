@@ -42,7 +42,7 @@ export class PaymentsLogController {
         : {}),
     };
 
-    const [orders, total, sum] = await Promise.all([
+    const [orders, total, cash] = await Promise.all([
       this.prisma.order.findMany({
         where,
         orderBy: { paidAt: 'desc' },
@@ -54,6 +54,8 @@ export class PaymentsLogController {
           totalMinor: true,
           discountMinor: true,
           currency: true,
+          purpose: true,
+          paidFromWallet: true,
           paidAt: true,
           user: { select: { fullName: true, username: true, phone: true } },
           items: { select: { titleSnapshot: true, kindSnapshot: true } },
@@ -65,7 +67,11 @@ export class PaymentsLogController {
         },
       }),
       this.prisma.order.count({ where }),
-      this.prisma.order.aggregate({ where, _sum: { totalMinor: true } }),
+      // Balance purchases are spending of money already counted at top-up.
+      this.prisma.order.aggregate({
+        where: { AND: [where, { paidFromWallet: false }] },
+        _sum: { totalMinor: true },
+      }),
     ]);
 
     return {
@@ -77,7 +83,7 @@ export class PaymentsLogController {
       total,
       page: currentPage,
       pageSize: take,
-      totalPaidMinor: sum._sum.totalMinor ?? 0,
+      totalPaidMinor: cash._sum.totalMinor ?? 0,
     };
   }
 }

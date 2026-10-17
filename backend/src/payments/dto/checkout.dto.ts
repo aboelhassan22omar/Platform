@@ -15,9 +15,12 @@ export class CreateCheckoutDto {
   @IsString()
   couponCode?: string;
 
-  @ApiPropertyOptional({ enum: [PaymentMethod.WALLET, PaymentMethod.CARD] })
+  @ApiPropertyOptional({
+    enum: [PaymentMethod.WALLET, PaymentMethod.CARD, PaymentMethod.BALANCE],
+    description: 'BALANCE يدفع من رصيد محفظة الطالب على المنصة',
+  })
   @IsOptional()
-  @IsIn([PaymentMethod.WALLET, PaymentMethod.CARD], {
+  @IsIn([PaymentMethod.WALLET, PaymentMethod.CARD, PaymentMethod.BALANCE], {
     message: 'طريقة الدفع المتاحة هي المحفظة الإلكترونية أو إنستا باي فقط',
   })
   method?: PaymentMethod;

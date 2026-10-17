@@ -2,11 +2,14 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '../generated/prisma/client';
 import {
+  OrderPurpose,
   OrderStatus,
   PaymentMethod,
+  PaymentProvider,
   PaymentStatus,
   ProductKind,
   SubscriptionStatus,
+  WalletTransactionType,
 } from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { EntitlementsService } from '../entitlements/entitlements.service';
@@ -16,6 +19,17 @@ import { lessonPriceFor } from '../common/utils/lesson-pricing';
 import type { IPaymentProvider, VerifiedWebhook } from './providers/payment-provider.interface';
 import { TransferSettingsService, type TransferSettings } from './transfer-settings.service';
 import { transferState, type TransferSubmission } from './transfer-state';
+import {
+  InsufficientBalanceError,
+  TOPUP_MAX_MINOR,
+  TOPUP_MIN_MINOR,
+  WalletService,
+} from '../wallet/wallet.service';
+
+/** Shown wherever a top-up order needs a line title (it has no items). */
+export const TOPUP_TITLE = 'شحن رصيد المحفظة';
+
+const formatPounds = (minor: number) => (minor / 100).toLocaleString('ar-EG');
 
 export interface CreateOrderParams {
   userId: string;
@@ -35,6 +49,7 @@ export class OrdersService {
     private readonly config: ConfigService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: IPaymentProvider,
     private readonly transferSettings: TransferSettingsService,
+    private readonly wallet: WalletService,
   ) {}
 
   // --------------------------------------------------------------------------
@@ -52,7 +67,11 @@ export class OrdersService {
     const { userId, productIds } = params;
     if (!productIds.length) throw new BadRequestException('مفيش حاجة في طلبك');
     const method = params.method ?? PaymentMethod.WALLET;
-    if (method !== PaymentMethod.WALLET && method !== PaymentMethod.CARD) {
+    if (
+      method !== PaymentMethod.WALLET &&
+      method !== PaymentMethod.CARD &&
+      method !== PaymentMethod.BALANCE
+    ) {
       throw new BadRequestException('طريقة الدفع المتاحة هي المحفظة الإلكترونية أو إنستا باي فقط');
     }
 
@@ -104,8 +123,13 @@ export class OrdersService {
 
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, fullName: true, phone: true },
+      select: { id: true, fullName: true, phone: true, walletBalanceMinor: true },
     });
+    // Checked before an order exists, so a short balance leaves nothing behind.
+    // The debit inside settlement is what actually guards against a race.
+    if (method === PaymentMethod.BALANCE && user.walletBalanceMinor < totalMinor) {
+      throw new InsufficientBalanceError(user.walletBalanceMinor, totalMinor);
+    }
 
     const order = await this.prisma.$transaction(async (tx) => {
       const created = await tx.order.create({
@@ -163,6 +187,43 @@ export class OrdersService {
       return this.presentOrder(settled!, null);
     }
 
+    if (method === PaymentMethod.BALANCE) {
+      try {
+        await this.settleOrder(order.id, {
+          eventId: `balance_${order.id}`,
+          eventType: 'wallet.purchase',
+          providerRef: `balance_${order.id}`,
+          orderReference: order.reference,
+          succeeded: true,
+          amountMinor: totalMinor,
+          method: PaymentMethod.BALANCE,
+          provider: PaymentProvider.PLATFORM_WALLET,
+          raw: { reason: 'paid from platform balance' },
+        });
+      } catch (error) {
+        // The balance was spent elsewhere between the check and the debit:
+        // close the order and give the coupon back.
+        await this.prisma.$transaction([
+          this.prisma.couponRedemption.deleteMany({ where: { orderId: order.id } }),
+          ...(coupon
+            ? [
+                this.prisma.coupon.update({
+                  where: { id: coupon.id },
+                  data: { redemptionCount: { decrement: 1 } },
+                }),
+              ]
+            : []),
+          this.prisma.order.update({
+            where: { id: order.id },
+            data: { status: OrderStatus.CANCELLED, cancelledAt: new Date(), couponId: null },
+          }),
+        ]);
+        throw error;
+      }
+      const settled = await this.findOrderById(order.id);
+      return this.presentOrder(settled!, null);
+    }
+
     const session = await this.provider.createCheckout({
       orderId: order.id,
       reference: order.reference,
@@ -181,6 +242,97 @@ export class OrdersService {
           method,
           status: PaymentStatus.PENDING,
           amountMinor: totalMinor,
+          currency: order.currency,
+          providerRef: session.providerRef,
+        },
+      }),
+      this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.AWAITING_PAYMENT },
+      }),
+    ]);
+
+    const refreshed = await this.findOrderById(order.id);
+    return this.presentOrder(
+      refreshed!,
+      session.redirectUrl,
+      session.isSandbox,
+      await this.transferDetails(),
+    );
+  }
+
+  /**
+   * Starts a balance top-up. It is an ordinary order with no items, paid
+   * through the deployment's provider (for manual transfers, the admin
+   * approves it like any other); settling it credits the balance.
+   */
+  async createTopUp(params: {
+    userId: string;
+    amountMinor: number;
+    method?: PaymentMethod;
+    idempotencyKey?: string;
+  }) {
+    const { userId, amountMinor } = params;
+    const method = params.method ?? PaymentMethod.WALLET;
+    if (method !== PaymentMethod.WALLET && method !== PaymentMethod.CARD) {
+      throw new BadRequestException('اشحن بفودافون كاش أو إنستا باي');
+    }
+    if (
+      !Number.isInteger(amountMinor) ||
+      amountMinor < TOPUP_MIN_MINOR ||
+      amountMinor > TOPUP_MAX_MINOR
+    ) {
+      throw new BadRequestException(
+        `مبلغ الشحن لازم يكون بين ${TOPUP_MIN_MINOR / 100} و ${TOPUP_MAX_MINOR / 100} جنيه`,
+      );
+    }
+
+    if (params.idempotencyKey) {
+      const existing = await this.prisma.order.findUnique({
+        where: { idempotencyKey: params.idempotencyKey },
+        include: { items: true, payments: true },
+      });
+      if (existing) {
+        if (existing.userId !== userId) throw new BadRequestException('مفتاح الطلب غير صالح');
+        return this.presentOrder(existing, null, undefined, await this.transferDetails());
+      }
+    }
+
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, fullName: true, phone: true },
+    });
+    const order = await this.prisma.order.create({
+      data: {
+        userId,
+        purpose: OrderPurpose.WALLET_TOPUP,
+        reference: generateOrderReference(),
+        status: OrderStatus.PENDING,
+        subtotalMinor: amountMinor,
+        totalMinor: amountMinor,
+        currency: this.config.get<string>('payments.currency')!,
+        idempotencyKey: params.idempotencyKey ?? null,
+      },
+    });
+
+    const session = await this.provider.createCheckout({
+      orderId: order.id,
+      reference: order.reference,
+      amountMinor,
+      currency: order.currency,
+      method,
+      customer: { id: user.id, fullName: user.fullName, phone: user.phone },
+      returnUrl: `${this.config.get<string>('publicSiteUrl')}/checkout/return?ref=${order.reference}`,
+    });
+
+    await this.prisma.$transaction([
+      this.prisma.payment.create({
+        data: {
+          orderId: order.id,
+          provider: this.provider.key,
+          method,
+          status: PaymentStatus.PENDING,
+          amountMinor,
           currency: order.currency,
           providerRef: session.providerRef,
         },
@@ -281,6 +433,8 @@ export class OrdersService {
    * returns early, and each grant is itself idempotent.
    */
   async settleOrder(orderId: string, event: VerifiedWebhook): Promise<void> {
+    const provider = event.provider ?? this.provider.key;
+    const paidFromWallet = event.method === PaymentMethod.BALANCE;
     await this.prisma.$transaction(async (tx) => {
       // Serialize approvals/callbacks so concurrent retries cannot double grant.
       await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId} FOR UPDATE`;
@@ -326,10 +480,15 @@ export class OrdersService {
         throw new BadRequestException('قيمة الدفع لا تطابق قيمة الطلب');
       }
 
+      // A top-up is paid with real money; paying one from the balance makes no sense.
+      if (paidFromWallet && order.purpose === OrderPurpose.WALLET_TOPUP) {
+        throw new BadRequestException('مينفعش تشحن المحفظة من رصيدها');
+      }
+
       const paidAt = new Date();
       const existingPayment = await tx.payment.findUnique({
         where: {
-          provider_providerRef: { provider: this.provider.key, providerRef: event.providerRef },
+          provider_providerRef: { provider, providerRef: event.providerRef },
         },
       });
       if (existingPayment && existingPayment.orderId !== order.id) {
@@ -352,21 +511,32 @@ export class OrdersService {
         });
       }
 
+      // Spend first: if the balance no longer covers the order, nothing below
+      // runs and the whole settlement rolls back.
+      if (paidFromWallet) {
+        await this.wallet.debit(tx, {
+          userId: order.userId,
+          amountMinor: order.totalMinor,
+          type: WalletTransactionType.PURCHASE,
+          orderId: order.id,
+        });
+      }
+
       await tx.order.update({
         where: { id: order.id },
-        data: { status: OrderStatus.PAID, paidAt },
+        data: { status: OrderStatus.PAID, paidAt, paidFromWallet },
       });
 
       await tx.payment.upsert({
         where: {
           provider_providerRef: {
-            provider: this.provider.key,
+            provider,
             providerRef: event.providerRef,
           },
         },
         create: {
           orderId: order.id,
-          provider: this.provider.key,
+          provider,
           method: event.method ?? PaymentMethod.CARD,
           status: PaymentStatus.SUCCEEDED,
           amountMinor: order.totalMinor,
@@ -382,6 +552,25 @@ export class OrdersService {
           providerPayload: event.raw as Prisma.InputJsonValue,
         },
       });
+
+      if (order.purpose === OrderPurpose.WALLET_TOPUP) {
+        const credit = await this.wallet.credit(tx, {
+          userId: order.userId,
+          amountMinor: order.totalMinor,
+          type: WalletTransactionType.TOPUP,
+          orderId: order.id,
+        });
+        await tx.notification.create({
+          data: {
+            userId: order.userId,
+            kind: 'PURCHASE',
+            title: 'رصيدك اتشحن 💰',
+            body: `اتضاف ${formatPounds(order.totalMinor)} جنيه لمحفظتك، ورصيدك دلوقتي ${formatPounds(credit.balanceAfterMinor)} جنيه.`,
+            href: '/dashboard/wallet',
+          },
+        });
+        return;
+      }
 
       for (const item of order.items) {
         const { entitlementId, created } = await this.entitlements.grantForProduct(tx, {
@@ -536,12 +725,17 @@ export class OrdersService {
       currency: order.currency,
       createdAt: order.createdAt,
       paidAt: order.paidAt,
-      items: order.items.map((item) => ({
-        id: item.id,
-        title: item.titleSnapshot,
-        kind: item.kindSnapshot,
-        totalMinor: item.totalMinor,
-      })),
+      purpose: order.purpose,
+      paidFromWallet: order.paidFromWallet,
+      items:
+        order.purpose === OrderPurpose.WALLET_TOPUP
+          ? [{ id: order.id, title: TOPUP_TITLE, kind: null, totalMinor: order.totalMinor }]
+          : order.items.map((item) => ({
+              id: item.id,
+              title: item.titleSnapshot,
+              kind: item.kindSnapshot,
+              totalMinor: item.totalMinor,
+            })),
       redirectUrl,
       payment: {
         ...(this.provider.key === 'MANUAL' && transferSettings

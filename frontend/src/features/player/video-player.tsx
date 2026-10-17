@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import type Hls from 'hls.js';
-import { api, apiBeacon } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { api, apiBeacon, ApiError } from '@/lib/api';
+import { cn, formatDurationLabel, toArabicDigits } from '@/lib/utils';
 import type {
   PlaybackHeartbeat,
   PlaybackQueue,
@@ -98,6 +99,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
   /** The seat lapsed during a long pause; pressing play asks for a new one. */
   const [seatLapsed, setSeatLapsed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -215,6 +217,7 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
     } catch (err) {
       if (!unmountedRef.current) {
         setError((err as { message?: string }).message ?? 'مش قادرين نشغّل الفيديو دلوقتي');
+        setErrorCode(err instanceof ApiError ? (err.code ?? null) : null);
       }
     }
   }, [lessonId]);
@@ -352,7 +355,9 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       hls.on(HlsCtor.Events.ERROR, (_event, data) => {
         if (!data.fatal) return;
         if (data.type === HlsCtor.ErrorTypes.NETWORK_ERROR) {
-          if (data.response?.code === 503) {
+          // 503: the seat lapsed. 403: the ticket expired or the views ran
+          // out. Either way a fresh ticket resumes playback or says why not.
+          if (data.response?.code === 503 || data.response?.code === 403) {
             rejoin();
             return;
           }
@@ -788,14 +793,23 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
             <path d="M12 7.5v5M12 16h.01" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         </span>
-        <p className="font-display text-base font-bold text-ivory-50">{error}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-1 rounded-lg bg-ivory-50/10 px-4 py-2 text-sm font-bold text-ivory-100 transition-colors hover:bg-ivory-50/20"
-        >
-          حدّث الصفحة
-        </button>
+        <p className="max-w-md font-display text-base font-bold leading-7 text-ivory-50">{error}</p>
+        {errorCode === 'VIEW_LIMIT_REACHED' ? (
+          <Link
+            href="/contact"
+            className="mt-1 rounded-lg bg-gold-400 px-5 py-2.5 text-sm font-black text-midnight-950 transition-colors hover:bg-gold-300"
+          >
+            كلّم الدعم
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-1 rounded-lg bg-ivory-50/10 px-4 py-2 text-sm font-bold text-ivory-100 transition-colors hover:bg-ivory-50/20"
+          >
+            حدّث الصفحة
+          </button>
+        )}
       </div>
     );
   }
@@ -834,6 +848,18 @@ export function VideoPlayer({ lessonId, title, posterUrl }: VideoPlayerProps) {
       />
 
       <Watermark />
+
+      {/* --- Views left, shown while paused --- */}
+      {isReady && !isPlaying && ticket?.views?.limited && ticket.views.remainingViews !== null && (
+        <p
+          className="pointer-events-none absolute start-3 top-3 z-10 rounded-full bg-midnight-950/80 px-3 py-1.5 text-xs font-bold text-ivory-50 shadow-lg backdrop-blur"
+          title={`باقي حوالي ${formatDurationLabel(ticket.views.remainingSeconds)} مشاهدة`}
+        >
+          {ticket.views.remainingViews >= 1
+            ? `باقي لك ${toArabicDigits(String(ticket.views.remainingViews).replace('.', '٫'))} من ${toArabicDigits(ticket.views.maxViews + ticket.views.bonusViews)} مشاهدات`
+            : `باقي لك ${formatDurationLabel(ticket.views.remainingSeconds)} مشاهدة بس`}
+        </p>
+      )}
 
       {/* --- Loading --- */}
       {!isReady && (

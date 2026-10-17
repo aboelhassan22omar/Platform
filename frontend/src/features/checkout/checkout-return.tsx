@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'motion/react';
 import { ButtonLink } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -9,6 +10,7 @@ import { formatEgp } from '@/lib/utils';
 import { EASE_ENTRANCE } from '@/lib/motion';
 import type { Order } from '@/types/api';
 import { TransferForm } from './transfer-form';
+import { WALLET_QUERY_KEY } from '@/features/wallet/use-wallet';
 
 /**
  * Landing page after returning from the payment provider.
@@ -30,6 +32,13 @@ export function CheckoutReturn() {
     refetchInterval: (query) =>
       query.state.data?.status === 'PAID' || query.state.data?.status === 'FAILED' ? false : 2000,
   });
+  const queryClient = useQueryClient();
+  const isPaid = order?.status === 'PAID';
+  // A top-up or a balance purchase just changed the balance shown elsewhere.
+  useEffect(() => {
+    if (isPaid) void queryClient.invalidateQueries({ queryKey: WALLET_QUERY_KEY });
+  }, [isPaid, queryClient]);
+  const isTopUp = order?.purpose === 'WALLET_TOPUP';
 
   if (!reference) {
     return (
@@ -79,7 +88,7 @@ export function CheckoutReturn() {
           transition={{ delay: 0.3, duration: 0.5, ease: EASE_ENTRANCE }}
           className="mt-6 font-display text-2xl font-black text-[var(--text-primary)]"
         >
-          تم الدفع بنجاح 🎉
+          {isTopUp ? 'رصيدك اتشحن 💰' : 'تم الدفع بنجاح 🎉'}
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -87,7 +96,11 @@ export function CheckoutReturn() {
           transition={{ delay: 0.4, duration: 0.5 }}
           className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--text-muted)]"
         >
-          حصصك اتفتحت وجاهزة دلوقتي. تقدر تبدأ تذاكر على طول.
+          {isTopUp
+            ? 'المبلغ اتضاف لمحفظتك. تقدر تشتري بيه أي حصة أو باقة بضغطة.'
+            : order.paidFromWallet
+              ? 'اتخصم من رصيدك والمحتوى اتفتح. تقدر تبدأ تذاكر على طول.'
+              : 'حصصك اتفتحت وجاهزة دلوقتي. تقدر تبدأ تذاكر على طول.'}
         </motion.p>
 
         <OrderSummary order={order} />
@@ -98,11 +111,17 @@ export function CheckoutReturn() {
           transition={{ delay: 0.55 }}
           className="mt-7 flex flex-col gap-2.5 sm:flex-row"
         >
-          <ButtonLink href="/dashboard/lessons" variant="accent" size="lg">
-            روح لحصصي
-          </ButtonLink>
-          <ButtonLink href="/dashboard" variant="outline" size="lg">
-            ملفي الشخصي
+          {isTopUp ? (
+            <ButtonLink href="/dashboard/wallet" variant="accent" size="lg">
+              روح لمحفظتي
+            </ButtonLink>
+          ) : (
+            <ButtonLink href="/dashboard/lessons" variant="accent" size="lg">
+              روح لحصصي
+            </ButtonLink>
+          )}
+          <ButtonLink href={isTopUp ? '/grades' : '/dashboard'} variant="outline" size="lg">
+            {isTopUp ? 'تصفّح الحصص' : 'ملفي الشخصي'}
           </ButtonLink>
         </motion.div>
       </Shell>
@@ -129,7 +148,7 @@ export function CheckoutReturn() {
         </p>
         <OrderSummary order={order} />
         <div className="mt-7 flex flex-col gap-2.5 sm:flex-row">
-          <ButtonLink href="/grades" variant="accent" size="lg">
+          <ButtonLink href={isTopUp ? '/dashboard/wallet' : '/grades'} variant="accent" size="lg">
             جرّب تاني
           </ButtonLink>
           <ButtonLink href="/contact" variant="outline" size="lg">

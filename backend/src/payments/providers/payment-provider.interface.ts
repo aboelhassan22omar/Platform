@@ -49,6 +49,11 @@ export interface VerifiedWebhook {
   failureReason?: string;
   raw: unknown;
   approvedBy?: string;
+  /**
+   * Overrides the deployment's provider for in-platform settlements (a
+   * purchase paid from the balance). Never set from a provider webhook.
+   */
+  provider?: PaymentProvider;
 }
 
 /**

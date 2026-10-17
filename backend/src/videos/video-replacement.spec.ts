@@ -20,6 +20,7 @@ const build = (asset: Record<string, unknown> | null) => {
       checkLessonAccess: jest.fn().mockResolvedValue({ allowed: true, reason: 'PURCHASED' }),
     },
     admission: { acquire: jest.fn().mockResolvedValue({ admitted: true }), enabled: false },
+    viewLimits: { assertCanStart: jest.fn().mockResolvedValue({ limited: false }) },
     config: { get: jest.fn().mockReturnValue(600) },
     storage: {
       publicUrl: (key: string | null) => key,

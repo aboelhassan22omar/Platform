@@ -115,9 +115,10 @@ export class VideosController {
     @Res() res: Response,
   ) {
     if (!ticket) throw new ForbiddenException('رابط المشاهدة غير صالح');
-    await this.videos.authorizeStream(lessonId, ticket);
+    const authorized = await this.videos.authorizeStream(lessonId, ticket);
 
     const relative = Array.isArray(path) ? path.join('/') : path;
+    await this.videos.chargeSegment(ticket, authorized, relative);
     const { stream, contentType } = await this.videos.streamObject(lessonId, relative);
 
     res.setHeader('Content-Type', contentType);

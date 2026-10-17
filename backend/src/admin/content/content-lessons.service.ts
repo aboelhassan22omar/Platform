@@ -114,6 +114,7 @@ export class ContentLessonsService {
           priceMinor: dto.priceMinor,
           isFreePreview: dto.isFreePreview ?? false,
           centerPriceMinor: dto.centerPriceMinor,
+          maxViews: dto.maxViews,
           thumbnailKey: dto.thumbnailKey,
           scheduledAt: resolvePublicationSchedule(dto.status, dto.scheduledAt),
         },
@@ -269,6 +270,7 @@ export class ContentLessonsService {
           ...(dto.priceMinor !== undefined ? { priceMinor: dto.priceMinor } : {}),
           ...(dto.isFreePreview !== undefined ? { isFreePreview: dto.isFreePreview } : {}),
           ...(dto.centerPriceMinor !== undefined ? { centerPriceMinor: dto.centerPriceMinor } : {}),
+          ...(dto.maxViews !== undefined ? { maxViews: dto.maxViews } : {}),
           ...(dto.thumbnailKey !== undefined ? { thumbnailKey: dto.thumbnailKey } : {}),
           ...(dto.status || dto.scheduledAt !== undefined
             ? {

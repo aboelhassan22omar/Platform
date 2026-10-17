@@ -5,7 +5,6 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/components/providers/auth-provider';
 
 export interface ProtectionSettings {
-  blockCapture: boolean;
   watermark: boolean;
 }
 
@@ -24,10 +23,8 @@ export function useProtection(): ProtectionSettings & { watermarkText: string | 
     enabled: isStudent,
     staleTime: 60_000,
   });
-  const blockCapture = isStudent && Boolean(data?.blockCapture);
   const watermark = isStudent && Boolean(data?.watermark);
   return {
-    blockCapture,
     watermark,
     watermarkText: watermark && user ? `${user.fullName} · ${user.phone}` : null,
   };

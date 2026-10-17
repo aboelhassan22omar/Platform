@@ -26,6 +26,7 @@ export function AdminSettings() {
         </h1>
       </header>
       <ProtectionSection />
+      <AccessSection />
       <CertificateTemplateSection />
     </div>
   );
@@ -53,8 +54,6 @@ function ProtectionSection() {
     onError: (caught) => setError(caught instanceof ApiError ? caught.message : 'تعذر الحفظ'),
   });
   const values = save.isPending ? save.variables : settings.data;
-  const toggle = (key: keyof ProtectionSettings) =>
-    values && save.mutate({ ...values, [key]: !values[key] });
 
   return (
     <section aria-labelledby="protection-title" className="space-y-4">
@@ -73,24 +72,12 @@ function ProtectionSection() {
       {settings.isLoading || !values ? (
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="skeleton h-40 rounded-2xl" />
-          <div className="skeleton h-40 rounded-2xl" />
         </div>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           <SwitchCard
-            checked={values.blockCapture}
-            onToggle={() => toggle('blockCapture')}
-            disabled={save.isPending}
-            title="منع تصوير الشاشة والنسخ"
-            points={[
-              'الصفحة بتستخبى أول ما الطالب يفتح أداة تصوير أو تسجيل أو يسيب الصفحة',
-              'زرار Print Screen واختصارات التصوير بتتقفل',
-              'مفيش نسخ ولا كليك يمين ولا حفظ ولا طباعة',
-            ]}
-          />
-          <SwitchCard
             checked={values.watermark}
-            onToggle={() => toggle('watermark')}
+            onToggle={() => save.mutate({ ...values, watermark: !values.watermark })}
             disabled={save.isPending}
             title="علامة مائية على الفيديو واللايف"
             points={[
@@ -102,11 +89,6 @@ function ProtectionSection() {
         </div>
       )}
 
-      <p className="max-w-3xl rounded-xl border border-amber-500/25 bg-amber-50 p-4 text-xs leading-6 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-        <strong>معلومة مهمة:</strong> مفيش موقع يقدر يمنع تصوير الشاشة ١٠٠٪. الموبايل بيصوّر من
-        أزرار الجهاز نفسه، وفيه برامج تسجيل بتشتغل من غير ما الصفحة تحس. عشان كده العلامة المائية هي
-        أقوى حماية: بتخلي أي تسريب يبان صاحبه.
-      </p>
       {error && (
         <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
           {error}
@@ -171,6 +153,204 @@ function SwitchCard({
             )}
           />
         </button>
+      </div>
+      <ul className="mt-4 space-y-1.5 text-sm text-midnight-600 dark:text-ivory-300/75">
+        {points.map((point) => (
+          <li key={point} className="flex gap-2">
+            <span aria-hidden className="text-gold-600">
+              •
+            </span>
+            {point}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Account sharing: devices and views
+// ---------------------------------------------------------------------------
+
+interface AccessSettings {
+  maxDevices: number;
+  defaultMaxViews: number;
+}
+
+function AccessSection() {
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState<AccessSettings | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const settings = useQuery({
+    queryKey: ['admin-access-settings'],
+    queryFn: () => api.get<AccessSettings>('/admin/settings/access'),
+  });
+  const values = draft ?? settings.data;
+  const save = useMutation({
+    mutationFn: (next: AccessSettings) => api.put<AccessSettings>('/admin/settings/access', next),
+    onMutate: () => setMessage(null),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(['admin-access-settings'], saved);
+      setDraft(null);
+      setMessage({ ok: true, text: 'اتحفظ، وهيشتغل على الطلاب خلال دقيقة.' });
+    },
+    onError: (caught) =>
+      setMessage({ ok: false, text: caught instanceof ApiError ? caught.message : 'تعذر الحفظ' }),
+  });
+  const set = (key: keyof AccessSettings, value: number) =>
+    values && setDraft({ ...values, [key]: value });
+
+  return (
+    <section aria-labelledby="access-title" className="space-y-4">
+      <div>
+        <h2
+          id="access-title"
+          className="font-display text-xl font-black text-midnight-950 dark:text-ivory-50"
+        >
+          منع مشاركة الحساب
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm leading-7 text-midnight-600 dark:text-ivory-300/75">
+          عشان الحساب المدفوع ميتقسمش على كذا طالب. اختار صفر عشان تلغي الحد.
+        </p>
+      </div>
+
+      {settings.isLoading || !values ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="skeleton h-48 rounded-2xl" />
+          <div className="skeleton h-48 rounded-2xl" />
+        </div>
+      ) : (
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save.mutate(values);
+          }}
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
+            <StepperCard
+              title="عدد الأجهزة لكل طالب"
+              value={values.maxDevices}
+              max={10}
+              unit={(n) => (n === 1 ? 'جهاز واحد' : n === 2 ? 'جهازين' : `${n} أجهزة`)}
+              onChange={(n) => set('maxDevices', n)}
+              points={[
+                'الطالب يقدر يدخل من الأجهزة دي بس، وأي جهاز زيادة مش هيعرف يسجّل دخول',
+                'لو غيّر موبايله، شيل الجهاز القديم من صفحته في «الطلاب»',
+                'إنت وفريقك مش متقيدين بالعدد ده',
+              ]}
+            />
+            <StepperCard
+              title="عدد مرات مشاهدة الحصة"
+              value={values.defaultMaxViews}
+              max={100}
+              unit={(n) => (n === 1 ? 'مرة واحدة' : n === 2 ? 'مرتين' : `${n} مرات`)}
+              onChange={(n) => set('defaultMaxViews', n)}
+              points={[
+                'المشاهدة الواحدة = مدة الفيديو. يعني ٣ مرات لحصة ساعة = ٣ ساعات مشاهدة',
+                'التقديم للأمام مش بيتحسب، والرجوع لجزء فاتك من شوية مش بيتحسب مرتين',
+                'تقدر تحط رقم مختلف لأي حصة من «المحتوى»، وتزوّد طالب معيّن من صفحته',
+              ]}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit" variant="accent" isLoading={save.isPending} disabled={!draft}>
+              حفظ
+            </Button>
+            {message && (
+              <p
+                role="status"
+                className={cn(
+                  'text-sm font-semibold',
+                  message.ok
+                    ? 'text-emerald-700 dark:text-emerald-400'
+                    : 'text-red-600 dark:text-red-400',
+                )}
+              >
+                {message.text}
+              </p>
+            )}
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
+function StepperCard({
+  title,
+  value,
+  max,
+  unit,
+  onChange,
+  points,
+}: {
+  title: string;
+  value: number;
+  max: number;
+  unit: (n: number) => string;
+  onChange: (value: number) => void;
+  points: string[];
+}) {
+  const step = (delta: number) => onChange(Math.min(max, Math.max(0, value + delta)));
+  const stepButton =
+    'grid h-10 w-10 place-items-center rounded-xl border border-gold-500/30 text-xl font-black text-midnight-800 hover:bg-gold-500/10 disabled:opacity-40 dark:text-ivory-100';
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border bg-white p-5 shadow-card dark:bg-midnight-950/80',
+        value > 0 ? 'border-emerald-500/40' : 'border-gold-500/20',
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h3 className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50">
+            {title}
+          </h3>
+          <p
+            className={cn(
+              'mt-0.5 text-xs font-black',
+              value > 0
+                ? 'text-emerald-700 dark:text-emerald-300'
+                : 'text-midnight-500 dark:text-ivory-300/60',
+            )}
+          >
+            {value > 0 ? unit(value) : 'بدون حد'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2" dir="ltr">
+          <button
+            type="button"
+            className={stepButton}
+            onClick={() => step(-1)}
+            disabled={value <= 0}
+            aria-label={`قلّل ${title}`}
+          >
+            −
+          </button>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            max={max}
+            value={value}
+            aria-label={title}
+            onChange={(event) => {
+              const next = Number.parseInt(event.target.value, 10);
+              onChange(Number.isFinite(next) ? Math.min(max, Math.max(0, next)) : 0);
+            }}
+            className="input-base h-10 w-16 text-center font-display text-lg font-black"
+          />
+          <button
+            type="button"
+            className={stepButton}
+            onClick={() => step(1)}
+            disabled={value >= max}
+            aria-label={`زوّد ${title}`}
+          >
+            +
+          </button>
+        </div>
       </div>
       <ul className="mt-4 space-y-1.5 text-sm text-midnight-600 dark:text-ivory-300/75">
         {points.map((point) => (
