@@ -227,6 +227,21 @@ enum AssessmentKind {
   UNIT_EXAM
 }
 
+enum QuestionType {
+  /// Multiple choice, one correct option.
+  MCQ
+  /// Two fixed options, صح / غلط.
+  TRUE_FALSE
+  /// Free text, graded by staff.
+  ESSAY
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
 /// What an automatic WhatsApp message is about. Each kind has one template.
 enum MessageKind {
   WEEKLY_REPORT
@@ -472,8 +487,9 @@ model Course {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  units    Unit[]
-  products Product[]
+  units         Unit[]
+  products      Product[]
+  questionBanks QuestionBank[]
 
   @@unique([gradeId, slug])
   @@index([gradeId, status])
@@ -497,8 +513,9 @@ model Unit {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  chapters    Chapter[]
-  assessments Assessment[]
+  chapters      Chapter[]
+  assessments   Assessment[]
+  questionBanks QuestionBank[]
 
   @@index([courseId, sortOrder])
   @@map("units")
@@ -1099,6 +1116,8 @@ model Assessment {
   unit     Unit?   @relation(fields: [unitId], references: [id], onDelete: Cascade)
 
   questions    AssessmentQuestion[]
+  /// Random questions drawn from banks for each attempt, on top of `questions`.
+  drawRules    AssessmentDrawRule[]
   attempts     AssessmentAttempt[]
   products     Product[]
   entitlements Entitlement[]
@@ -1113,10 +1132,21 @@ model Assessment {
   @@map("assessments")
 }
 
+/// A question belongs to exactly one assessment (fixed questions) or one bank
+/// (drawn at random per attempt). A CHECK constraint enforces the either/or.
 model AssessmentQuestion {
   id            String             @id @default(cuid())
-  assessmentId  String
-  assessment    Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessmentId  String?
+  assessment    Assessment?        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  bankId        String?
+  bank          QuestionBank?      @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  type          QuestionType       @default(MCQ)
+  difficulty    QuestionDifficulty @default(MEDIUM)
+  /// Picture shown above the prompt (a map, a document), in the public bucket.
+  imageKey      String?
+  /// Bank questions that were answered before are hidden instead of deleted.
+  archivedAt    DateTime?
+  createdAt     DateTime           @default(now())
   prompt        String
   promptEn      String?
   explanation   String?
@@ -1127,6 +1157,7 @@ model AssessmentQuestion {
   answers       AssessmentAnswer[]
 
   @@index([assessmentId, sortOrder])
+  @@index([bankId, difficulty])
   @@map("assessment_questions")
 }
 
@@ -1158,11 +1189,19 @@ model AssessmentAttempt {
   startedAt    DateTime                @default(now())
   expiresAt    DateTime?
   submittedAt  DateTime?
+  /// The exact questions of this attempt, in order. Empty for attempts made
+  /// before banks existed, which used all of the assessment's questions.
+  questionIds  String[]                @default([])
+  /// Submitted with written answers that staff have not graded yet.
+  needsGrading Boolean                 @default(false)
+  gradedAt     DateTime?
+  gradedById   String?
   answers      AssessmentAnswer[]
   certificate  Certificate?
 
   @@index([userId, submittedAt])
   @@index([assessmentId, userId])
+  @@index([needsGrading, submittedAt])
   @@map("assessment_attempts")
 }
 
@@ -1174,12 +1213,56 @@ model AssessmentAnswer {
   question      AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
   optionId      String?
   option        AssessmentOption?  @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  /// The student's written answer to an essay question.
+  textAnswer    String?
   isCorrect     Boolean
   pointsAwarded Int                @default(0)
+  /// Staff comment on a written answer, shown to the student.
+  feedback      String?
+  gradedAt      DateTime?
+  gradedById    String?
 
   @@unique([attemptId, questionId])
   @@index([questionId])
   @@map("assessment_answers")
+}
+
+/// A reusable pool of questions for one course (optionally one unit).
+/// Exams draw from it at random, so every student gets a different paper.
+model QuestionBank {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  courseId    String
+  course      Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  unitId      String?
+  unit        Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  questions AssessmentQuestion[]
+  drawRules AssessmentDrawRule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
+  @@map("question_banks")
+}
+
+/// "Draw `count` questions (of this difficulty) from this bank" for each attempt.
+model AssessmentDrawRule {
+  id           String              @id @default(cuid())
+  assessmentId String
+  assessment   Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  bankId       String
+  bank         QuestionBank        @relation(fields: [bankId], references: [id], onDelete: Restrict)
+  /// Null draws from any difficulty.
+  difficulty   QuestionDifficulty?
+  count        Int
+  sortOrder    Int                 @default(0)
+
+  @@index([assessmentId])
+  @@index([bankId])
+  @@map("assessment_draw_rules")
 }
 
 /// One certificate per student per exam. Issued when an attempt reaches the

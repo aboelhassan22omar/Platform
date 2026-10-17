@@ -6,6 +6,31 @@ import { api, ApiError } from '@/lib/api';
 import { cn, formatNumber } from '@/lib/utils';
 import { DateTimePicker } from '@/components/ui/date-time-picker';
 import type { AssessmentKind, PublishStatus } from '@/types/api';
+import {
+  DIFFICULTY_LABELS,
+  QuestionFields,
+  blankQuestion,
+  questionIsValid,
+  toEditorQuestion,
+  toQuestionPayload,
+  type EditorQuestion,
+  type QuestionDifficulty,
+  type QuestionType,
+} from './question-fields';
+
+interface BankSummary {
+  id: string;
+  title: string;
+  courseId: string;
+  unit: { title: string } | null;
+  counts: Record<QuestionDifficulty, number>;
+  total: number;
+}
+interface DrawRule {
+  bankId: string;
+  difficulty: '' | QuestionDifficulty;
+  count: number;
+}
 
 interface CurriculumCourse {
   id: string;
@@ -42,12 +67,8 @@ interface AdminAssessment {
   lesson: { title: string; chapter: { unit: { title: string; course: { title: string } } } } | null;
   unit: { title: string; course: { title: string } } | null;
   _count: { questions: number; attempts: number; certificates: number };
-}
-interface EditorQuestion {
-  prompt: string;
-  explanation: string;
-  points: number;
-  options: Array<{ text: string; isCorrect: boolean }>;
+  drawnPerAttempt: number;
+  awaitingGrading: number;
 }
 interface EditorState {
   id?: string;
@@ -70,19 +91,9 @@ interface EditorState {
   certificateEnabled: boolean;
   certificateMinScore: number;
   questions: EditorQuestion[];
+  drawRules: DrawRule[];
 }
 
-const blankQuestion = (): EditorQuestion => ({
-  prompt: '',
-  explanation: '',
-  points: 1,
-  options: [
-    { text: '', isCorrect: true },
-    { text: '', isCorrect: false },
-    { text: '', isCorrect: false },
-    { text: '', isCorrect: false },
-  ],
-});
 const blankEditor = (): EditorState => ({
   title: '',
   description: '',
@@ -103,6 +114,7 @@ const blankEditor = (): EditorState => ({
   certificateEnabled: false,
   certificateMinScore: 85,
   questions: [blankQuestion()],
+  drawRules: [],
 });
 const kindLabels: Record<AssessmentKind, string> = {
   HOMEWORK: 'واجب على الدرس',
@@ -139,10 +151,18 @@ export function AdminAssessments() {
       api.get<
         AdminAssessment & {
           questions: Array<{
+            type: QuestionType;
+            imageKey: string | null;
+            imageUrl: string | null;
             prompt: string;
             explanation: string | null;
             points: number;
             options: Array<{ text: string; isCorrect: boolean }>;
+          }>;
+          drawRules: Array<{
+            bankId: string;
+            difficulty: QuestionDifficulty | null;
+            count: number;
           }>;
         }
       >(`/admin/assessments/${id}`),
@@ -176,11 +196,11 @@ export function AdminAssessments() {
         dueAt: toLocalInput(item.dueAt),
         certificateEnabled: item.certificateEnabled,
         certificateMinScore: item.certificateMinScore,
-        questions: item.questions.map((q) => ({
-          prompt: q.prompt,
-          explanation: q.explanation ?? '',
-          points: q.points,
-          options: q.options.map((o) => ({ text: o.text, isCorrect: o.isCorrect })),
+        questions: item.questions.map((q) => toEditorQuestion(q)),
+        drawRules: item.drawRules.map((rule) => ({
+          bankId: rule.bankId,
+          difficulty: rule.difficulty ?? '',
+          count: rule.count,
         })),
       });
     },
@@ -198,6 +218,12 @@ export function AdminAssessments() {
           ? new Date(state.availableFrom).toISOString()
           : undefined,
         dueAt: state.dueAt ? new Date(state.dueAt).toISOString() : undefined,
+        questions: state.questions.map((question) => toQuestionPayload(question)),
+        drawRules: state.drawRules.map((rule) => ({
+          bankId: rule.bankId,
+          difficulty: rule.difficulty || null,
+          count: rule.count,
+        })),
       };
       return state.id
         ? api.patch(`/admin/assessments/${state.id}`, payload)
@@ -296,8 +322,19 @@ export function AdminAssessments() {
                   </p>
                 </div>
               </div>
+              {item.awaitingGrading > 0 && (
+                <a
+                  href="/admin/grading"
+                  className="mt-3 inline-flex rounded-lg bg-amber-500/15 px-3 py-1.5 text-xs font-black text-amber-800 dark:text-amber-300"
+                >
+                  ✍️ {formatNumber(item.awaitingGrading)} محاولة مستنية تصحيح
+                </a>
+              )}
               <div className="mt-5 grid grid-cols-3 gap-2">
-                <Metric label="الأسئلة" value={item._count.questions} />
+                <Metric
+                  label={item.drawnPerAttempt ? 'أسئلة كل طالب' : 'الأسئلة'}
+                  value={item._count.questions + item.drawnPerAttempt}
+                />
                 <Metric label="المحاولات" value={item._count.attempts} />
                 <Metric
                   label="المتوسط"
@@ -517,6 +554,7 @@ function AssessmentEditor({
 }) {
   const set = <K extends keyof EditorState>(key: K, value: EditorState[K]) =>
     onChange({ ...state, [key]: value });
+  const drawn = state.drawRules.reduce((sum, rule) => sum + rule.count, 0);
   const updateQuestion = (index: number, patch: Partial<EditorQuestion>) =>
     set(
       'questions',
@@ -552,14 +590,18 @@ function AssessmentEditor({
         state.certificateMinScore >= 1 &&
         state.certificateMinScore <= 100)) &&
     Boolean(state.kind === 'UNIT_EXAM' ? state.unitId : state.lessonId) &&
-    state.questions.length > 0 &&
-    state.questions.every(
-      (q) =>
-        q.prompt.trim() &&
-        q.options.length >= 2 &&
-        q.options.every((o) => o.text.trim()) &&
-        q.options.filter((o) => o.isCorrect).length === 1,
-    );
+    state.questions.length + drawn > 0 &&
+    state.questions.every(questionIsValid) &&
+    state.drawRules.every((rule) => rule.bankId && rule.count >= 1);
+  const courseId = courses.find((course) =>
+    course.units.some((unit) =>
+      state.kind === 'UNIT_EXAM'
+        ? unit.id === state.unitId
+        : unit.chapters.some((chapter) =>
+            chapter.lessons.some((lesson) => lesson.id === state.lessonId),
+          ),
+    ),
+  )?.id;
   const applyQuestionCount = () => {
     const count = Number(questionCount);
     if (!Number.isInteger(count) || count < 1 || count > 200) {
@@ -785,7 +827,8 @@ function AssessmentEditor({
               <div>
                 <h3 className="font-display text-lg font-black">الأسئلة</h3>
                 <p className="text-xs text-midnight-500 dark:text-ivory-300/60">
-                  اكتب الاختيارات ثم اضغط «تحديد كإجابة صحيحة» أمام الاختيار المطلوب.
+                  أسئلة ثابتة بتظهر لكل الطلاب. ضيف تحت أسئلة عشوائية من بنك الأسئلة عشان كل طالب
+                  ياخد امتحان مختلف.
                 </p>
               </div>
               <div className="flex flex-wrap items-end gap-2">
@@ -824,7 +867,7 @@ function AssessmentEditor({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <h4 className="font-black">السؤال {formatNumber(qi + 1)}</h4>
-                    {state.questions.length > 1 && (
+                    {(state.questions.length > 1 || state.drawRules.length > 0) && (
                       <button
                         type="button"
                         onClick={() =>
@@ -839,120 +882,21 @@ function AssessmentEditor({
                       </button>
                     )}
                   </div>
-                  <div className="mt-3 grid gap-3">
-                    <Field label="نص السؤال">
-                      <textarea
-                        value={question.prompt}
-                        onChange={(e) => updateQuestion(qi, { prompt: e.target.value })}
-                        rows={2}
-                        className="input-base resize-y"
-                      />
-                    </Field>
-                    <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
-                      <Field label="توضيح بعد التصحيح (اختياري)">
-                        <input
-                          value={question.explanation}
-                          onChange={(e) => updateQuestion(qi, { explanation: e.target.value })}
-                          className="input-base"
-                        />
-                      </Field>
-                      <Field label="الدرجة">
-                        <input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={question.points}
-                          onChange={(e) => updateQuestion(qi, { points: Number(e.target.value) })}
-                          className="input-base"
-                        />
-                      </Field>
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm font-black">الاختيارات</p>
-                      {question.options.map((option, oi) => (
-                        <div
-                          key={oi}
-                          className={cn(
-                            'grid gap-2 rounded-xl border p-2 sm:grid-cols-[minmax(0,1fr)_11rem_2.75rem]',
-                            option.isCorrect
-                              ? 'border-emerald-500/50 bg-emerald-500/10'
-                              : 'border-midnight-200/70 dark:border-white/10',
-                          )}
-                        >
-                          <input
-                            aria-label={`نص الاختيار ${oi + 1}`}
-                            value={option.text}
-                            onChange={(e) =>
-                              updateQuestion(qi, {
-                                options: question.options.map((o, i) =>
-                                  i === oi ? { ...o, text: e.target.value } : o,
-                                ),
-                              })
-                            }
-                            className="input-base"
-                          />
-                          <button
-                            type="button"
-                            aria-pressed={option.isCorrect}
-                            onClick={() =>
-                              updateQuestion(qi, {
-                                options: question.options.map((o, i) => ({
-                                  ...o,
-                                  isCorrect: i === oi,
-                                })),
-                              })
-                            }
-                            className={cn(
-                              'min-h-11 rounded-lg px-3 text-xs font-black transition-colors',
-                              option.isCorrect
-                                ? 'bg-emerald-600 text-white'
-                                : 'border border-gold-500/30 text-gold-800 hover:bg-gold-500/10 dark:text-gold-300',
-                            )}
-                          >
-                            {option.isCorrect ? '✓ الإجابة الصحيحة' : 'تحديد كإجابة صحيحة'}
-                          </button>
-                          {question.options.length > 2 ? (
-                            <button
-                              type="button"
-                              aria-label={`حذف الاختيار ${oi + 1}`}
-                              onClick={() =>
-                                updateQuestion(qi, {
-                                  options: question.options
-                                    .filter((_, i) => i !== oi)
-                                    .map((o, i) => ({
-                                      ...o,
-                                      isCorrect: o.isCorrect || (i === 0 && option.isCorrect),
-                                    })),
-                                })
-                              }
-                              className="grid h-11 w-11 place-items-center rounded-lg border border-red-500/20 text-red-600"
-                            >
-                              ×
-                            </button>
-                          ) : (
-                            <span />
-                          )}
-                        </div>
-                      ))}
-                      {question.options.length < 6 && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateQuestion(qi, {
-                              options: [...question.options, { text: '', isCorrect: false }],
-                            })
-                          }
-                          className="min-h-11 text-sm font-bold text-gold-700 dark:text-gold-300"
-                        >
-                          + إضافة اختيار
-                        </button>
-                      )}
-                    </div>
+                  <div className="mt-3">
+                    <QuestionFields
+                      question={question}
+                      onChange={(patch) => updateQuestion(qi, patch)}
+                    />
                   </div>
                 </article>
               ))}
             </div>
           </section>
+          <DrawRulesSection
+            rules={state.drawRules}
+            courseId={courseId}
+            onChange={(rules) => set('drawRules', rules)}
+          />
           {error && (
             <p
               role="alert"
@@ -1025,5 +969,136 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       </span>
       {children}
     </label>
+  );
+}
+
+/**
+ * "Give every student N random questions from this bank": the paper differs
+ * from one student to the next, and from one attempt to the next.
+ */
+function DrawRulesSection({
+  rules,
+  courseId,
+  onChange,
+}: {
+  rules: DrawRule[];
+  courseId: string | undefined;
+  onChange: (rules: DrawRule[]) => void;
+}) {
+  const banks = useQuery({
+    queryKey: ['admin-question-banks'],
+    queryFn: () => api.get<BankSummary[]>('/admin/question-banks'),
+  });
+  const available = (banks.data ?? []).filter((bank) => bank.courseId === courseId);
+  const update = (index: number, patch: Partial<DrawRule>) =>
+    onChange(rules.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)));
+  const total = rules.reduce((sum, rule) => sum + rule.count, 0);
+
+  return (
+    <section className="rounded-2xl border border-gold-500/25 bg-white p-4 dark:bg-midnight-950/60 sm:p-5">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="font-display text-lg font-black">أسئلة عشوائية من بنك الأسئلة</h3>
+          <p className="text-xs leading-5 text-midnight-500 dark:text-ivory-300/60">
+            كل طالب بيطلعله أسئلة مختلفة، ولو عاد الامتحان بياخد أسئلة جديدة. ده بيقلل الغش ونقل
+            الإجابات.
+          </p>
+        </div>
+        {total > 0 && (
+          <span className="shrink-0 rounded-lg bg-gold-500/10 px-3 py-1.5 text-xs font-black text-gold-800 dark:text-gold-300">
+            {formatNumber(total)} سؤال عشوائي لكل طالب
+          </span>
+        )}
+      </div>
+
+      {!courseId ? (
+        <p className="mt-3 text-sm text-midnight-500 dark:text-ivory-300/65">
+          اختار الدرس أو الوحدة الأول عشان تظهر بنوك الكورس.
+        </p>
+      ) : !available.length ? (
+        <p className="mt-3 text-sm text-midnight-500 dark:text-ivory-300/65">
+          مفيش بنوك أسئلة للكورس ده لسه.{' '}
+          <a
+            href="/admin/question-banks"
+            className="font-bold text-gold-700 underline dark:text-gold-300"
+          >
+            اعمل بنك أسئلة
+          </a>
+        </p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {rules.map((rule, index) => {
+            const bank = available.find((item) => item.id === rule.bankId);
+            const max = bank ? (rule.difficulty ? bank.counts[rule.difficulty] : bank.total) : 0;
+            return (
+              <div
+                key={index}
+                className="grid items-end gap-2 rounded-xl border border-midnight-200/70 p-3 dark:border-white/10 sm:grid-cols-[minmax(0,1fr)_9rem_7rem_2.75rem]"
+              >
+                <Field label="البنك">
+                  <select
+                    value={rule.bankId}
+                    onChange={(event) => update(index, { bankId: event.target.value })}
+                    className="input-base"
+                  >
+                    <option value="">اختار البنك</option>
+                    {available.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.title}
+                        {item.unit ? ` · ${item.unit.title}` : ''} ({formatNumber(item.total)} سؤال)
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="الصعوبة">
+                  <select
+                    value={rule.difficulty}
+                    onChange={(event) =>
+                      update(index, { difficulty: event.target.value as DrawRule['difficulty'] })
+                    }
+                    className="input-base"
+                  >
+                    <option value="">أي صعوبة</option>
+                    {(Object.keys(DIFFICULTY_LABELS) as QuestionDifficulty[]).map((difficulty) => (
+                      <option key={difficulty} value={difficulty}>
+                        {DIFFICULTY_LABELS[difficulty]}
+                        {bank ? ` (${formatNumber(bank.counts[difficulty])})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label={bank ? `العدد (من ${formatNumber(max)})` : 'العدد'}>
+                  <input
+                    type="number"
+                    min="1"
+                    max={max || 200}
+                    value={rule.count}
+                    onChange={(event) => update(index, { count: Number(event.target.value) })}
+                    className="input-base"
+                  />
+                </Field>
+                <button
+                  type="button"
+                  aria-label="شيل القاعدة"
+                  onClick={() => onChange(rules.filter((_, i) => i !== index))}
+                  className="grid h-11 w-11 place-items-center rounded-lg border border-red-500/20 text-red-600"
+                >
+                  ×
+                </button>
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() =>
+              onChange([...rules, { bankId: available[0].id, difficulty: '', count: 10 }])
+            }
+            className="min-h-11 text-sm font-bold text-gold-700 dark:text-gold-300"
+          >
+            + اسحب أسئلة من بنك
+          </button>
+        </div>
+      )}
+    </section>
   );
 }

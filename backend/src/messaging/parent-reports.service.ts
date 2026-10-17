@@ -154,6 +154,8 @@ export class ParentReportsService {
             userId,
             submittedAt: { gte: from, lt: to },
             status: { in: [AssessmentAttemptStatus.SUBMITTED, AssessmentAttemptStatus.TIMED_OUT] },
+            // Not graded yet: its percentage would mislead the parent.
+            needsGrading: false,
           },
           orderBy: { submittedAt: 'asc' },
           take: 20,

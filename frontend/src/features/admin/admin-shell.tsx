@@ -13,6 +13,8 @@ const TABS = [
   { href: '/admin/content', label: 'المحتوى ورفع الفيديوهات' },
   { href: '/admin/store', label: 'المتجر والطلبات' },
   { href: '/admin/assessments', label: 'الواجبات والامتحانات' },
+  { href: '/admin/question-banks', label: 'بنك الأسئلة' },
+  { href: '/admin/grading', label: 'التصحيح' },
   { href: '/admin/live', label: 'اللايف' },
   { href: '/admin/pricing', label: 'الأسعار' },
   { href: '/admin/payments', label: 'سجل المدفوعات' },

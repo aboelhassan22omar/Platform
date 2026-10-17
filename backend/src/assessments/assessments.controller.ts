@@ -1,5 +1,12 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { ArrayMaxSize, IsArray, IsString, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { CurrentUser, Roles } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
@@ -8,7 +15,8 @@ import { AssessmentsService } from './assessments.service';
 
 class AnswerDto {
   @IsString() questionId!: string;
-  @IsString() optionId!: string;
+  @IsOptional() @IsString() optionId?: string;
+  @IsOptional() @IsString() @MaxLength(5000, { message: 'الإجابة طويلة أوي' }) text?: string;
 }
 class SubmitAssessmentDto {
   @IsArray()

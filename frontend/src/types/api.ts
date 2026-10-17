@@ -397,7 +397,13 @@ export interface StudentAssessment {
   questionCount: number;
   attemptCount: number;
   isOverdue: boolean;
-  latestAttempt: { id: string; percentage: number; passed: boolean; submittedAt: string } | null;
+  latestAttempt: {
+    id: string;
+    percentage: number;
+    passed: boolean;
+    submittedAt: string;
+    needsGrading?: boolean;
+  } | null;
   lesson: { title: string; unitTitle: string; courseTitle: string } | null;
   unit: { title: string; courseTitle: string } | null;
 }
