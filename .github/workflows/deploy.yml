@@ -167,7 +167,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_API_URL=/api
-            NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://mr.x.aurexis.cc' }}
             NEXT_PUBLIC_CONTACT_PHONE=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
             NEXT_PUBLIC_CONTACT_PHONE_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
             NEXT_PUBLIC_SUPPORT_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
@@ -325,7 +325,7 @@ jobs:
         run: rm -f ~/.ssh/id_ed25519
       - name: Smoke test the public site
         env:
-          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://mr.x.aurexis.cc' }}
         run: |
           set -euo pipefail
           [[ "$SITE_URL" =~ ^https://[a-zA-Z0-9.-]+$ ]]

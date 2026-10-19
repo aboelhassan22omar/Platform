@@ -136,7 +136,7 @@ export function AppSetupCard({ dismissible = false }: { dismissible?: boolean })
             ) : push.state === 'denied' ? (
               <span className="inline-flex min-h-11 items-center rounded-xl bg-amber-500/10 px-4 text-xs font-bold text-amber-800 dark:text-amber-300">
                 {native
-                  ? 'الإشعارات مقفولة من إعدادات الموبايل. افتح الإعدادات ثم التطبيقات ثم «عمرو محروس» وشغّل الإشعارات.'
+                  ? 'الإشعارات مقفولة من إعدادات الموبايل. افتح الإعدادات ثم التطبيقات ثم «مستر X» وشغّل الإشعارات.'
                   : 'الإشعارات مقفولة من إعدادات المتصفح. افتحها من علامة القفل جنب العنوان.'}
               </span>
             ) : install.ios && !install.installed ? (

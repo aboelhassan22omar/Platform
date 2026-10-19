@@ -185,7 +185,7 @@ export default function ContactPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#fbf8f0] via-[#f7f2e4] to-[#eee2c6] dark:from-[#030712] dark:via-[#05131f] dark:to-[#081726] text-midnight-950 dark:text-ivory-50 transition-colors duration-300">
       {/* --- الهيدر الملكي الفخم لصفحة تواصل معنا — بالعرض الكامل مثل باقي صفحات الموقع --- */}
       <section className="relative overflow-hidden min-h-[520px] sm:min-h-[580px] lg:min-h-[640px] xl:min-h-[680px] flex items-center bg-[#070e1a] text-ivory-50 py-16 sm:py-20 lg:py-24 border-b border-gold-500/20">
-        {/* خلفية صالون النهضة التاريخي ومستر عمرو محروس بالبدلة الأنيقة على اليسار — مقاس بانورامي 4K فائق الدقة (ديسكتوب وتابلت فقط >= md) */}
+        {/* خلفية صالون النهضة التاريخي — مقاس بانورامي 4K فائق الدقة (ديسكتوب وتابلت فقط >= md) */}
         <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
           <Image
             src={
@@ -201,7 +201,7 @@ export default function ContactPage() {
           />
         </div>
 
-        {/* دمج ناعم وسلس يضمن وضوح النصوص في اليمين مع إبقاء مستر عمرو وصالون القصر التاريخي بوضوح فائق في اليسار */}
+        {/* دمج ناعم وسلس يضمن وضوح النصوص في اليمين مع إبقاء صالون القصر التاريخي بوضوح فائق في اليسار */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 hidden md:block bg-[linear-gradient(to_top,#070e1a_0%,rgb(7_14_26/0.75)_50%,rgb(7_14_26/0.15)_100%)] sm:bg-[linear-gradient(to_left,#070e1a_0%,#070e1a_20%,rgb(7_14_26/0.85)_35%,rgb(7_14_26/0.3)_55%,transparent_75%)]"

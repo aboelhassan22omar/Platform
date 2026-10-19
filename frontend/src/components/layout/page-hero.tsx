@@ -16,7 +16,7 @@ export function PageHero({
     <section className="relative overflow-hidden bg-gradient-to-b from-midnight-950 to-midnight-900 py-14 sm:py-20">
       <div aria-hidden className="pointer-events-none absolute inset-0 opacity-25 hidden md:block">
         <Image
-          src="/images/teacher-modern-egypt.png"
+          src="/images/occupation-era-mural.png"
           alt=""
           fill
           sizes="100vw"

@@ -15,10 +15,10 @@ def appVersionCode = (project.findProperty('versionCode') ?: '1') as Integer
 def appVersionName = (project.findProperty('versionName') ?: '1.0.0') as String
 
 android {
-    namespace = "com.amrmahrous.app"
+    namespace = "cc.aurexis.mrx"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.amrmahrous.app"
+        applicationId "cc.aurexis.mrx"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode

@@ -2,7 +2,7 @@
 // must stay free of 'use client'. See lib/native-app.ts for the full story.
 
 /** Added to the user agent by the store apps (mobile/capacitor.config.ts). */
-export const NATIVE_UA_MARKER = 'AmrMahrousApp/';
+export const NATIVE_UA_MARKER = 'MrXApp/';
 
 /** Pages that are about paying. The app redirects away from them. */
 export const WEB_ONLY_PATHS = ['/checkout', '/dashboard/wallet', '/store'] as const;

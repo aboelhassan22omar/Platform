@@ -1,6 +1,6 @@
 # Implementation report
 
-**منصة عمرو محروس التعليمية** — Amr Mahrous Educational Platform
+**منصة مستر X التعليمية** — Educational Platform
 Delivered by **[Aurexis](https://aurexis.cc/)**
 
 ---
@@ -172,8 +172,8 @@ WhatsApp, and an administrator sets a new one from the students page
 
 ### Brand
 
-The supplied Facebook page yielded only its name — **"MR Amr Mahrous -
-أ/عمرو محروس"**. The content sits behind a login wall, so no logo, photography
+The supplied Facebook page yielded only its name — **"MR X -
+أ/مستر X"**. The content sits behind a login wall, so no logo, photography
 or brand colours could be examined.
 
 Accordingly, and deliberately:
@@ -275,7 +275,7 @@ docker compose --profile seed run --rm seed
 
 BOOTSTRAP_ADMIN_USERNAME=your.admin \
 BOOTSTRAP_ADMIN_PASSWORD='at-least-12-characters' \
-BOOTSTRAP_ADMIN_FULLNAME='عمرو محروس' \
+BOOTSTRAP_ADMIN_FULLNAME='مستر X' \
 BOOTSTRAP_ADMIN_PHONE=01000000000 \
 docker compose --profile bootstrap run --rm \
   -e BOOTSTRAP_ADMIN_USERNAME -e BOOTSTRAP_ADMIN_PASSWORD \

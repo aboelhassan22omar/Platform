@@ -6,29 +6,29 @@
 
 ## المعلومات الأساسية
 
-| الحقل                               | القيمة                                |
-| ----------------------------------- | ------------------------------------- |
-| اسم التطبيق (حد أقصى ٣٠ حرف)        | منصة مستر عمرو محروس                  |
-| العنوان الفرعي، Apple بس (٣٠ حرف)   | حصص وامتحانات ومتابعة                 |
-| الفئة                               | التعليم (Education)                   |
-| الفئة الثانوية، Apple               | مرجع (Reference)                      |
-| رابط الدعم (Support URL)            | https://amr.aurexis.cc/contact        |
-| سياسة الخصوصية (Privacy Policy URL) | https://amr.aurexis.cc/privacy        |
-| رابط حذف الحساب، Google             | https://amr.aurexis.cc/delete-account |
-| الموقع (Marketing URL)              | https://amr.aurexis.cc                |
-| السعر                               | مجاني                                 |
-| حقوق النشر، Apple (Copyright)       | ‎© 2026 منصة مستر عمرو محروس         |
+| الحقل                               | القيمة                                 |
+| ----------------------------------- | -------------------------------------- |
+| اسم التطبيق (حد أقصى ٣٠ حرف)        | منصة مستر X                            |
+| العنوان الفرعي، Apple بس (٣٠ حرف)   | حصص وامتحانات ومتابعة                  |
+| الفئة                               | التعليم (Education)                    |
+| الفئة الثانوية، Apple               | مرجع (Reference)                       |
+| رابط الدعم (Support URL)            | https://mr.x.aurexis.cc/contact        |
+| سياسة الخصوصية (Privacy Policy URL) | https://mr.x.aurexis.cc/privacy        |
+| رابط حذف الحساب، Google             | https://mr.x.aurexis.cc/delete-account |
+| الموقع (Marketing URL)              | https://mr.x.aurexis.cc                |
+| السعر                               | مجاني                                  |
+| حقوق النشر، Apple (Copyright)       | ‎© 2026 منصة مستر X                   |
 
 ## الوصف المختصر، Google (حد أقصى ٨٠ حرف)
 
 ```
-حصص مستر عمرو محروس وامتحاناته ومتابعتك في مكان واحد، وشوف حصصك حتى من غير نت.
+حصص مستر X وامتحاناته ومتابعتك في مكان واحد، وشوف حصصك حتى من غير نت.
 ```
 
 ## الوصف الكامل (للمتجرين)
 
 ```
-التطبيق الرسمي لمنصة مستر عمرو محروس التعليمية لطلاب الثانوية العامة والبكالوريا المصرية.
+التطبيق الرسمي لمنصة مستر X التعليمية لطلاب الثانوية العامة والبكالوريا المصرية.
 
 كل حاجة محتاجها في مذاكرتك في مكان واحد:
 
@@ -41,13 +41,13 @@
 • لوحة المتصدرين وشهادات تقدير للمتفوقين.
 • حصص مجانية في كل صف تقدر تتفرج عليها على طول.
 
-التطبيق لطلاب منصة مستر عمرو محروس. سجّل دخولك بنفس حسابك على المنصة، أو اعمل حساب جديد في دقيقة.
+التطبيق لطلاب منصة مستر X. سجّل دخولك بنفس حسابك على المنصة، أو اعمل حساب جديد في دقيقة.
 ```
 
 ## الكلمات المفتاحية، Apple (حد أقصى ١٠٠ حرف، مفصولة بفواصل من غير مسافات)
 
 ```
-ثانوية عامة,بكالوريا,تاريخ,عمرو محروس,حصص,امتحانات,مذاكرة,منصة تعليمية,دروس,تعليم
+ثانوية عامة,بكالوريا,تاريخ,مستر X,حصص,امتحانات,مذاكرة,منصة تعليمية,دروس,تعليم
 ```
 
 ## نص «ما الجديد» لأول نسخة
@@ -91,7 +91,7 @@
 - **Does your app collect or share any of the required user data types?** ← Yes
 - **Is all of the user data collected by your app encrypted in transit?** ← Yes
 - **Do you provide a way for users to request that their data is deleted?** ← Yes
-  - من التطبيق، والرابط: https://amr.aurexis.cc/delete-account
+  - من التطبيق، والرابط: https://mr.x.aurexis.cc/delete-account
 - البيانات اللي بنجمعها، **Collected** بس، و**Shared: No**:
 
 | النوع                                       | ليه                                   | اختياري؟ |
@@ -139,7 +139,7 @@
 ### ملاحظات للمراجع، Apple (انسخها بالإنجليزي)
 
 ```
-This is the official app of Mr. Amr Mahrous's education platform for Egyptian secondary-school students.
+This is the official app of Mr X's education platform for Egyptian secondary-school students.
 Students sign in with the account they use on the platform. The demo account above already has lessons, homework and exams unlocked.
 
 What to try:

@@ -170,7 +170,7 @@ export const configuration = () => ({
       key: decodeSecret(process.env.APNS_KEY),
       keyId: process.env.APNS_KEY_ID ?? '',
       teamId: process.env.APNS_TEAM_ID ?? '',
-      bundleId: process.env.APNS_BUNDLE_ID || 'com.amrmahrous.app',
+      bundleId: process.env.APNS_BUNDLE_ID || 'cc.aurexis.mrx',
       // TestFlight and App Store builds use Apple's production servers.
       sandbox: bool(process.env.APNS_SANDBOX, false),
     },

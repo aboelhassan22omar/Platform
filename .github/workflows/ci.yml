@@ -161,7 +161,7 @@ jobs:
           tags: platform-${{ matrix.service }}:ci
           build-args: |
             NEXT_PUBLIC_API_URL=/api
-            NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+            NEXT_PUBLIC_SITE_URL=${{ vars.PRODUCTION_SITE_URL || 'https://mr.x.aurexis.cc' }}
             NEXT_PUBLIC_CONTACT_PHONE=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}
             NEXT_PUBLIC_CONTACT_PHONE_LABEL=${{ vars.PRODUCTION_CONTACT_PHONE_LABEL || '01024066401' }}
             NEXT_PUBLIC_SUPPORT_WHATSAPP=${{ vars.PRODUCTION_CONTACT_PHONE || '201024066401' }}

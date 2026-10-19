@@ -407,8 +407,8 @@ function DevicesTab({ studentId }: { studentId: string }) {
               : 'حساب مراجعة المتاجر؟ شيل عنه حد الأجهزة.'}
           </p>
           <p className="mt-1 text-xs leading-6 text-midnight-600 dark:text-ivory-300/70">
-            مراجعين Google وApple بيفتحوا الحساب التجريبي من أجهزة كتير. استخدمه للحساب ده بس، وارجّع
-            الحد بعد ما التطبيق يتنشر.
+            مراجعين Google وApple بيفتحوا الحساب التجريبي من أجهزة كتير. استخدمه للحساب ده بس،
+            وارجّع الحد بعد ما التطبيق يتنشر.
           </p>
           <Button
             size="sm"

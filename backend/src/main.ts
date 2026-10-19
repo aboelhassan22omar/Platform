@@ -85,9 +85,7 @@ async function bootstrap(): Promise<void> {
   if (!appConfig.isProduction) {
     const swagger = new DocumentBuilder()
       .setTitle(`${config.get<string>('platform.name')} — API`)
-      .setDescription(
-        'Amr Mahrous Educational Platform API. Built by Aurexis (https://aurexis.cc/).',
-      )
+      .setDescription('Mr X Educational Platform API. Built by Aurexis (https://aurexis.cc/).')
       .setVersion('1.0')
       .addBearerAuth()
       .addCookieAuth('access_token')

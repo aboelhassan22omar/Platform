@@ -1,6 +1,6 @@
-# منصة عمرو محروس التعليمية
+# منصة مستر X التعليمية
 
-**Amr Mahrous Educational Platform** — an Arabic, RTL, mobile-first platform for
+**Mr X Educational Platform** — an Arabic, RTL, mobile-first platform for
 teaching history to Egyptian secondary-school students (الثانوية العامة and
 البكالوريا المصرية).
 
@@ -59,7 +59,7 @@ docker compose --profile seed run --rm seed
 # 5. Create the first administrator
 BOOTSTRAP_ADMIN_USERNAME=your.admin \
 BOOTSTRAP_ADMIN_PASSWORD='a-strong-password-12-chars-min' \
-BOOTSTRAP_ADMIN_FULLNAME='عمرو محروس' \
+BOOTSTRAP_ADMIN_FULLNAME='مستر X' \
 BOOTSTRAP_ADMIN_PHONE=01000000000 \
 docker compose --profile bootstrap run --rm \
   -e BOOTSTRAP_ADMIN_USERNAME -e BOOTSTRAP_ADMIN_PASSWORD \

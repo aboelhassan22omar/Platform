@@ -1,5 +1,5 @@
 # =============================================================================
-# منصة عمرو محروس التعليمية — development stack
+# منصة مستر X التعليمية — development stack
 #
 #   docker compose up -d --build
 #
@@ -62,7 +62,7 @@ x-backend-env: &backend-env
   APNS_KEY: ${APNS_KEY:-}
   APNS_KEY_ID: ${APNS_KEY_ID:-}
   APNS_TEAM_ID: ${APNS_TEAM_ID:-}
-  APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-com.amrmahrous.app}
+  APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-cc.aurexis.mrx}
   WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
   WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
   WHATSAPP_API_VERSION: ${WHATSAPP_API_VERSION:-v21.0}

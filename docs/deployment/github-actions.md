@@ -31,7 +31,7 @@ rebuilds and redeploys every service (for example after changing a repository
 variable used as a build arg). There is one environment, `production`.
 
 Set the repository variable `PRODUCTION_SITE_URL` to the confirmed HTTPS
-origin before building the release; it defaults to `https://amr.aurexis.cc`.
+origin before building the release; it defaults to `https://mr.x.aurexis.cc`.
 Contact build args use `PRODUCTION_CONTACT_PHONE` and
 `PRODUCTION_CONTACT_PHONE_LABEL`, defaulting to the requested `01024066401`.
 Brand overrides can be added to the workflow build args before publishing a

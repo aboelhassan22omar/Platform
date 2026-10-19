@@ -1,4 +1,4 @@
-package com.amrmahrous.app;
+package cc.aurexis.mrx;
 
 import android.os.Bundle;
 import androidx.webkit.WebViewCompat;
