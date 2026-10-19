@@ -1,0 +1,74 @@
+name: Move platform domain
+
+# Moves the platform to a new address on the production server by running
+# scripts/move-domain.sh there (certificate, host nginx site, .env update).
+# Run it after the new name's DNS A record points to the server, then set the
+# PRODUCTION_SITE_URL variable to the new address and run the Production
+# pipeline. Uses the production environment, so it waits for the owner's approval.
+on:
+  workflow_dispatch:
+    inputs:
+      new_domain:
+        description: 'New address (no https://), e.g. mr.x.aurexis.cc'
+        required: true
+        default: mr.x.aurexis.cc
+      old_domain:
+        description: 'Current address (no https://)'
+        required: true
+        default: amr.aurexis.cc
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-server
+  cancel-in-progress: false
+
+jobs:
+  move:
+    name: Move to ${{ inputs.new_domain }} (approval required)
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the addresses
+        env:
+          NEW: ${{ inputs.new_domain }}
+          OLD: ${{ inputs.old_domain }}
+        run: |
+          pattern='^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$'
+          [[ "$NEW" =~ $pattern && "$OLD" =~ $pattern ]] || { echo '::error::Give plain domain names, without https://'; exit 1; }
+          echo "NEW=$NEW" >> "$GITHUB_ENV"
+          echo "OLD=$OLD" >> "$GITHUB_ENV"
+      - name: Configure pinned SSH connection
+        env:
+          SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+        run: |
+          test -n "$SSH_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Move the platform on the server
+        env:
+          HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          set -euo pipefail
+          ssh=(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST")
+          if ! "${ssh[@]}" 'sudo -n true' 2>/dev/null; then
+            echo "::error::The deploy user cannot use sudo without a password, which the certificate and nginx steps need. Run 'sudo bash scripts/move-domain.sh $NEW $OLD' on the server yourself."
+            exit 1
+          fi
+          "${ssh[@]}" "sudo -n bash -s -- '$NEW' '$OLD'" < scripts/move-domain.sh
+      - name: Check the new address from the internet
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 "https://$NEW/api/health/ready"
+          echo
+          echo "https://$NEW is live. Next: set PRODUCTION_SITE_URL=https://$NEW and run the Production pipeline."
+      - name: Remove runner credentials
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
