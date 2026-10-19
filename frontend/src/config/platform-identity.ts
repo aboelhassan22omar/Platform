@@ -38,9 +38,12 @@ export function createPlatformIdentity(input: PlatformIdentityInput = {}) {
   const shortName = publicValue(
     input.teacherShortName,
     input.teacherName?.trim().replace(/^(مستر|أستاذ|أستاذة|دكتور|دكتورة)\s+/, '') ||
-      (isHistory ? 'عمرو محروس' : 'المدرس'),
+      (isHistory ? 'مستر X' : 'المدرس'),
   );
-  const displayName = publicValue(input.teacherName, `${title} ${shortName}`);
+  const displayName = publicValue(
+    input.teacherName,
+    shortName.startsWith(title) ? shortName : `${title} ${shortName}`,
+  );
   const platformName = publicValue(input.platformName, `منصة ${displayName} التعليمية`);
   return {
     locale: 'ar' as const,

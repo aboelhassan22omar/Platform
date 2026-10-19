@@ -37,7 +37,7 @@ export default async function GradesPage() {
           <Image
             src={
               platformConfig.subject.key === 'history'
-                ? '/images/teacher-bacc-foundations.png'
+                ? '/images/eras/bacc-cover.jpg'
                 : platformConfig.assets.teacher
             }
             alt={`${platformConfig.teacher.displayName} - الصفوف والمناهج الدراسية`}
@@ -85,7 +85,7 @@ export default async function GradesPage() {
               <div className="mt-5 flex items-center gap-3 rounded-2xl border border-gold-500/30 bg-[#06121d]/90 p-3 shadow-lg backdrop-blur-md md:hidden">
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-gold-500/50 shadow-md">
                   <Image
-                    src="/images/eras/bacc-portrait.jpg"
+                    src="/images/eras/bacc-cover.jpg"
                     alt={platformConfig.teacher.displayName}
                     fill
                     sizes="56px"

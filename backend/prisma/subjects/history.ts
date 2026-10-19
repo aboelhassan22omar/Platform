@@ -23,7 +23,7 @@
  *                          lesson title. The admin UI shows a warning badge on
  *                          these so they are reviewed before going live.
  *
- * BEFORE LAUNCH: Mr Amr Mahrous (or the content manager) must review every
+ * BEFORE LAUNCH: the teacher (or the content manager) must review every
  * course marked provisional against the official printed curriculum and
  * correct it from the dashboard.
  *

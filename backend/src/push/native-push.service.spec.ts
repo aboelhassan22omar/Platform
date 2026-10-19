@@ -10,7 +10,7 @@ const service = (push: Record<string, unknown>) =>
     new ConfigService({
       push: {
         fcmServiceAccount: '',
-        apns: { key: '', keyId: '', teamId: '', bundleId: 'com.amrmahrous.app', sandbox: false },
+        apns: { key: '', keyId: '', teamId: '', bundleId: 'cc.aurexis.mrx', sandbox: false },
         ...push,
       },
     }),
@@ -89,7 +89,7 @@ describe('Store app notifications', () => {
         key: ec.privateKey.export({ type: 'pkcs8', format: 'pem' }).toString(),
         keyId: 'ABC123DEFG',
         teamId: 'TEAM123456',
-        bundleId: 'com.amrmahrous.app',
+        bundleId: 'cc.aurexis.mrx',
         sandbox: false,
       },
     });

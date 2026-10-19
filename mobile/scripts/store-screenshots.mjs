@@ -33,7 +33,7 @@ const MOBILE = MOBILE_DIR;
 const WWW = join(MOBILE, 'www');
 const STORE = join(MOBILE, 'store');
 const APP_UA =
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 AmrMahrousApp/1.0.0 (ios; push)';
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MrXApp/1.0.0 (ios; push)';
 
 /** Enough of the native bridge for the site to show the app's features. */
 const bridge = (files) => `(() => {
@@ -158,7 +158,7 @@ try {
       p{margin:14px 0 0;font-size:28px;color:#dca62d;font-weight:500}
     </style></head><body>
     <img src="data:image/png;base64,${icon}" alt="">
-    <div><h1>منصة مستر<br>عمرو محروس</h1><p>حصص وامتحانات ومتابعة، حتى من غير نت</p></div>
+    <div><h1>منصة<br>مستر X</h1><p>حصص وامتحانات ومتابعة، حتى من غير نت</p></div>
   </body></html>`);
   await banner.waitForTimeout(1500);
   await banner.screenshot({ path: join(STORE, 'google-play', 'feature-graphic.png') });

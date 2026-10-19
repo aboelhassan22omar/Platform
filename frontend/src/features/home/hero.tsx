@@ -28,7 +28,7 @@ const HISTORICAL_ERAS: EraSlide[] = [
     title: 'حضارة مصر القديمة',
     quote:
       'التاريخ مش مجرد حفظ أسرار ومعارك.. التاريخ فهم حقيقي لإزاي أجدادك بنوا أول دولة منظمة في تاريخ البشرية.',
-    image: '/images/eras/pharaonic-portrait.jpg',
+    image: '/images/eras/pharaonic-cover.jpg',
     gradeLink: '/grades/first-secondary',
     accent: '#f59e0b',
   },
@@ -38,7 +38,7 @@ const HISTORICAL_ERAS: EraSlide[] = [
     badge: 'العصر الحديث المبكر',
     title: 'الكشوف وبوصلة العالم',
     quote: 'إزاي التجارة والخرائط والجغرافيا غيرت مسار التاريخ وعادت بمصر لقلب الصراع العالمي.',
-    image: '/images/eras/renaissance-portrait.jpg',
+    image: '/images/eras/renaissance-cover.jpg',
     gradeLink: '/grades/second-secondary',
     accent: '#14b8a6',
   },
@@ -48,7 +48,7 @@ const HISTORICAL_ERAS: EraSlide[] = [
     badge: 'نهضة الأمة وبناء الدولة',
     title: 'من محمد علي للثورة',
     quote: 'التاريخ الحديث مفتاح فهم الحاضر، بناء الجيش والتعليم والسيادة الوطنية خطوة بخطوة.',
-    image: '/images/eras/modern-portrait.jpg',
+    image: '/images/eras/modern-cover.jpg',
     gradeLink: '/grades/third-secondary',
     accent: '#ef4444',
   },
@@ -58,7 +58,7 @@ const HISTORICAL_ERAS: EraSlide[] = [
     badge: 'إرادة الشعب الكبرى',
     title: 'التحولات الوطنية الكبرى',
     quote: 'صمود الأمة المصرية وبناء الجمهورية وقراءة الأحداث المعاصرة برؤية تاريخية واعية.',
-    image: '/images/eras/revolution-portrait.jpg',
+    image: '/images/eras/revolution-cover.jpg',
     gradeLink: '/grades/second-baccalaureate',
     accent: '#f97316',
   },
@@ -69,7 +69,7 @@ const HISTORICAL_ERAS: EraSlide[] = [
     title: 'تحليل الوثائق والنقد التاريخي',
     quote:
       'ندربك على قراءة الوثائق التاريخية ونقد الروايات المتعددة وربط القرارات السياسية بسياقاتها الحقيقية.',
-    image: '/images/eras/bacc-portrait.jpg',
+    image: '/images/eras/bacc-cover.jpg',
     gradeLink: '/grades/first-baccalaureate',
     accent: '#6366f1',
   },
@@ -264,10 +264,10 @@ export function Hero() {
             </div>
           </div>
 
-          {/* الجانب الأيسر: لوح المستر بإطار صرحي فاخر */}
+          {/* الجانب الأيسر: لوح العصر التاريخي بإطار صرحي فاخر */}
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative w-full max-w-[340px] sm:max-w-[420px] aspect-[4/5]">
-              {/* إطار الكارت الفاخر بخلفية داكنة تحافظ على الألوان الطبيعية للبشرة */}
+              {/* إطار الكارت الفاخر بخلفية داكنة تحافظ على الألوان الطبيعية */}
               <div className="absolute inset-0 rounded-3xl border-2 border-gold-500/40 bg-gradient-to-b from-white to-gold-50/50 dark:from-[#06121d] dark:to-[#030911] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_20px_rgba(245,158,11,0.12)]">
                 <div className="relative h-full w-full overflow-hidden rounded-2xl border border-gold-400/30">
                   <AnimatePresence mode="wait">
@@ -281,7 +281,7 @@ export function Hero() {
                     >
                       <Image
                         src={currentEra.image}
-                        alt={`${platformConfig.teacher.displayName} في ${currentEra.name}`}
+                        alt={currentEra.title}
                         fill
                         priority
                         sizes="(max-width: 768px) 100vw, 420px"

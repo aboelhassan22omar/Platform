@@ -5,7 +5,7 @@ import { NATIVE_UA_MARKER, WEB_ONLY_PATHS } from './native-detect';
 
 /**
  * The Google Play / App Store apps load this site inside a native shell
- * (mobile/). The shell adds "AmrMahrousApp/<version> (<platform>[; push])" to
+ * (mobile/). The shell adds "MrXApp/<version> (<platform>[; push])" to
  * the user agent; an inline script in the root layout turns that into classes
  * on <html> before the first paint:
  *

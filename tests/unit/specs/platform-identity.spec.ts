@@ -7,7 +7,7 @@ import { createInitialProducts } from '../../../frontend/src/features/store/cata
 test('history identity preserves current branding by default', () => {
   const config = createPlatformIdentity();
   expect(config.subject.name).toBe('التاريخ');
-  expect(config.teacher.displayName).toBe('مستر عمرو محروس');
+  expect(config.teacher.displayName).toBe('مستر X');
   expect(config.brand.logoDark).toContain('horus');
 });
 test('changing only subject key resolves chemistry defaults without historical copy or art', () => {

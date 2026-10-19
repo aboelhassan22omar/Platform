@@ -17,14 +17,21 @@ const identity = `${platformConfig.subject.key}:${platformConfig.teacher.display
 const CATALOG_KEY = `platform-store-v2:${identity}`;
 const ORDERS_KEY = `platform-store-orders-v2:${identity}`;
 const canMigrateHistory =
-  platformConfig.subject.key === 'history' &&
-  platformConfig.teacher.displayName === 'مستر عمرو محروس';
+  platformConfig.subject.key === 'history' && platformConfig.teacher.displayName === 'مستر X';
 export function initialStoreState(): StoreState {
   return { ready: false, products: INITIAL_PRODUCTS, rates: INITIAL_RATES, cart: [], orders: [] };
 }
-function readJson(storage: BrowserStorage, key: string, legacy?: string): unknown {
+// Keys this platform used before it was renamed, newest first: a student's
+// saved store data carries over instead of starting empty.
+const LEGACY_CATALOG_KEYS = ['platform-store-v2:history:مستر عمرو محروس', 'amr-store-demo-v1'];
+const LEGACY_ORDER_KEYS = [
+  'platform-store-orders-v2:history:مستر عمرو محروس',
+  'amr-store-demo-orders-v1',
+];
+function readJson(storage: BrowserStorage, key: string, legacy: string[] = []): unknown {
   try {
-    const raw = storage.getItem(key) ?? (legacy ? storage.getItem(legacy) : null);
+    let raw = storage.getItem(key);
+    for (const old of legacy) raw ??= storage.getItem(old);
     return raw ? JSON.parse(raw) : undefined;
   } catch {
     return undefined;
@@ -34,10 +41,10 @@ function readJson(storage: BrowserStorage, key: string, legacy?: string): unknow
 export function loadStoreState(local: BrowserStorage, session: BrowserStorage): StoreState {
   const state = initialStoreState();
   const catalog = catalogSnapshotSchema.safeParse(
-    readJson(local, CATALOG_KEY, canMigrateHistory ? 'amr-store-demo-v1' : undefined),
+    readJson(local, CATALOG_KEY, canMigrateHistory ? LEGACY_CATALOG_KEYS : []),
   );
   const orders = orderSnapshotSchema.safeParse(
-    readJson(session, ORDERS_KEY, canMigrateHistory ? 'amr-store-demo-orders-v1' : undefined),
+    readJson(session, ORDERS_KEY, canMigrateHistory ? LEGACY_ORDER_KEYS : []),
   );
   return {
     ...state,

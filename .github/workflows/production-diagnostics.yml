@@ -31,7 +31,7 @@ jobs:
         env:
           HOST: ${{ secrets.PRODUCTION_HOST }}
           DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
-          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://amr.aurexis.cc' }}
+          SITE_URL: ${{ vars.PRODUCTION_SITE_URL || 'https://mr.x.aurexis.cc' }}
         run: |
           set -uo pipefail
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_USER@$HOST" 'bash -s' \

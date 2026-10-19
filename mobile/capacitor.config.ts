@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
  * lessons downloaded to the phone and a library to watch them with no
  * connection (www/), the camera for the attendance scanner, the back button.
  *
- * The site recognises the app by the "AmrMahrousApp" marker in the user agent
+ * The site recognises the app by the "MrXApp" marker in the user agent
  * and hides everything to do with buying (see frontend/src/lib/native-app.ts):
  * the apps sell nothing, which keeps them inside both stores' payment rules.
  */
@@ -17,13 +17,13 @@ const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { versio
 // the PRODUCTION_SITE_URL repository variable).
 const site =
   /APP_SITE_URL = '([^']+)'/.exec(readFileSync('www/site.js', 'utf8'))?.[1] ??
-  'https://amr.aurexis.cc/';
+  'https://mr.x.aurexis.cc/';
 // Android push needs Firebase; the site only offers it when the build has it.
 const androidPush = existsSync('android/app/google-services.json');
 
 const config: CapacitorConfig = {
-  appId: 'com.amrmahrous.app',
-  appName: 'عمرو محروس',
+  appId: 'cc.aurexis.mrx',
+  appName: 'مستر X',
   webDir: 'www',
   backgroundColor: '#0a1120',
   server: {
@@ -34,12 +34,12 @@ const config: CapacitorConfig = {
     allowNavigation: ['localhost'],
   },
   android: {
-    appendUserAgent: `AmrMahrousApp/${version} (android${androidPush ? '; push' : ''})`,
+    appendUserAgent: `MrXApp/${version} (android${androidPush ? '; push' : ''})`,
     allowMixedContent: false,
     webContentsDebuggingEnabled: false,
   },
   ios: {
-    appendUserAgent: `AmrMahrousApp/${version} (ios; push)`,
+    appendUserAgent: `MrXApp/${version} (ios; push)`,
     contentInset: 'never',
     scrollEnabled: true,
     allowsLinkPreview: false,

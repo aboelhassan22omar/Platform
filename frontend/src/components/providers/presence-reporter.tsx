@@ -6,7 +6,9 @@ import { api } from '@/lib/api';
 import { useAuth } from './auth-provider';
 import { presenceIntervalSeconds } from './presence-interval';
 
-const HEARTBEAT_SECONDS = presenceIntervalSeconds(process.env.NEXT_PUBLIC_PRESENCE_HEARTBEAT_SECONDS);
+const HEARTBEAT_SECONDS = presenceIntervalSeconds(
+  process.env.NEXT_PUBLIC_PRESENCE_HEARTBEAT_SECONDS,
+);
 
 /**
  * Sends an authenticated heartbeat so the admin dashboard can report who is

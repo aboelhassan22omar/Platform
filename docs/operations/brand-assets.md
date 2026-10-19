@@ -13,7 +13,7 @@ basis for the visual identity. Here is exactly what happened.
 **What was attempted:** the supplied Facebook page was fetched and additional
 public sources were searched.
 
-**What was found:** the page name, **"MR Amr Mahrous - أ/عمرو محروس"**. Nothing
+**What was found:** the page name, **"MR X - أ/مستر X"**. Nothing
 else — the page content sits behind a login wall, so no profile photo, cover
 image, promotional graphics, logo or brand colours could be examined. Searches
 for the teacher across other public sources returned results for different
@@ -81,9 +81,9 @@ SELECT value FROM site_settings WHERE key = 'brand';
 
 ```json
 {
-  "teacherName": "عمرو محروس",
+  "teacherName": "مستر X",
   "teacherTitle": "مدرس التاريخ",
-  "platformName": "منصة عمرو محروس التعليمية",
+  "platformName": "منصة مستر X التعليمية",
   "tagline": "ابدأ رحلة التاريخ",
   "logoUrl": null,
   "portraitUrl": null

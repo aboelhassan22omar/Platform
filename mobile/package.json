@@ -1,8 +1,8 @@
 {
-  "name": "amr-mahrous-app",
+  "name": "mr-x-app",
   "version": "1.0.0",
   "private": true,
-  "description": "تطبيق منصة عمرو محروس لمتجر Google Play وApp Store (Capacitor).",
+  "description": "تطبيق منصة مستر X لمتجر Google Play وApp Store (Capacitor).",
   "license": "UNLICENSED",
   "author": "Aurexis (https://aurexis.cc/)",
   "scripts": {

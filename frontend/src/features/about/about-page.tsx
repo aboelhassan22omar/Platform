@@ -130,7 +130,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#fbf8f0] via-[#f7f2e4] to-[#eee2c6] dark:from-[#030712] dark:via-[#05131f] dark:to-[#081726] text-midnight-950 dark:text-ivory-50 transition-colors duration-300">
       {/* --- الهيدر الملكي لصفحة عن الأستاذ --- */}
       <section className="relative overflow-hidden min-h-[540px] sm:min-h-[600px] lg:min-h-[660px] xl:min-h-[700px] flex items-center bg-[#040a14] text-ivory-50 py-16 sm:py-20 lg:py-24 border-b border-gold-500/20">
-        {/* خلفية الصرح التاريخي ومستر عمرو محروس بالبدلة السوداء والمخطوطات — مقاس بانورامي كامل (ديسكتوب وتابلت فقط >= md) */}
+        {/* خلفية الصرح التاريخي والمخطوطات — مقاس بانورامي كامل (ديسكتوب وتابلت فقط >= md) */}
         <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
           <Image
             src="/images/about-hero-banner.jpg"
@@ -142,7 +142,7 @@ export default function AboutPage() {
           />
         </div>
 
-        {/* دمج ناعم وسلس من اليمين يضمن وضوح النصوص مع إبقاء مستر عمرو وصرح المكتبة والفوانيس بوضوح تام */}
+        {/* دمج ناعم وسلس من اليمين يضمن وضوح النصوص مع إبقاء صرح المكتبة والفوانيس بوضوح تام */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 hidden md:block bg-[linear-gradient(to_top,#040a14_0%,rgb(4_10_20/0.75)_50%,rgb(4_10_20/0.15)_100%)] sm:bg-[linear-gradient(to_left,#040a14_0%,#040a14_20%,rgb(4_10_20/0.85)_35%,rgb(4_10_20/0.35)_55%,transparent_72%)]"
@@ -219,7 +219,7 @@ export default function AboutPage() {
       {/* --- قسم السيرة الذاتية وصورة البرواز الملكي الفخمة --- */}
       <section className="container-page py-12 sm:py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[22rem_minmax(0,1fr)]">
-          {/* البرواز الملكي الفخم لصورة مستر عمرو محروس الرسمية */}
+          {/* البرواز الملكي الفخم للوحة التاريخية الرسمية */}
           <Reveal variants={fadeUp}>
             <div className="relative group">
               {/* هالة التوهج الذهبي خلف البرواز */}
@@ -237,7 +237,7 @@ export default function AboutPage() {
                 <HieroglyphCorner position="bottom-left" />
                 <HieroglyphCorner position="bottom-right" />
 
-                {/* صورة مستر عمرو محروس الأصلية الرسمية داخل البرواز */}
+                {/* اللوحة التاريخية الرسمية داخل البرواز */}
                 <div className="relative aspect-[3/4] w-full overflow-hidden">
                   <Image
                     src="/images/teacher-about-portrait.jpg"
