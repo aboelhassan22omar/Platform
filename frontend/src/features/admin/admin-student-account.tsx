@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/components/providers/auth-provider';
 import { api, ApiError } from '@/lib/api';
 import { cn, formatDate, formatEgp, formatRelative, toArabicDigits } from '@/lib/utils';
 import type {
@@ -305,6 +306,16 @@ function DevicesTab({ studentId }: { studentId: string }) {
     onError: (caught) => setError(errorText(caught, 'تعذر إزالة الجهاز')),
   });
 
+  const { user } = useAuth();
+  const exempt = useMutation({
+    mutationFn: (next: boolean) =>
+      api.put(`/admin/students/${studentId}/devices/exempt`, { exempt: next }),
+    onMutate: () => setError(null),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ['admin-student-devices', studentId] }),
+    onError: (caught) => setError(errorText(caught, 'تعذر الحفظ')),
+  });
+
   const list = devices.data?.devices ?? [];
   return (
     <div className="space-y-4">
@@ -388,6 +399,28 @@ function DevicesTab({ studentId }: { studentId: string }) {
             شيل كل الأجهزة
           </Button>
         ))}
+      {user?.role === 'ADMIN' && devices.data && (
+        <div className="rounded-xl border border-gold-500/25 bg-gold-500/5 p-4">
+          <p className="text-sm font-bold text-midnight-900 dark:text-ivory-100">
+            {devices.data.exempt
+              ? 'الحساب ده بيدخل من أي عدد أجهزة.'
+              : 'حساب مراجعة المتاجر؟ شيل عنه حد الأجهزة.'}
+          </p>
+          <p className="mt-1 text-xs leading-6 text-midnight-600 dark:text-ivory-300/70">
+            مراجعين Google وApple بيفتحوا الحساب التجريبي من أجهزة كتير. استخدمه للحساب ده بس، وارجّع
+            الحد بعد ما التطبيق يتنشر.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3"
+            isLoading={exempt.isPending}
+            onClick={() => exempt.mutate(!devices.data?.exempt)}
+          >
+            {devices.data.exempt ? 'رجّع حد الأجهزة' : 'شيل حد الأجهزة'}
+          </Button>
+        </div>
+      )}
       {error && (
         <p role="alert" className="text-sm font-semibold text-red-600 dark:text-red-400">
           {error}

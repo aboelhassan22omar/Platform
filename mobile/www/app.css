@@ -1,0 +1,47 @@
+/* Shared by the app's bundled pages (offline screen and downloads library).
+   They work with no connection, so no web fonts: the phone's own font. */
+:root {
+  color-scheme: dark;
+  --navy: #0a1120;
+  --navy-2: #111a2e;
+  --line: rgba(220, 166, 45, 0.22);
+  --gold: #dca62d;
+  --ivory: #f5efe3;
+  --muted: rgba(245, 239, 227, 0.66);
+  --danger: #f87171;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; min-height: 100%; background: var(--navy); color: var(--ivory); }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  line-height: 1.7;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+button, a.button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.primary { background: var(--gold); color: var(--navy); }
+.secondary { background: transparent; color: var(--ivory); border: 1px solid rgba(245, 239, 227, 0.25); }
+.ghost { background: transparent; color: var(--muted); min-height: 40px; padding: 0 12px; }
+.danger { color: var(--danger); }
+.credit {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(245, 239, 227, 0.5);
+  direction: ltr;
+}
+.credit b { color: var(--gold); font-weight: 700; }

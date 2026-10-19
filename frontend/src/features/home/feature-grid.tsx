@@ -12,14 +12,23 @@ import {
   DjedPillar,
 } from '@/components/decor/egyptian-motifs';
 
-const HISTORICAL_RELICS = [
+/** `webOnly` cards are about buying and are hidden in the store apps. */
+const HISTORICAL_RELICS: Array<{
+  title: string;
+  badge: string;
+  body: string;
+  iconType: string;
+  webOnly?: boolean;
+}> = [
   {
+    webOnly: true,
     title: 'ميزان العدالة: شراء بالدرس',
     badge: 'استقلالية كاملة',
     body: 'مش مجبر تدفع اشتراك شهري كامل؛ تقدر تشتري أي درس محتاجه لوحده ويفضل معاك مدى الحياة تراجعه في أي وقت.',
     iconType: 'scale',
   },
   {
+    webOnly: true,
     title: 'خزائن الحكمة: باقات فصول موفرة',
     badge: 'وفر أكثر',
     body: 'اشترك في باقة الفصل بالكامل أو الباقة الشهرية ووفر لحد ٤٠٪ مع كل المذكرات والامتحانات الشاملة.',
@@ -120,7 +129,7 @@ export function FeatureGrid() {
                   transition: { duration: 0.5, ease: EASE_ENTRANCE },
                 },
               }}
-              className="h-full"
+              className={relic.webOnly ? 'web-only h-full' : 'h-full'}
             >
               <InteractiveTilt className="group h-full rounded-2xl border border-gold-500/25 bg-white/95 dark:bg-midnight-950/80 p-7 transition-all duration-300 hover:border-gold-400/60 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)] shadow-xs">
                 <TempleCornerBrackets />

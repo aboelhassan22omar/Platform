@@ -44,6 +44,7 @@ export function SiteHeader() {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        style={{ paddingTop: 'var(--safe-top)' }}
         className={cn(
           'sticky top-0 z-50 w-full transition-all duration-300',
           isScrolled
@@ -69,6 +70,7 @@ export function SiteHeader() {
                   href={link.href}
                   className={cn(
                     'relative rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors',
+                    link.webOnly && 'web-only',
                     isActive(link.href)
                       ? 'text-gold-700 dark:text-gold-300 font-bold'
                       : 'text-midnight-800/80 hover:text-gold-700 hover:bg-gold-500/10 dark:text-ivory-200/80 dark:hover:text-gold-200 dark:hover:bg-gold-500/10',
@@ -299,6 +301,7 @@ export function SiteHeader() {
                   {primaryNavigation.map((link, index) => (
                     <motion.li
                       key={link.href}
+                      className={link.webOnly ? 'web-only' : undefined}
                       initial={{ opacity: 0, x: 15 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.04 + index * 0.04, duration: 0.25 }}

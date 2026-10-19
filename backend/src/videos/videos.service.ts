@@ -16,6 +16,7 @@ import { generateToken, hashToken } from '../common/utils';
 import { StreamAdmissionService } from './stream-admission.service';
 import { ViewLimitsService } from './view-limits.service';
 import { hasPlayableVersion } from './playable';
+import { OFFLINE_TICKET_PREFIX } from './offline-downloads.service';
 
 /**
  * Staff tickets carry this prefix so the per-segment admission check can skip
@@ -350,6 +351,10 @@ export class VideosService {
    * with 503 so the player can show the waiting room instead of a dead video.
    */
   async authorizeStream(lessonId: string, token: string) {
+    // A download ticket fetches the packaged file only, never the stream.
+    if (token.startsWith(OFFLINE_TICKET_PREFIX)) {
+      throw new ForbiddenException('رابط المشاهدة غير صالح');
+    }
     const ticket = await this.resolveTicket(lessonId, token);
     if (!token.startsWith(STAFF_TICKET_PREFIX) && !(await this.admission.touch(ticket.userId))) {
       throw new ServiceUnavailableException({

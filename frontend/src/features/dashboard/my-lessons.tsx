@@ -79,8 +79,12 @@ export function MyLessons() {
         <h2 className="mt-5 font-display text-xl font-black text-midnight-950 dark:text-ivory-50">
           مكتبتك لسه فاضية
         </h2>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-midnight-600 dark:text-ivory-300/70">
+        <p className="web-only mx-auto mt-2 max-w-sm text-sm leading-relaxed text-midnight-600 dark:text-ivory-300/70">
           أول ما تشتري حصة أو تشترك في باقة، هتلاقي كل حصصك هنا جاهزة للمشاهدة فوراً.
+        </p>
+        <p className="app-only mx-auto mt-2 max-w-sm text-sm leading-relaxed text-midnight-600 dark:text-ivory-300/70">
+          الحصص المتاحة في حسابك هتظهر هنا جاهزة للمشاهدة. لحد ما ده يحصل، اتفرج على الحصص المجانية
+          في صفك.
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <ButtonLink href="/grades" variant="accent">

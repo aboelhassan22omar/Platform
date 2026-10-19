@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { isNativeApp } from '@/lib/native-app';
+import { disableNativePush, enableNativePush, nativePushState } from './native-push';
 
 /** Chrome / Edge / Android fire this when the site can be installed. */
 interface BeforeInstallPromptEvent extends Event {
@@ -29,7 +31,8 @@ export function registerServiceWorker() {
 
 const isStandalone = () =>
   typeof window !== 'undefined' &&
-  (window.matchMedia('(display-mode: standalone)').matches ||
+  (isNativeApp() ||
+    window.matchMedia('(display-mode: standalone)').matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true);
 
 const isIos = () =>
@@ -71,12 +74,19 @@ const base64ToBytes = (value: string) => {
 
 export type PushState = 'unsupported' | 'denied' | 'off' | 'on';
 
-/** Phone notifications on this device: current state, turn on, turn off. */
+/**
+ * Phone notifications on this device: current state, turn on, turn off.
+ * Web Push in the browser; FCM / APNs inside the store apps.
+ */
 export function usePush() {
   const [state, setState] = useState<PushState>('off');
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
+    if (isNativeApp()) {
+      setState(await nativePushState().catch(() => 'unsupported' as const));
+      return;
+    }
     if (
       typeof window === 'undefined' ||
       !('serviceWorker' in navigator) ||
@@ -102,6 +112,11 @@ export function usePush() {
   const enable = useCallback(async () => {
     setBusy(true);
     try {
+      if (isNativeApp()) {
+        const next = await enableNativePush().catch(() => 'off' as const);
+        setState(next);
+        return next === 'on';
+      }
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setState(permission === 'denied' ? 'denied' : 'off');
@@ -126,6 +141,11 @@ export function usePush() {
   const disable = useCallback(async () => {
     setBusy(true);
     try {
+      if (isNativeApp()) {
+        await disableNativePush();
+        setState('off');
+        return;
+      }
       const registration = await navigator.serviceWorker.getRegistration();
       const subscription = await registration?.pushManager.getSubscription();
       if (subscription) {

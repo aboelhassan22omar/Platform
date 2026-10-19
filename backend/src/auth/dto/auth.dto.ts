@@ -140,6 +140,14 @@ export class ChangePasswordDto {
   newPassword!: string;
 }
 
+export class DeleteAccountDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty({ message: 'اكتب كلمة السر عشان تأكد الحذف' })
+  @MaxLength(128)
+  password!: string;
+}
+
 /** An administrator setting a new password for someone who asked support. */
 export class AdminSetPasswordDto {
   @ApiProperty({ minLength: 6 })

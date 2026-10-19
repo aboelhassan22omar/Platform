@@ -1,6 +1,7 @@
 // ============================================================================
 // منصة عمرو محروس التعليمية — Prisma schema
 // Amr Mahrous Educational Platform — developed by Aurexis (https://aurexis.cc/)
+// Educational Platform — developed by Aurexis (https://aurexis.cc/)
 //
 // Conventions used throughout this schema:
 //   * All money is stored as INTEGER minor units (قرش / piastres). Never floats.
@@ -309,6 +310,13 @@ model User {
   /// Staff can stop the weekly WhatsApp report to this student's parent.
   parentReportsEnabled Boolean @default(true)
 
+  /// Signs in from any number of devices. For the app-store reviewers' demo
+  /// account, which is opened on Apple's and Google's test devices.
+  deviceLimitExempt Boolean   @default(false)
+  /// Set when the student deleted their account. The row stays (orders and
+  /// payments must be kept) but every personal detail on it is wiped.
+  deletedAt         DateTime?
+
   /// Platform balance in piastres. Only ever changed together with a
   /// WalletTransaction row; a CHECK constraint keeps it from going negative.
   walletBalanceMinor Int @default(0)
@@ -350,6 +358,8 @@ model User {
   lessonReplies       LessonQuestionReply[]
   lessonVotes         LessonQuestionVote[]
   pushSubscriptions   PushSubscription[]
+  nativePushTokens    NativePushToken[]
+  lessonDownloads     LessonDownload[]
   attendance          Attendance[]
 
   @@index([role, status])
@@ -614,6 +624,7 @@ model Lesson {
   /// Live recordings published as this lesson's video.
   liveRecordings LiveRecording[]
   questions      LessonQuestion[]
+  downloads      LessonDownload[]
 
   @@unique([chapterId, slug])
   @@index([chapterId, sortOrder])
@@ -665,6 +676,16 @@ model VideoAsset {
 
   /// Multipart upload bookkeeping, so uploads survive a page refresh.
   uploadId String?
+
+  /// One MP4 of a mid rendition for the store apps' offline downloads, remuxed
+  /// from the HLS segments on the first request (no re-encode) and deleted
+  /// again when nobody has downloaded it for a few days. The file a student
+  /// downloads lives on their phone, not here.
+  offlineKey     String?
+  offlineSize    BigInt?
+  offlineQuality String?
+  /// When the MP4 was last handed out; drives the clean-up.
+  offlineUsedAt  DateTime?
 
   errorMessage String?
   processedAt  DateTime?
@@ -1641,6 +1662,43 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+/// A lesson saved on a student's phone by the store app. Kept so the app can
+/// re-check the student still has access, and so offline watching is counted.
+model LessonDownload {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  /// Last time the app re-checked access (online); the copy expires some days after.
+  checkedAt DateTime @default(now())
+
+  @@unique([userId, lessonId])
+  @@index([lessonId])
+  @@map("lesson_downloads")
+}
+
+enum NativePlatform {
+  ANDROID
+  IOS
+}
+
+/// A phone running the store app: an FCM token (Android) or an APNs device
+/// token (iPhone). Pushed alongside the browser subscriptions.
+model NativePushToken {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform   NativePlatform
+  token      String         @unique
+  createdAt  DateTime       @default(now())
+  lastUsedAt DateTime       @default(now())
+
+  @@index([userId])
+  @@map("native_push_tokens")
 }
 
 // ----------------------------------------------------------------------------

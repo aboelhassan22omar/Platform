@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <title>مفيش اتصال</title>
+    <link rel="stylesheet" href="app.css" />
+    <style>
+      body { display: grid; place-items: center; min-height: 100vh; text-align: center; }
+      main { width: min(22rem, calc(100% - 48px)); padding-bottom: 48px; }
+      .mark { width: 88px; height: 88px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); }
+      h1 { margin: 22px 0 6px; font-size: 1.35rem; }
+      p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+      .actions { margin-top: 26px; display: grid; gap: 10px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="mark" src="icon.png" alt="" />
+      <h1>انت مش متصل بالإنترنت</h1>
+      <p>شوف الاتصال عندك وجرّب تاني، أو روح لمكتبتك واتفرج على الحصص اللي نزّلتها.</p>
+      <div class="actions">
+        <a class="button primary" href="library.html">روح لمكتبتي</a>
+        <button type="button" class="secondary" id="retry">حاول تاني</button>
+      </div>
+    </main>
+    <p class="credit">Powered by <b>Aurexis</b></p>
+    <script src="site.js"></script>
+    <script>
+      // Shown by the app whenever the live site cannot load.
+      var SITE = window.APP_SITE_URL;
+      var plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
+      if (plugins.SplashScreen) plugins.SplashScreen.hide({ fadeOutDuration: 300 }).catch(function () {});
+      function retry() { window.location.replace(SITE); }
+      document.getElementById('retry').addEventListener('click', retry);
+      window.addEventListener('online', retry);
+      if (plugins.App) {
+        plugins.App.addListener('backButton', function () { plugins.App.minimizeApp(); });
+      }
+    </script>
+  </body>
+</html>

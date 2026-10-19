@@ -12,6 +12,7 @@ import { EASE_ENTRANCE } from '@/lib/motion';
 import type { LeaderboardResponse, ProgressSummary } from '@/types/api';
 import { AchievementsLibrary } from './achievements-library';
 import { MyDevices } from './my-devices';
+import { DeleteAccount } from './delete-account';
 import { AppSetupCard } from '@/features/app/app-setup-card';
 
 const GRADE_LABELS: Record<string, string> = {
@@ -341,6 +342,8 @@ export function ProfileSettings() {
           </div>
         </form>
       </motion.section>
+
+      <DeleteAccount />
 
       {/* Sign out */}
       <div className="flex justify-start">

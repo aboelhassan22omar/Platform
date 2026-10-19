@@ -14,10 +14,19 @@ export interface AccessSettings {
    * number. 0 = unlimited. One view = the video's length in streamed time.
    */
   defaultMaxViews: number;
+  /** The store apps may save lessons on the phone to watch with no connection. */
+  offlineDownloads: boolean;
+  /** Days a saved lesson plays without going online to re-check access. */
+  offlineDays: number;
 }
 
 const KEY = 'security.access';
-const DEFAULTS: AccessSettings = { maxDevices: 2, defaultMaxViews: 0 };
+const DEFAULTS: AccessSettings = {
+  maxDevices: 2,
+  defaultMaxViews: 0,
+  offlineDownloads: true,
+  offlineDays: 7,
+};
 /** Read on every streamed segment, so it is cached briefly per API instance. */
 const CACHE_MS = 30_000;
 
@@ -34,6 +43,8 @@ export class AccessSettingsService {
     const value = {
       maxDevices: stored.maxDevices ?? DEFAULTS.maxDevices,
       defaultMaxViews: stored.defaultMaxViews ?? DEFAULTS.defaultMaxViews,
+      offlineDownloads: stored.offlineDownloads ?? DEFAULTS.offlineDownloads,
+      offlineDays: stored.offlineDays ?? DEFAULTS.offlineDays,
     };
     this.cached = { value, until: Date.now() + CACHE_MS };
     return value;

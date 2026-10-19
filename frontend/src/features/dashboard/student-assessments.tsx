@@ -223,13 +223,18 @@ export function StudentAssessments() {
                 </div>
                 <div className="mt-auto pt-5">
                   {!item.isFree && item.productId ? (
-                    <button
-                      type="button"
-                      onClick={() => setBuying(item)}
-                      className="flex min-h-11 w-full items-center justify-center rounded-xl bg-gold-500 px-4 text-sm font-black text-midnight-950 hover:bg-gold-400"
-                    >
-                      شراء الامتحان — {formatNumber((item.priceMinor ?? 0) / 100)} ج.م
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setBuying(item)}
+                        className="web-only flex min-h-11 w-full items-center justify-center rounded-xl bg-gold-500 px-4 text-sm font-black text-midnight-950 hover:bg-gold-400"
+                      >
+                        شراء الامتحان — {formatNumber((item.priceMinor ?? 0) / 100)} ج.م
+                      </button>
+                      <p className="app-only flex min-h-11 w-full items-center justify-center rounded-xl bg-midnight-100 px-4 text-sm font-bold text-midnight-500 dark:bg-white/5 dark:text-ivory-300/60">
+                        الامتحان ده مش متاح في حسابك
+                      </p>
+                    </>
                   ) : (
                     <Link
                       href={`/dashboard/assessments/${item.id}`}

@@ -638,6 +638,8 @@ export interface SignedInDevice {
 export interface DeviceList {
   /** 0 = unlimited. */
   limit: number;
+  /** No device limit for this account (the app-store reviewers' demo account). */
+  exempt?: boolean;
   devices: SignedInDevice[];
 }
 

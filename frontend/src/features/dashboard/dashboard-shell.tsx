@@ -6,20 +6,23 @@ import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { springSnappy } from '@/lib/motion';
 import { LiveBanner } from '@/features/live/live-banner';
+import { useNativeApp } from '@/lib/native-app';
+import { libraryUrl, offlineAvailable } from '@/features/app/offline-library';
 
-const TABS = [
+const TABS: Array<{ href: string; label: string; exact?: boolean; webOnly?: boolean }> = [
   { href: '/dashboard', label: 'نظرة عامة', exact: true },
   { href: '/dashboard/lessons', label: 'حصصي' },
   { href: '/dashboard/assessments', label: 'الواجبات والامتحانات' },
   { href: '/dashboard/leaderboard', label: 'المتصدرون' },
   { href: '/dashboard/subscriptions', label: 'اشتراكاتي' },
-  { href: '/dashboard/wallet', label: 'محفظتي' },
+  { href: '/dashboard/wallet', label: 'محفظتي', webOnly: true },
   { href: '/dashboard/attendance', label: 'كارنيه الحضور' },
   { href: '/dashboard/profile', label: 'بياناتي' },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const native = useNativeApp();
 
   const isActive = (tab: (typeof TABS)[number]) =>
     tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
@@ -27,7 +30,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[calc(100dvh-4rem)] bg-[#fcfaf4] dark:bg-[#030712] text-midnight-950 dark:text-ivory-50 transition-colors duration-300">
       {/* Tab bar. Horizontally scrollable on phones */}
-      <div className="sticky top-16 z-30 border-b border-gold-500/20 bg-white/85 dark:bg-midnight-950/85 backdrop-blur-xl">
+      <div className="sticky top-[calc(4rem+var(--safe-top))] z-30 border-b border-gold-500/20 bg-white/85 dark:bg-midnight-950/85 backdrop-blur-xl">
         <div className="container-page">
           <nav
             aria-label="أقسام حسابي"
@@ -40,6 +43,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 aria-current={isActive(tab) ? 'page' : undefined}
                 className={cn(
                   'relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold transition-colors',
+                  tab.webOnly && 'web-only',
                   isActive(tab)
                     ? 'text-gold-800 dark:text-gold-300'
                     : 'text-midnight-600 dark:text-ivory-300/70 hover:text-midnight-900 dark:hover:text-ivory-100',
@@ -55,6 +59,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <span className="relative">{tab.label}</span>
               </Link>
             ))}
+            {native && offlineAvailable() && (
+              // The downloads library is a page bundled in the app, not on this site.
+              <a
+                href={libraryUrl()}
+                className="relative shrink-0 rounded-xl px-4 py-2.5 text-sm font-bold text-midnight-600 hover:text-midnight-900 dark:text-ivory-300/70 dark:hover:text-ivory-100"
+              >
+                مكتبتي
+              </a>
+            )}
           </nav>
         </div>
       </div>

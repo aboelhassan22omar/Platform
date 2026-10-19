@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useNativeApp } from '@/lib/native-app';
 import { usePush, useInstall } from './install-and-push';
 
 const DISMISS_KEY = 'app-setup-dismissed';
@@ -14,6 +15,7 @@ const DISMISS_KEY = 'app-setup-dismissed';
 export function AppSetupCard({ dismissible = false }: { dismissible?: boolean }) {
   const install = useInstall();
   const push = usePush();
+  const native = useNativeApp();
   const [dismissed, setDismissed] = useState(true);
   const [showIosHelp, setShowIosHelp] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -27,6 +29,8 @@ export function AppSetupCard({ dismissible = false }: { dismissible?: boolean })
   }, [dismissible]);
 
   const pushOn = push.state === 'on';
+  // An app build without push (Android before Firebase is set up) has nothing to offer here.
+  if (native && push.state === 'unsupported') return null;
   const done = install.installed && (pushOn || push.state === 'unsupported');
   if (dismissible && (dismissed || done)) return null;
 
@@ -70,15 +74,16 @@ export function AppSetupCard({ dismissible = false }: { dismissible?: boolean })
             id="app-setup-heading"
             className="font-display text-lg font-black text-midnight-950 dark:text-ivory-50"
           >
-            المنصة على موبايلك
+            {native ? 'إشعارات التطبيق' : 'المنصة على موبايلك'}
           </h2>
           <p className="mt-1 text-sm leading-6 text-midnight-600 dark:text-ivory-300/75">
-            ثبّتها زي أي تطبيق بأيقونة على الشاشة، وفعّل الإشعارات عشان يوصلك أول ما المستر يرد، أو
-            حصة جديدة تنزل، أو اللايف يبدأ.
+            {native
+              ? 'فعّل الإشعارات عشان يوصلك أول ما المستر يرد، أو حصة جديدة تنزل، أو اللايف يبدأ.'
+              : 'ثبّتها زي أي تطبيق بأيقونة على الشاشة، وفعّل الإشعارات عشان يوصلك أول ما المستر يرد، أو حصة جديدة تنزل، أو اللايف يبدأ.'}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {install.installed ? (
+            {native ? null : install.installed ? (
               <span className="inline-flex min-h-11 items-center rounded-xl bg-emerald-500/10 px-4 text-sm font-black text-emerald-700 dark:text-emerald-300">
                 ✓ متثبّتة
               </span>
@@ -130,7 +135,9 @@ export function AppSetupCard({ dismissible = false }: { dismissible?: boolean })
               </button>
             ) : push.state === 'denied' ? (
               <span className="inline-flex min-h-11 items-center rounded-xl bg-amber-500/10 px-4 text-xs font-bold text-amber-800 dark:text-amber-300">
-                الإشعارات مقفولة من إعدادات المتصفح. افتحها من علامة القفل جنب العنوان.
+                {native
+                  ? 'الإشعارات مقفولة من إعدادات الموبايل. افتح الإعدادات ثم التطبيقات ثم «عمرو محروس» وشغّل الإشعارات.'
+                  : 'الإشعارات مقفولة من إعدادات المتصفح. افتحها من علامة القفل جنب العنوان.'}
               </span>
             ) : install.ios && !install.installed ? (
               <span className="inline-flex min-h-11 items-center text-xs font-bold text-midnight-500 dark:text-ivory-300/65">

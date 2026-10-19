@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <title>مكتبتي</title>
+    <link rel="stylesheet" href="app.css" />
+    <style>
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        background: rgba(10, 17, 32, 0.94);
+        border-bottom: 1px solid var(--line);
+        backdrop-filter: blur(12px);
+      }
+      header h1 { margin: 0; font-size: 1.2rem; }
+      header small { display: block; color: var(--muted); font-size: 0.75rem; font-weight: 600; }
+      main { padding: 16px 16px 96px; max-width: 40rem; margin: 0 auto; }
+      .empty { text-align: center; padding: 56px 12px; color: var(--muted); }
+      .empty strong { display: block; color: var(--ivory); font-size: 1.1rem; margin-bottom: 6px; }
+      .card {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        gap: 12px;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: var(--navy-2);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+      }
+      .thumb {
+        position: relative;
+        aspect-ratio: 16 / 10;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #050b16 center / cover no-repeat;
+        border: 0;
+        padding: 0;
+        min-height: 0;
+      }
+      .thumb::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(220, 166, 45, 0.92) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8 5v14l11-7z' fill='%230a1120'/%3E%3C/svg%3E") center / 18px no-repeat;
+      }
+      .card.expired .thumb::after { background: rgba(245, 239, 227, 0.25); }
+      .meta h2 { margin: 0; font-size: 0.98rem; line-height: 1.5; }
+      .meta p { margin: 2px 0 0; color: var(--muted); font-size: 0.8rem; }
+      .meta .warn { color: #fbbf24; font-weight: 700; }
+      .row { display: flex; gap: 6px; margin-top: 6px; }
+      #player {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: none;
+        flex-direction: column;
+        background: #000;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      }
+      #player.open { display: flex; }
+      #player .bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--ivory); }
+      #player .bar span { flex: 1; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #stage { position: relative; flex: 1; display: grid; place-items: center; }
+      video { width: 100%; max-height: 100%; background: #000; }
+      .watermark {
+        position: absolute;
+        pointer-events: none;
+        white-space: nowrap;
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.45);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+        transition: top 2.5s ease-in-out, left 2.5s ease-in-out;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>مكتبتي</h1>
+        <small id="usage"></small>
+      </div>
+      <button type="button" class="secondary" id="online">ارجع للمنصة</button>
+    </header>
+    <main id="list" aria-live="polite"></main>
+
+    <div id="player" role="dialog" aria-modal="true" aria-label="تشغيل الحصة">
+      <div class="bar">
+        <button type="button" class="ghost" id="close" aria-label="إغلاق">✕</button>
+        <span id="playing"></span>
+      </div>
+      <div id="stage">
+        <video id="video" controls playsinline controlslist="nodownload" disablepictureinpicture></video>
+        <div class="watermark" id="watermark" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <script src="site.js"></script>
+    <script src="library.js"></script>
+  </body>
+</html>

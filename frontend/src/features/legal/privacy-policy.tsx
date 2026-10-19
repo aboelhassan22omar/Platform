@@ -160,6 +160,12 @@ export default function PrivacyPage() {
               >
                 ٨. حقوق المستخدم
               </a>
+              <a
+                href="#section-9"
+                className="rounded-xl bg-amber-500/10 hover:bg-amber-500/20 p-2.5 text-center text-amber-300 border border-amber-500/20 transition-colors"
+              >
+                ٩. تطبيقات الموبايل
+              </a>
             </div>
           </div>
 
@@ -461,7 +467,51 @@ export default function PrivacyPage() {
             </div>
           </section>
 
-          {/* Section 9: Support & Contact */}
+          {/* Section 9: The store apps */}
+          <section
+            id="section-9"
+            className="rounded-3xl border border-amber-500/20 bg-[#071322]/85 p-6 sm:p-8 backdrop-blur-xl shadow-xl space-y-4"
+          >
+            <div className="flex items-center gap-3 border-b border-amber-500/15 pb-4">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/20 text-amber-300 font-black text-sm border border-amber-500/30">
+                ٩
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white">
+                تطبيقات الموبايل (Google Play وApp Store)
+              </h2>
+            </div>
+            <ul className="space-y-2 text-sm text-slate-300 leading-relaxed list-disc ps-5">
+              <li>
+                <strong className="text-white">الإشعارات:</strong> لو فعّلتها، بنحفظ رمز الإشعارات
+                الخاص بموبايلك (من Google أو Apple) عشان نبعتلك إشعارات المنصة بس. تقدر تقفلها في أي
+                وقت من التطبيق أو من إعدادات الموبايل، والرمز بيتمسح لما تسجّل خروج.
+              </li>
+              <li>
+                <strong className="text-white">الكاميرا:</strong> بتُستخدم بس لما فريق السنتر يمسح
+                كود الحضور، أو لما تختار تصوّر صورة وترفعها بنفسك. مش بنسجّل فيديو ولا بنحفظ أي حاجة من الكاميرا غير الصورة اللي انت بتختار ترفعها.
+              </li>
+              <li>
+                <strong className="text-white">الحصص المتنزّلة:</strong> الحصص اللي بتنزّلها
+                بتتحفظ في مساحة خاصة بالتطبيق على موبايلك بس (مش في المعرض ولا في النسخ الاحتياطي)،
+                وبتتمسح لو مسحت التطبيق. لما تفتح نت، التطبيق بيبعت مدة مشاهدتك ليها عشان تتحسب من
+                عدد مرات المشاهدة.
+              </li>
+              <li>
+                <strong className="text-white">مفيش إعلانات ولا تتبّع:</strong> التطبيق مش بيعرض
+                إعلانات، ومش بيستخدم معرّف الإعلانات، ومش بيشارك بياناتك مع أي جهة لأغراض تسويقية.
+              </li>
+              <li>
+                <strong className="text-white">حذف الحساب:</strong> تقدر تحذف حسابك نهائيًا من
+                التطبيق أو الموقع (حسابي ثم بياناتي ثم حذف حسابي)، والتفاصيل في{' '}
+                <Link href="/delete-account" className="font-bold text-amber-300 underline">
+                  صفحة حذف الحساب
+                </Link>
+                .
+              </li>
+            </ul>
+          </section>
+
+          {/* Section 10: Support & Contact */}
           <section className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#0c2238] via-[#071424] to-[#040a12] p-6 sm:p-9 shadow-2xl text-center space-y-4">
             <h3 className="text-xl font-black text-white">هل لديك استفسار حول خصوصية بياناتك؟</h3>
             <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">

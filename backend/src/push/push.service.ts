@@ -3,9 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { Interval } from '@nestjs/schedule';
 import webpush from 'web-push';
 import { Prisma } from '../generated/prisma/client';
+import { NativePlatform } from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 import type { AppConfig } from '../config/configuration';
+import { NativePushService, type NativeResult } from './native-push.service';
 
 const KEYS_SETTING = 'push.vapid';
 const LOCK = 'lock:push-dispatch';
@@ -18,7 +20,8 @@ interface VapidKeys {
 }
 
 /**
- * Phone notifications (Web Push) for the installed app and the browser.
+ * Phone notifications: Web Push for the browser and the installed site, and
+ * FCM / APNs for the store apps (see NativePushService).
  *
  * Nothing in the platform has to call this to notify: every in-app
  * notification is picked up a few seconds after it is created and pushed to
@@ -37,6 +40,7 @@ export class PushService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly config: ConfigService,
+    private readonly native: NativePushService,
   ) {}
 
   async vapidKeys(): Promise<VapidKeys> {
@@ -92,8 +96,27 @@ export class PushService {
     return { subscribed: false };
   }
 
+  /** The store app on a phone; the same token moves to whoever signs in on it. */
+  async subscribeNative(userId: string, platform: NativePlatform, token: string) {
+    await this.prisma.nativePushToken.upsert({
+      where: { token },
+      create: { token, platform, userId },
+      update: { userId, platform, lastUsedAt: new Date() },
+    });
+    return { subscribed: true };
+  }
+
+  async unsubscribeNative(userId: string, token: string) {
+    await this.prisma.nativePushToken.deleteMany({ where: { userId, token } });
+    return { subscribed: false };
+  }
+
   async count(userId: string) {
-    return this.prisma.pushSubscription.count({ where: { userId } });
+    const [browsers, apps] = await Promise.all([
+      this.prisma.pushSubscription.count({ where: { userId } }),
+      this.prisma.nativePushToken.count({ where: { userId } }),
+    ]);
+    return browsers + apps;
   }
 
   @Interval('push-dispatch', 10_000)
@@ -128,21 +151,39 @@ export class PushService {
       data: { pushedAt: now },
     });
 
-    const subscriptions = await this.prisma.pushSubscription.findMany({
-      where: { userId: { in: [...new Set(pending.map((row) => row.userId))] } },
-    });
-    if (!subscriptions.length) return 0;
-    await this.vapidKeys();
+    const userIds = [...new Set(pending.map((row) => row.userId))];
+    const [subscriptions, apps] = await Promise.all([
+      this.prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } }),
+      this.prisma.nativePushToken.findMany({ where: { userId: { in: userIds } } }),
+    ]);
+    if (!subscriptions.length && !apps.length) return 0;
+    if (subscriptions.length) await this.vapidKeys();
 
     let sent = 0;
+    const usedApps: string[] = [];
     for (const notification of pending) {
-      const targets = subscriptions.filter((row) => row.userId === notification.userId);
-      const payload = JSON.stringify({
+      const message = {
         title: notification.title,
         body: notification.body,
         url: notification.href ?? '/dashboard/notifications',
         tag: notification.id,
-      });
+      };
+      for (const app of apps.filter((row) => row.userId === notification.userId)) {
+        const result: NativeResult =
+          app.platform === NativePlatform.IOS
+            ? await this.native.sendIos(app.token, message)
+            : await this.native.sendAndroid(app.token, message);
+        if (result === 'sent') {
+          sent += 1;
+          usedApps.push(app.id);
+        } else if (result === 'gone') {
+          await this.prisma.nativePushToken
+            .delete({ where: { id: app.id } })
+            .catch(() => undefined);
+        }
+      }
+      const targets = subscriptions.filter((row) => row.userId === notification.userId);
+      const payload = JSON.stringify(message);
       for (const target of targets) {
         try {
           await webpush.sendNotification(
@@ -167,6 +208,12 @@ export class PushService {
     if (sent) {
       await this.prisma.pushSubscription.updateMany({
         where: { id: { in: subscriptions.map((row) => row.id) } },
+        data: { lastUsedAt: now },
+      });
+    }
+    if (usedApps.length) {
+      await this.prisma.nativePushToken.updateMany({
+        where: { id: { in: usedApps } },
         data: { lastUsedAt: now },
       });
     }
