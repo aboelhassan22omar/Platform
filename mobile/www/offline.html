@@ -26,9 +26,10 @@
       </div>
     </main>
     <p class="credit">Powered by <b>Aurexis</b></p>
+    <script src="site.js"></script>
     <script>
       // Shown by the app whenever the live site cannot load.
-      var SITE = 'https://amr.aurexis.cc/';
+      var SITE = window.APP_SITE_URL;
       var plugins = (window.Capacitor && window.Capacitor.Plugins) || {};
       if (plugins.SplashScreen) plugins.SplashScreen.hide({ fadeOutDuration: 300 }).catch(function () {});
       function retry() { window.location.replace(SITE); }

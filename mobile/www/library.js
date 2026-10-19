@@ -10,7 +10,7 @@
 (function () {
   'use strict';
 
-  var SITE = 'https://amr.aurexis.cc/';
+  var SITE = window.APP_SITE_URL;
   var DIR = 'LIBRARY_NO_CLOUD';
   var INDEX = 'offline/index.json';
   var cap = window.Capacitor || {};

@@ -13,7 +13,11 @@ import { existsSync, readFileSync } from 'node:fs';
  * the apps sell nothing, which keeps them inside both stores' payment rules.
  */
 const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
-const site = process.env.APP_SITE_URL || 'https://amr.aurexis.cc';
+// One address for the whole shell, written by scripts/set-site.mjs (CI passes
+// the PRODUCTION_SITE_URL repository variable).
+const site =
+  /APP_SITE_URL = '([^']+)'/.exec(readFileSync('www/site.js', 'utf8'))?.[1] ??
+  'https://amr.aurexis.cc/';
 // Android push needs Firebase; the site only offers it when the build has it.
 const androidPush = existsSync('android/app/google-services.json');
 

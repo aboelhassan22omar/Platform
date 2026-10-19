@@ -16,7 +16,12 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const SITE = process.env.SITE_URL || 'https://amr.aurexis.cc';
+const MOBILE_DIR = join(dirname(fileURLToPath(import.meta.url)), '..');
+// The same address the apps open (mobile/www/site.js), unless overridden.
+const SITE = (
+  process.env.SITE_URL ||
+  /APP_SITE_URL = '([^']+)'/.exec(readFileSync(join(MOBILE_DIR, 'www', 'site.js'), 'utf8'))[1]
+).replace(/\/$/, '');
 const USER = process.env.APP_REVIEW_USER;
 const PASSWORD = process.env.APP_REVIEW_PASSWORD;
 if (!USER || !PASSWORD) {
@@ -24,7 +29,7 @@ if (!USER || !PASSWORD) {
   process.exit(1);
 }
 
-const MOBILE = join(dirname(fileURLToPath(import.meta.url)), '..');
+const MOBILE = MOBILE_DIR;
 const WWW = join(MOBILE, 'www');
 const STORE = join(MOBILE, 'store');
 const APP_UA =

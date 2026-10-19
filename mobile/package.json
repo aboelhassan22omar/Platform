@@ -6,7 +6,8 @@
   "license": "UNLICENSED",
   "author": "Aurexis (https://aurexis.cc/)",
   "scripts": {
-    "sync": "cap sync",
+    "sync": "node scripts/set-site.mjs && cap sync",
+    "set-site": "node scripts/set-site.mjs",
     "assets": "python scripts/generate_assets.py",
     "check": "node scripts/check-store-readiness.mjs"
   },
