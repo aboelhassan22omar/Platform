@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
+import { isNativeApp } from '@/lib/native-app';
+import { disableNativePush } from '@/features/app/native-push';
 import type { EducationSystem, GradeLevel, Role, StudentType } from '@/types/api';
 
 export interface AuthUser {
@@ -118,6 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     setIsSigningOut(true);
+    // Store apps: stop this phone's notifications for the account first,
+    // while the session can still authorise it.
+    if (isNativeApp()) await disableNativePush().catch(() => undefined);
     await api.post('/auth/logout').catch(() => undefined);
     setUser(null);
     // replace, not push: the signed-in page must not be reachable with Back.

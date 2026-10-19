@@ -4,6 +4,7 @@ import { AppProviders } from '@/components/providers/app-providers';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { platformConfig } from '@/config/platform.config';
+import { NATIVE_DETECT_SCRIPT } from '@/lib/native-detect';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:7300'),
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `try{var t=localStorage.getItem('amr_mahrous_theme')||'dark';document.documentElement.classList.add(t);document.documentElement.setAttribute('data-mode',t);document.documentElement.style.colorScheme=t;}catch(e){}`,
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: NATIVE_DETECT_SCRIPT }} />
       </head>
       <body className="min-h-dvh flex flex-col antialiased transition-colors duration-300">
         <AppProviders>

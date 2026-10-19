@@ -16,6 +16,21 @@ const bool = (value: string | undefined, fallback = false): boolean => {
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
 };
 
+/**
+ * A multi-line secret (JSON file, PEM key) from one env variable: raw, with
+ * literal "\n" escapes, or base64 — whichever survives the hosting panel.
+ */
+const decodeSecret = (value: string | undefined): string => {
+  const raw = (value ?? '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('{') || raw.startsWith('-----')) return raw.replace(/\\n/g, '\n');
+  try {
+    return Buffer.from(raw, 'base64').toString('utf8').trim();
+  } catch {
+    return '';
+  }
+};
+
 const int = (value: string | undefined, fallback: number): number => {
   const parsed = Number.parseInt(value ?? '', 10);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -145,6 +160,20 @@ export const configuration = () => ({
           return 'localhost';
         }
       })()}`,
+    /**
+     * The store apps. Android goes through Firebase Cloud Messaging (the
+     * service-account JSON, raw or base64); iPhone straight to Apple (APNs
+     * auth key .p8, raw or base64). Either side stays off until configured.
+     */
+    fcmServiceAccount: decodeSecret(process.env.FIREBASE_SERVICE_ACCOUNT),
+    apns: {
+      key: decodeSecret(process.env.APNS_KEY),
+      keyId: process.env.APNS_KEY_ID ?? '',
+      teamId: process.env.APNS_TEAM_ID ?? '',
+      bundleId: process.env.APNS_BUNDLE_ID || 'com.amrmahrous.app',
+      // TestFlight and App Store builds use Apple's production servers.
+      sandbox: bool(process.env.APNS_SANDBOX, false),
+    },
   },
 
   payments: {

@@ -664,3 +664,25 @@ html.dark .input-base option {
   background: #d8a328;
   box-shadow: 0 2px 7px rgb(0 0 0 / 50%);
 }
+
+/* ==========================================================================
+   Store apps (Google Play / App Store) — see src/lib/native-app.ts
+   ========================================================================== */
+
+/* Buying happens on the website only: nothing about it shows in the apps. */
+html.native-app .web-only {
+  display: none !important;
+}
+html:not(.native-app) .app-only {
+  display: none !important;
+}
+
+/*
+ * The top safe area (notch / status bar). Zero in a normal browser tab; in
+ * the apps and the installed site the page runs edge to edge, so the sticky
+ * header pads itself below the status bar. Capacitor's Android shell injects
+ * --safe-area-inset-top for WebViews that do not report env() correctly.
+ */
+:root {
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+}

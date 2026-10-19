@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Button } from '@/components/ui/button';
-import { formatEgp } from '@/lib/utils';
+import { cn, formatEgp } from '@/lib/utils';
 import type { LessonDetail } from '@/types/api';
 
 /**
@@ -14,29 +14,34 @@ import type { LessonDetail } from '@/types/api';
  * purchase. No video URL exists at this point — the paywall is not a curtain
  * over a loaded stream.
  */
-const REASON_COPY: Record<string, { title: string; body: string; cta: 'buy' | 'renew' | 'none' }> =
-  {
-    NO_ENTITLEMENT: {
-      title: 'الحصة دي مقفولة',
-      body: 'اشترِ الحصة لوحدها، أو اشترك في باقة الصف وافتح كل الحصص مرة واحدة.',
-      cta: 'buy',
-    },
-    EXPIRED: {
-      title: 'انتهت صلاحية اشتراكك',
-      body: 'جدّد اشتراكك عشان ترجع تتفرج على الحصة دي وباقي حصص الصف.',
-      cta: 'renew',
-    },
-    NOT_PUBLISHED: {
-      title: 'الحصة لسه مش منشورة',
-      body: 'الحصة دي لسه بتتجهز، هتكون متاحة قريب.',
-      cta: 'none',
-    },
-    WRONG_GRADE: {
-      title: 'الحصة دي مش تابعة لصفك',
-      body: 'تقدر تشاهد حصص الصف الدراسي المسجل في حسابك فقط، بما فيها الحصص المجانية.',
-      cta: 'none',
-    },
-  };
+const REASON_COPY: Record<
+  string,
+  { title: string; body: string; appBody?: string; cta: 'buy' | 'renew' | 'none' }
+> = {
+  NO_ENTITLEMENT: {
+    title: 'الحصة دي مقفولة',
+    body: 'اشترِ الحصة لوحدها، أو اشترك في باقة الصف وافتح كل الحصص مرة واحدة.',
+    // The store apps sell nothing and must not point to where to buy.
+    appBody: 'الحصة دي مش متاحة في حسابك. الحصص المتاحة لك والحصص المجانية تلاقيها في صفحة صفك.',
+    cta: 'buy',
+  },
+  EXPIRED: {
+    title: 'انتهت صلاحية اشتراكك',
+    body: 'جدّد اشتراكك عشان ترجع تتفرج على الحصة دي وباقي حصص الصف.',
+    appBody: 'مدة الاشتراك اللي كانت بتفتح الحصة دي خلصت.',
+    cta: 'renew',
+  },
+  NOT_PUBLISHED: {
+    title: 'الحصة لسه مش منشورة',
+    body: 'الحصة دي لسه بتتجهز، هتكون متاحة قريب.',
+    cta: 'none',
+  },
+  WRONG_GRADE: {
+    title: 'الحصة دي مش تابعة لصفك',
+    body: 'تقدر تشاهد حصص الصف الدراسي المسجل في حسابك فقط، بما فيها الحصص المجانية.',
+    cta: 'none',
+  },
+};
 
 export function LockedLesson({
   lesson,
@@ -89,9 +94,19 @@ export function LockedLesson({
       <h2 className="relative mt-5 font-display text-xl font-black text-ivory-50 sm:text-2xl">
         {copy.title}
       </h2>
-      <p className="relative mt-2 max-w-sm text-sm leading-relaxed text-ivory-200/70">
+      <p
+        className={cn(
+          'relative mt-2 max-w-sm text-sm leading-relaxed text-ivory-200/70',
+          copy.appBody && 'web-only',
+        )}
+      >
         {copy.body}
       </p>
+      {copy.appBody && (
+        <p className="app-only relative mt-2 max-w-sm text-sm leading-relaxed text-ivory-200/70">
+          {copy.appBody}
+        </p>
+      )}
 
       {error && (
         <p
@@ -103,7 +118,7 @@ export function LockedLesson({
       )}
 
       {copy.cta !== 'none' && (
-        <div className="relative mt-6 flex w-full max-w-sm flex-col gap-2.5 sm:flex-row sm:justify-center">
+        <div className="web-only relative mt-6 flex w-full max-w-sm flex-col gap-2.5 sm:flex-row sm:justify-center">
           {copy.cta === 'buy' && lesson.productId && lesson.priceMinor != null && (
             <Button variant="accent" size="lg" isLoading={isBuying} onClick={onBuy}>
               اشترِ الحصة — {formatEgp(lesson.priceMinor)}

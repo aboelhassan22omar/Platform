@@ -182,3 +182,31 @@ export async function extractPoster(
     outputPath,
   ]);
 }
+
+/**
+ * Joins one HLS rendition back into a single MP4 for offline downloads.
+ * Stream copy only (no re-encode), so it takes seconds and keeps the quality
+ * students already stream; faststart puts the index first so the phone can
+ * start playing without reading the whole file.
+ */
+export async function remuxToMp4(playlistPath: string, outputPath: string): Promise<void> {
+  await run('ffmpeg', [
+    '-hide_banner',
+    '-y',
+    '-allowed_extensions',
+    'ALL',
+    '-i',
+    playlistPath,
+    '-map',
+    '0:v:0',
+    '-map',
+    '0:a:0?',
+    '-c',
+    'copy',
+    '-bsf:a',
+    'aac_adtstoasc',
+    '-movflags',
+    '+faststart',
+    outputPath,
+  ]);
+}

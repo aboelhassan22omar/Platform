@@ -8,6 +8,7 @@ import { AuthProvider } from './auth-provider';
 import { PresenceReporter } from './presence-reporter';
 import { ScrollToTop } from './scroll-to-top';
 import { ServiceWorker } from './service-worker';
+import { NativeAppBridge } from './native-app-bridge';
 import { StoreProvider } from '@/features/store/store-provider';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
@@ -38,6 +39,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
               {children}
               <PresenceReporter />
               <ServiceWorker />
+              <NativeAppBridge />
             </StoreProvider>
           </AuthProvider>
         </ThemeProvider>

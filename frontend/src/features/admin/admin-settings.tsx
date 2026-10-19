@@ -175,6 +175,8 @@ function SwitchCard({
 interface AccessSettings {
   maxDevices: number;
   defaultMaxViews: number;
+  offlineDownloads: boolean;
+  offlineDays: number;
 }
 
 function AccessSection() {
@@ -252,6 +254,32 @@ function AccessSection() {
                 'تقدر تحط رقم مختلف لأي حصة من «المحتوى»، وتزوّد طالب معيّن من صفحته',
               ]}
             />
+            <StepperCard
+              title="تنزيل الحصص على تطبيق الموبايل"
+              value={values.offlineDownloads ? values.offlineDays : 0}
+              max={60}
+              zeroLabel="التنزيل مقفول"
+              unit={(n) =>
+                n === 1
+                  ? 'الحصة المتنزّلة تشتغل يوم واحد من غير نت'
+                  : n === 2
+                    ? 'الحصة المتنزّلة تشتغل يومين من غير نت'
+                    : `الحصة المتنزّلة تشتغل ${n} يوم من غير نت`
+              }
+              onChange={(n) =>
+                setDraft({
+                  ...values,
+                  offlineDownloads: n > 0,
+                  offlineDays: n > 0 ? n : values.offlineDays,
+                })
+              }
+              points={[
+                'الطالب ينزّل الحصة على موبايله ويتفرج عليها في «مكتبتي» من غير نت. الفيديو بيتخزن على موبايله هو مش على السيرفر',
+                'أول ما يفتح نت، التطبيق بيتأكد إن الحصة لسه متاحة له، ولو اشتراكه خلص بتتمسح من موبايله',
+                'المشاهدة من غير نت بتتحسب من عدد مرات المشاهدة، فالتنزيل مش بيكسر الحد',
+                'اختار صفر عشان تقفل التنزيل خالص',
+              ]}
+            />
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" variant="accent" isLoading={save.isPending} disabled={!draft}>
@@ -284,10 +312,12 @@ function StepperCard({
   unit,
   onChange,
   points,
+  zeroLabel = 'بدون حد',
 }: {
   title: string;
   value: number;
   max: number;
+  zeroLabel?: string;
   unit: (n: number) => string;
   onChange: (value: number) => void;
   points: string[];
@@ -315,7 +345,7 @@ function StepperCard({
                 : 'text-midnight-500 dark:text-ivory-300/60',
             )}
           >
-            {value > 0 ? unit(value) : 'بدون حد'}
+            {value > 0 ? unit(value) : zeroLabel}
           </p>
         </div>
         <div className="flex items-center gap-2" dir="ltr">

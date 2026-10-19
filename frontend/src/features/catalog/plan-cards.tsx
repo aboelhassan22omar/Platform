@@ -61,7 +61,7 @@ export function PlanCards({ plans, gradeName }: { plans: Plan[]; gradeName: stri
 
   if (!plans.length) {
     return (
-      <aside className="h-fit lg:sticky lg:top-28" aria-labelledby="plans-heading">
+      <aside className="web-only h-fit lg:sticky lg:top-28" aria-labelledby="plans-heading">
         <div className="rounded-2xl border border-dashed border-ivory-400 bg-ivory-100 p-7 text-center">
           <h2 id="plans-heading" className="font-display text-lg font-bold text-midnight-700">
             الاشتراكات لسه مش مفعّلة للصف ده
@@ -77,7 +77,7 @@ export function PlanCards({ plans, gradeName }: { plans: Plan[]; gradeName: stri
   return (
     <aside
       id="plans"
-      className="plans-edge-aligned relative h-fit w-full self-start overflow-hidden rounded-3xl border border-[var(--accent)]/35 bg-midnight-950 p-5 shadow-lifted sm:p-7 lg:sticky lg:top-28 lg:-mt-20 xl:-mt-24"
+      className="web-only plans-edge-aligned relative h-fit w-full self-start overflow-hidden rounded-3xl border border-[var(--accent)]/35 bg-midnight-950 p-5 shadow-lifted sm:p-7 lg:sticky lg:top-28 lg:-mt-20 xl:-mt-24"
       aria-labelledby="plans-heading"
     >
       <div

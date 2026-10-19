@@ -19,7 +19,14 @@ import { CurrentUser, Public } from '../common/decorators';
 import type { AuthenticatedUser } from '../common/decorators';
 import { AuthService, type IssuedTokens, type SessionContext } from './auth.service';
 import { DEVICE_COOKIE, DEVICE_COOKIE_MAX_AGE_SECONDS } from './devices.service';
-import { ChangePasswordDto, LoginDto, RegisterDto, UpdateProfileDto } from './dto/auth.dto';
+import { AccountDeletionService } from './account-deletion.service';
+import {
+  ChangePasswordDto,
+  DeleteAccountDto,
+  LoginDto,
+  RegisterDto,
+  UpdateProfileDto,
+} from './dto/auth.dto';
 
 const ACCESS_COOKIE = 'access_token';
 const REFRESH_COOKIE = 'refresh_token';
@@ -52,6 +59,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly deletion: AccountDeletionService,
   ) {}
 
   // --------------------------------------------------------------------------
@@ -207,5 +215,21 @@ export class AuthController {
     await this.auth.changePassword(actor.id, dto);
     this.clearAuthCookies(res);
     return { ok: true, message: 'تم تغيير كلمة السر، سجّل الدخول من جديد' };
+  }
+
+  /** Permanent. The password is asked again so a borrowed phone cannot do it. */
+  @Post('me/delete')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: LOGIN_LIMIT, ttl: AUTH_WINDOW_MS } })
+  @ApiOperation({ summary: 'حذف حسابي نهائيًا' })
+  async deleteAccount(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Body() dto: DeleteAccountDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.deletion.deleteOwnAccount(actor.id, dto.password, req.ip);
+    this.clearAuthCookies(res);
+    return result;
   }
 }

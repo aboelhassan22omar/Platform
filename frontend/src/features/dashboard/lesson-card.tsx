@@ -8,7 +8,8 @@ import type { ContinueWatchingItem, LibraryLesson } from '@/types/api';
 
 type Lesson = LibraryLesson | ContinueWatchingItem;
 
-const ACCESS_LABELS: Record<string, { label: string; className: string }> = {
+/** `appLabel` replaces purchase wording in the store apps (see lib/native-app.ts). */
+const ACCESS_LABELS: Record<string, { label: string; appLabel?: string; className: string }> = {
   FREE_PREVIEW: {
     label: 'حصة مجانية',
     className:
@@ -16,6 +17,7 @@ const ACCESS_LABELS: Record<string, { label: string; className: string }> = {
   },
   LESSON: {
     label: 'حصة مشتراة',
+    appLabel: 'متاحة لك',
     className:
       'bg-gold-50 dark:bg-gold-950/40 text-gold-700 dark:text-gold-300 border border-gold-500/20',
   },
@@ -126,7 +128,14 @@ export function LessonCard({ lesson }: { lesson: Lesson }) {
                 badge.className,
               )}
             >
-              {badge.label}
+              {badge.appLabel ? (
+                <>
+                  <span className="web-only">{badge.label}</span>
+                  <span className="app-only">{badge.appLabel}</span>
+                </>
+              ) : (
+                badge.label
+              )}
             </span>
           )}
 

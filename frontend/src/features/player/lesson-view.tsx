@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { VideoPlayer, type PlayerController } from './video-player';
 import { LessonQuestions } from '@/features/questions/lesson-questions';
 import { LockedLesson } from './locked-lesson';
+import { LessonDownload } from '@/features/app/lesson-download';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/components/providers/auth-provider';
 import { formatDate, formatDurationLabel } from '@/lib/utils';
@@ -109,6 +110,8 @@ export function LessonView({ lesson }: { lesson: LessonDetail }) {
                 />
               )}
             </motion.div>
+
+            {canWatch && lesson.isPlayable && <LessonDownload lesson={lesson} />}
 
             {/* --- Lesson meta --- */}
             <motion.div

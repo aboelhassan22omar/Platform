@@ -152,7 +152,7 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
               </a>
               <Link
                 href={`/grades/${course.grade.slug}#plans`}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-ivory-50/25 px-5 text-sm font-bold text-ivory-50 transition-colors hover:border-[var(--accent)]"
+                className="web-only inline-flex min-h-11 items-center justify-center rounded-xl border border-ivory-50/25 px-5 text-sm font-bold text-ivory-50 transition-colors hover:border-[var(--accent)]"
               >
                 الاشتراك الشهري والسنوي
               </Link>
@@ -167,8 +167,11 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
       <div id="course-units" className="container-page scroll-mt-24 py-10 sm:py-14">
         <div className="mb-7">
           <h2 className="font-display text-2xl font-black text-midnight-900">وحدات الكورس</h2>
-          <p className="mt-2 text-sm text-midnight-500">
+          <p className="web-only mt-2 text-sm text-midnight-500">
             تصفّح المحتوى مجانًا، وادفع فقط للوحدة اللي محتاجها أو اشترك لفتح الصف كاملًا.
+          </p>
+          <p className="app-only mt-2 text-sm text-midnight-500">
+            افتح أي وحدة عشان تشوف حصصها، والحصص المتاحة في حسابك تقدر تتفرج عليها على طول.
           </p>
           {checkoutError && (
             <p
@@ -255,7 +258,7 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
                     ) : offer ? (
                       <Button
                         variant="accent"
-                        className="shrink-0 sm:min-w-44"
+                        className="web-only shrink-0 sm:min-w-44"
                         isLoading={pendingOfferId === offer.id}
                         onClick={() => {
                           if (!user) {
@@ -271,7 +274,7 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
                         اشترِ الوحدة — {formatEgp(offer.amountMinor)}
                       </Button>
                     ) : (
-                      <span className="text-xs font-semibold text-midnight-400">
+                      <span className="web-only text-xs font-semibold text-midnight-400">
                         السعر غير مفعّل
                       </span>
                     )}
@@ -296,7 +299,7 @@ export function CourseOutline({ course }: { course: CourseDetail }) {
                                 {chapter.title}
                               </h3>
                               {unit.chapters.length > 1 && chapter.priceMinor != null && (
-                                <span className="shrink-0 text-xs font-bold text-[var(--accent)]">
+                                <span className="web-only shrink-0 text-xs font-bold text-[var(--accent)]">
                                   ضمن الوحدة: {formatEgp(chapter.priceMinor)}
                                 </span>
                               )}
@@ -437,7 +440,7 @@ function LessonRow({ lesson }: { lesson: LessonSummary }) {
           </span>
         )}
         {!canOpen && lesson.priceMinor != null && (
-          <span className="text-xs font-bold text-[var(--accent)]">
+          <span className="web-only text-xs font-bold text-[var(--accent)]">
             {formatEgp(lesson.priceMinor)}
           </span>
         )}

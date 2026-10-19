@@ -102,6 +102,11 @@ export async function processJob(job: Job<TranscodeJobData>): Promise<void> {
           renditions: ladder.map((r) => r.name),
           processedAt: new Date(),
           errorMessage: null,
+          // The offline MP4 belonged to the old version (removed with its prefix).
+          offlineKey: null,
+          offlineSize: null,
+          offlineQuality: null,
+          offlineUsedAt: null,
         },
         select: { lessonId: true },
       });

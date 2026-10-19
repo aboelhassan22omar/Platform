@@ -46,10 +46,14 @@ export function MySubscriptions() {
     <div className="space-y-10">
       <div>
         <h1 className="font-display text-2xl font-black text-midnight-950 dark:text-ivory-50">
-          اشتراكاتي ومشترياتي
+          <span className="web-only">اشتراكاتي ومشترياتي</span>
+          <span className="app-only">اشتراكاتي</span>
         </h1>
-        <p className="mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
+        <p className="web-only mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
           سجل الباقات المفعّلة وفواتير الحصص والطلبات الإلكترونية.
+        </p>
+        <p className="app-only mt-1 text-sm text-midnight-600 dark:text-ivory-300/70">
+          الباقات المفعّلة في حسابك ومدة كل واحدة.
         </p>
       </div>
 
@@ -72,10 +76,10 @@ export function MySubscriptions() {
             <p className="font-display text-base font-bold text-midnight-900 dark:text-ivory-100">
               لسه مشتركتش في أي باقة
             </p>
-            <p className="mt-1.5 text-sm text-midnight-500 dark:text-ivory-300/70">
+            <p className="web-only mt-1.5 text-sm text-midnight-500 dark:text-ivory-300/70">
               الاشتراك بيفتحلك كل حصص صفك دفعة واحدة مع المتابعة المستمرة.
             </p>
-            <ButtonLink href="/grades" variant="accent" size="sm" className="mt-4">
+            <ButtonLink href="/grades" variant="accent" size="sm" className="web-only mt-4">
               شوف الباقات المتاحة
             </ButtonLink>
           </div>
@@ -156,7 +160,13 @@ export function MySubscriptions() {
                     </span>
                   </div>
                 ) : (
-                  <ButtonLink href="/grades" variant="accent" size="sm" fullWidth className="mt-4">
+                  <ButtonLink
+                    href="/grades"
+                    variant="accent"
+                    size="sm"
+                    fullWidth
+                    className="web-only mt-4"
+                  >
                     جدّد الاشتراك
                   </ButtonLink>
                 )}
@@ -168,7 +178,7 @@ export function MySubscriptions() {
 
       {/* --- Purchase history --- */}
       {orders && orders.length > 0 && (
-        <section aria-labelledby="orders-heading">
+        <section aria-labelledby="orders-heading" className="web-only">
           <h2
             id="orders-heading"
             className="font-display text-xl font-black text-midnight-950 dark:text-ivory-50"

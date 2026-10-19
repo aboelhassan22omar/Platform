@@ -26,6 +26,14 @@ class AccessSettingsDto {
   @Min(0)
   @Max(100, { message: 'أقصى عدد مشاهدات 100' })
   defaultMaxViews!: number;
+
+  @IsBoolean() offlineDownloads!: boolean;
+
+  @Type(() => Number)
+  @IsInt({ message: 'عدد الأيام لازم يكون رقم صحيح' })
+  @Min(1, { message: 'أقل مدة يوم واحد' })
+  @Max(60, { message: 'أقصى مدة 60 يوم' })
+  offlineDays!: number;
 }
 
 @Controller()
@@ -71,6 +79,14 @@ export class SettingsController {
     return saved;
   }
 
+  /** The store apps show the download button only when downloads are on. */
+  @Public()
+  @Get('settings/offline')
+  async getOffline() {
+    const { offlineDownloads, offlineDays } = await this.access.get();
+    return { enabled: offlineDownloads, days: offlineDays };
+  }
+
   @Roles(Role.ADMIN)
   @Get('admin/settings/access')
   getAccess() {
@@ -87,6 +103,8 @@ export class SettingsController {
     const saved = await this.access.set({
       maxDevices: dto.maxDevices,
       defaultMaxViews: dto.defaultMaxViews,
+      offlineDownloads: dto.offlineDownloads,
+      offlineDays: dto.offlineDays,
     });
     await this.audit.record(this.prisma, {
       actorId: actor.id,

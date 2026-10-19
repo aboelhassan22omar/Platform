@@ -98,7 +98,9 @@ export class DevicesService {
     const deviceId = await this.prisma.$transaction(async (tx) => {
       // One registration per account at a time, so two new browsers signing in
       // together cannot both take the last free place.
-      await tx.$queryRaw`SELECT id FROM users WHERE id = ${user.id} FOR UPDATE`;
+      const locked = await tx.$queryRaw<Array<{ deviceLimitExempt: boolean }>>`
+        SELECT "deviceLimitExempt" FROM users WHERE id = ${user.id} FOR UPDATE`;
+      const exempt = Boolean(locked?.[0]?.deviceLimitExempt);
       const existing = await tx.userDevice.findUnique({
         where: { userId_tokenHash: { userId: user.id, tokenHash } },
         select: { id: true },
@@ -108,7 +110,7 @@ export class DevicesService {
         return existing.id;
       }
 
-      if (user.role === Role.STUDENT) {
+      if (user.role === Role.STUDENT && !exempt) {
         const { maxDevices } = await this.access.get();
         if (maxDevices > 0) {
           const count = await tx.userDevice.count({ where: { userId: user.id } });
@@ -137,15 +139,36 @@ export class DevicesService {
   }
 
   async list(userId: string) {
-    const [devices, { maxDevices }] = await Promise.all([
+    const [devices, { maxDevices }, user] = await Promise.all([
       this.prisma.userDevice.findMany({
         where: { userId },
         orderBy: { lastSeenAt: 'desc' },
         select: { id: true, label: true, ip: true, firstSeenAt: true, lastSeenAt: true },
       }),
       this.access.get(),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { deviceLimitExempt: true } }),
     ]);
-    return { limit: maxDevices, devices };
+    const exempt = Boolean(user?.deviceLimitExempt);
+    return { limit: exempt ? 0 : maxDevices, exempt, devices };
+  }
+
+  /** Lifts (or restores) the device limit for one account, e.g. the store reviewers' demo. */
+  async setExempt(input: { actorId: string; userId: string; exempt: boolean; ip?: string }) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: input.userId },
+        data: { deviceLimitExempt: input.exempt },
+      });
+      await this.audit.record(tx, {
+        actorId: input.actorId,
+        action: input.exempt ? 'user.devices.exempted' : 'user.devices.limited',
+        entityType: 'User',
+        entityId: input.userId,
+        targetUserId: input.userId,
+        ip: input.ip,
+      });
+    });
+    return { exempt: input.exempt };
   }
 
   /** Which of the user's devices a request comes from, if any. */

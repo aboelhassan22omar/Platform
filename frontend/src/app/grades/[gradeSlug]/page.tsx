@@ -131,7 +131,8 @@ export default async function GradePage({ params }: PageProps) {
                         <div className="mt-4 flex items-center justify-between border-t border-ivory-200 pt-4">
                           <span className="text-xs text-midnight-400">{course.academicYear}</span>
                           <span className="font-display text-sm font-black text-[var(--accent)]">
-                            استعرض الوحدات والأسعار ←
+                            <span className="web-only">استعرض الوحدات والأسعار ←</span>
+                            <span className="app-only">استعرض الوحدات ←</span>
                           </span>
                         </div>
                       </div>

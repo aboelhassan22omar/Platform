@@ -4,16 +4,23 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { EASE_ENTRANCE } from '@/lib/motion';
 
-const FAQS = [
+/**
+ * `webOnly` answers are about buying and are hidden in the store apps;
+ * `appA` replaces the answer there (see lib/native-app.ts).
+ */
+const FAQS: Array<{ q: string; a: string; appA?: string; webOnly?: boolean }> = [
   {
     q: 'إزاي أبدأ على المنصة؟',
     a: 'اعمل حساب، اختار نظامك التعليمي وصفك الدراسي، وهتلاقي كل كورسات صفك. في حصص مجانية في كل صف تقدر تجربها قبل ما تدفع أي حاجة.',
+    appA: 'اعمل حساب، اختار نظامك التعليمي وصفك الدراسي، وهتلاقي كل كورسات صفك. وفي كل صف حصص مجانية تقدر تتفرج عليها على طول.',
   },
   {
+    webOnly: true,
     q: 'أقدر أشتري حصة واحدة بس؟',
     a: 'أيوه. تقدر تشتري الحصة اللي محتاجها لوحدها، أو تشتري باقة الفصل، أو تشترك بالشهر أو بالسنة وتفتح كل حصص الصف.',
   },
   {
+    webOnly: true,
     q: 'الحصة اللي اشتريتها بتفضل معايا لحد إمتى؟',
     a: 'الحصة اللي بتشتريها لوحدها بتفضل متاحة ليك من غير تاريخ انتهاء. أما الاشتراك الشهري أو السنوي فبيديك وصول طول مدة الاشتراك بس.',
   },
@@ -50,7 +57,7 @@ export function FaqList() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.04, duration: 0.4, ease: EASE_ENTRANCE }}
-              className="overflow-hidden rounded-2xl border border-ivory-300 dark:border-gold-500/20 bg-white dark:bg-midnight-900 shadow-sm"
+              className={`${faq.webOnly ? 'web-only ' : ''}overflow-hidden rounded-2xl border border-ivory-300 dark:border-gold-500/20 bg-white dark:bg-midnight-900 shadow-sm`}
             >
               <h2>
                 <button
@@ -92,7 +99,14 @@ export function FaqList() {
                     className="overflow-hidden"
                   >
                     <p className="border-t border-ivory-200 dark:border-midnight-800 px-5 py-4 leading-relaxed text-midnight-600 dark:text-ivory-300/85">
-                      {faq.a}
+                      {faq.appA ? (
+                        <>
+                          <span className="web-only">{faq.a}</span>
+                          <span className="app-only">{faq.appA}</span>
+                        </>
+                      ) : (
+                        faq.a
+                      )}
                     </p>
                   </motion.div>
                 )}

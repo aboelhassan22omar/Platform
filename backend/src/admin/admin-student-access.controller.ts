@@ -1,7 +1,17 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, Max, Min } from 'class-validator';
 import type { Request } from 'express';
 import { Role } from '../generated/prisma/enums';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -17,6 +27,10 @@ class GrantViewsDto {
   @Min(1, { message: 'زوّد مشاهدة واحدة على الأقل' })
   @Max(20, { message: 'أقصى زيادة 20 مشاهدة مرة واحدة' })
   views!: number;
+}
+
+class DeviceExemptDto {
+  @IsBoolean() exempt!: boolean;
 }
 
 /**
@@ -68,6 +82,25 @@ export class AdminStudentAccessController {
   ) {
     await this.assertStudent(id);
     return this.devices.remove({ actorId: actor.id, userId: id, ip: req.ip });
+  }
+
+  /** Only the owner: an exempt account can be shared freely. */
+  @Put('devices/exempt')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'إلغاء حد الأجهزة لحساب (حساب مراجعة المتاجر)' })
+  async setDeviceExempt(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: DeviceExemptDto,
+    @Req() req: Request,
+  ) {
+    await this.assertStudent(id);
+    return this.devices.setExempt({
+      actorId: actor.id,
+      userId: id,
+      exempt: dto.exempt,
+      ip: req.ip,
+    });
   }
 
   @Get('views')

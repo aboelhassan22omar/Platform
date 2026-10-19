@@ -150,12 +150,18 @@ export function DashboardOverview() {
             <>
               <div>
                 <p className="text-sm font-bold text-ivory-50">مفيش اشتراك فعّال</p>
-                <p className="mt-0.5 text-xs text-ivory-200/65">
+                <p className="web-only mt-0.5 text-xs text-ivory-200/65">
                   اشترك وافتح كل حصص صفك، أو اشترِ الحصص اللي محتاجها.
                 </p>
+                <p className="app-only mt-0.5 text-xs text-ivory-200/65">
+                  الحصص المجانية والحصص المتاحة في حسابك تلاقيها في صفحة صفك.
+                </p>
               </div>
-              <ButtonLink href="/grades" variant="accent" size="sm">
+              <ButtonLink href="/grades" variant="accent" size="sm" className="web-only">
                 اشترك دلوقتي
+              </ButtonLink>
+              <ButtonLink href="/grades" variant="accent" size="sm" className="app-only">
+                تصفّح الحصص
               </ButtonLink>
             </>
           )}
